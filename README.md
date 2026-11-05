@@ -88,7 +88,7 @@ Solo administrator. Una riga per ogni griglia dell'applicazione (Offerte, Accoun
 | Modello Word con segnaposto + riempimento | verificato con una versione Python equivalente e resa in PDF |
 | Logica JS del wizard | testata con node (`node tools/test_wizard_core.js`) e verificata visivamente con API simulate |
 | Logica JS delle griglie (filtri, ordinamenti, pivot, totali) | testata con node (`node tools/test_grid_core.js`) e verificata visivamente con API simulate (`tools/make_grid_preview.py`) |
-| **Codice Java (Spring Boot), SQL, template Thymeleaf** | **non compilato né eseguito**: l'ambiente di sviluppo non aveva JDK 21, Maven né rete. Rivisto a mano da due letture indipendenti. Aspettarsi qualche correzione al primo `mvn package` / primo avvio |
+| **Codice Java (Spring Boot), SQL, template Thymeleaf** | **non compilato né eseguito**: l'ambiente di sviluppo non aveva JDK 25, Maven né rete. Rivisto a mano da due letture indipendenti. Aspettarsi qualche correzione al primo `mvn package` / primo avvio |
 
 Primo passo consigliato: `mvn clean package` (esegue anche `PricingGoldenTest` e `RuleCheckerTest`), poi avvio con
 `cpqia.dev-login=true` per provare l'interfaccia senza configurare Google/Apple.

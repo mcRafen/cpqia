@@ -66,17 +66,17 @@ public class GalileoRepository {
     public Optional<Profile> profile(long id) {
         record Row(long id, long applicationId, String kind, String label, String sheet, BigDecimal cfgV9, BigDecimal cfgV11,
                    BigDecimal disc, BigDecimal discNew, boolean v11d, BigDecimal consDiv, BigDecimal mc, BigDecimal mv, BigDecimal m9,
-                   Integer maxUsers, boolean agg, boolean pro, BigDecimal maint) {
+                   Integer maxUsers, boolean agg, boolean pro, BigDecimal maint, BigDecimal red) {
         }
         Optional<Row> r = jdbc.sql("""
                 select p.id, p.application_id, p.kind, p.label, p.source_sheet, p.cfg_v9, p.cfg_v11, p.module_discount_pct, p.new_discount_pct,
                        p.v11_discount, p.cons_divisor, p.mig_carattere_pct, p.mig_visuale_pct, p.mig_v9_flat, p.max_users,
-                       p.aggiunta_supported, p.pro_rata_below_first, a.maintenance_pct
+                       p.aggiunta_supported, p.pro_rata_below_first, a.maintenance_pct, a.additional_reduction_pct
                 from galileo_profile p join application a on a.id = p.application_id
                 where p.id = :id and a.deleted_at is null""").param("id", id)
                 .query((rs, n) -> new Row(rs.getLong(1), rs.getLong(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getBigDecimal(6),
                         rs.getBigDecimal(7), rs.getBigDecimal(8), rs.getBigDecimal(9), rs.getBoolean(10), rs.getBigDecimal(11), rs.getBigDecimal(12),
-                        rs.getBigDecimal(13), rs.getBigDecimal(14), (Integer) rs.getObject(15), rs.getBoolean(16), rs.getBoolean(17), rs.getBigDecimal(18)))
+                        rs.getBigDecimal(13), rs.getBigDecimal(14), (Integer) rs.getObject(15), rs.getBoolean(16), rs.getBoolean(17), rs.getBigDecimal(18), rs.getBigDecimal(19)))
                 .optional();
         if (r.isEmpty()) {
             return Optional.empty();
@@ -99,7 +99,7 @@ public class GalileoRepository {
                 .query((rs, n) -> new Mod(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6),
                         rs.getBoolean(7), rs.getBigDecimal(8), rs.getBigDecimal(9), rs.getBigDecimal(10), rs.getInt(11))).list();
         return Optional.of(new Profile(p.id(), p.applicationId(), p.kind(), p.label(), p.sheet(), p.cfgV9(), p.cfgV11(), p.disc(), p.discNew(),
-                p.v11d(), p.consDiv(), p.mc(), p.mv(), p.m9(), p.maxUsers(), p.agg(), p.pro(), p.maint(), tiers, mods));
+                p.v11d(), p.consDiv(), p.mc(), p.mv(), p.m9(), p.maxUsers(), p.agg(), p.pro(), p.maint(), tiers, mods, p.red()));
     }
 
     /** vincoli (prerequisiti) dei moduli dell'applicazione */

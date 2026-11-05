@@ -40,24 +40,28 @@ public class CatalogAdminRepository {
         BigDecimal pct = dec(p.get("maintenancePct"), new BigDecimal("18"));
         boolean active = flag(p, "active");
         boolean review = flag(p, "needsReview");
+        BigDecimal reduction = decOrNull(p.get("additionalReductionPct"));            // facoltativa: vuoto = nessuna riduzione
+        if (reduction != null && (reduction.signum() < 0 || reduction.compareTo(new BigDecimal("100")) > 0)) {
+            throw new IllegalArgumentException("Riduzione su moduli aggiuntivi: valore tra 0 e 100");
+        }
         long out;
         if (id == null) {
             out = jdbc.sql("""
-                    insert into application (code, name, family, description, maintenance_pct, needs_review, notes, active, sort_order)
-                    values (:code, :name, :fam, :descr, :pct, :rev, :notes, :act, :sort) returning id""")
+                    insert into application (code, name, family, description, maintenance_pct, needs_review, notes, active, sort_order, additional_reduction_pct)
+                    values (:code, :name, :fam, :descr, :pct, :rev, :notes, :act, :sort, :red) returning id""")
                     .param("code", req(p, "code")).param("name", req(p, "name")).param("fam", nz(p.get("family")))
                     .param("descr", nz(p.get("description"))).param("pct", pct).param("rev", review)
-                    .param("notes", nz(p.get("notes"))).param("act", active).param("sort", intv(p.get("sortOrder"), 1000))
+                    .param("notes", nz(p.get("notes"))).param("act", active).param("sort", intv(p.get("sortOrder"), 1000)).param("red", reduction)
                     .query(Long.class).single();
         } else {
             jdbc.sql("""
                     update application set code = :code, name = :name, family = :fam, description = :descr,
                         maintenance_pct = :pct, needs_review = :rev, notes = :notes, active = :act,
-                        sort_order = coalesce(:sort, sort_order)
+                        sort_order = coalesce(:sort, sort_order), additional_reduction_pct = :red
                     where id = :id""")
                     .param("code", req(p, "code")).param("name", req(p, "name")).param("fam", nz(p.get("family")))
                     .param("descr", nz(p.get("description"))).param("pct", pct).param("rev", review)
-                    .param("notes", nz(p.get("notes"))).param("act", active).param("sort", intOrNull(p.get("sortOrder")))
+                    .param("notes", nz(p.get("notes"))).param("act", active).param("sort", intOrNull(p.get("sortOrder"))).param("red", reduction)
                     .param("id", id).update();
             out = id;
         }
@@ -317,5 +321,10 @@ public class CatalogAdminRepository {
 
     private static BigDecimal decOrNull(String s) {
         return s == null || s.isBlank() ? null : new BigDecimal(s.trim().replace(',', '.'));
+    }
+
+    /** «Riduzione su moduli aggiuntivi» (%) dell'applicazione, null se non impostata */
+    public BigDecimal additionalReduction(long appId) {
+        return jdbc.sql("select additional_reduction_pct from application where id = :id").param("id", appId).query(BigDecimal.class).optional().orElse(null);
     }
 }

@@ -359,6 +359,7 @@
       const tb = this.el.querySelector('tbody');
       tb.querySelectorAll('tr.cg-grp').forEach((tr) => tr.addEventListener('click', () => { const p = tr.dataset.path; if (this.collapsed[p]) delete this.collapsed[p]; else this.collapsed[p] = true; this.renderBody(); }));
       tb.querySelectorAll('td.ed').forEach((td) => { if (td.dataset.k && !['bool', 'multi'].includes(this.col(td.dataset.k).type)) td.addEventListener('dblclick', () => this.startEdit(td)); });
+      tb.querySelectorAll('td.ed').forEach((td) => { if (td.dataset.k && !['bool', 'multi'].includes(this.col(td.dataset.k).type)) td.addEventListener('click', (e) => { if (!e.target.closest('.cg-fill') && !td.querySelector('.cg-editor')) this.selectAnchor(td); }); });
       tb.querySelectorAll('input.cg-bool').forEach((cb) => cb.addEventListener('change', () => this.commit(cb.closest('tr').dataset.id, cb.dataset.k, cb.checked, cb)));
       tb.querySelectorAll('input.cg-selrow').forEach((cb) => cb.addEventListener('change', () => {
         const id = cb.closest('tr').dataset.id;
@@ -434,6 +435,74 @@
       };
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); ok(); } else if (e.key === 'Escape') { e.preventDefault(); cancel(); } });
       input.addEventListener('blur', () => setTimeout(() => { if (!done) { if (td.classList.contains('bad')) cancel(); else ok(); } }, 120));
+    }
+
+    // ------------------------------------------------------------------ trascinamento del valore (come «maniglia di riempimento» di Excel)
+    /** seleziona la cella e mostra la maniglia in basso a destra: trascinandola verso il basso (o l'alto) il valore viene copiato nelle righe attraversate */
+    selectAnchor(td) {
+      if (!this.bh.inlineEdit) return;                         // «Modifica in griglia» spenta: niente selezione né maniglia
+      this.el.querySelectorAll('td.cg-anchor').forEach((x) => { x.classList.remove('cg-anchor'); const h = x.querySelector('.cg-fill'); if (h) h.remove(); });
+      td.classList.add('cg-anchor');
+      const h = document.createElement('span');
+      h.className = 'cg-fill'; h.title = 'Trascina per copiare il valore nelle righe sotto';
+      td.appendChild(h);
+      h.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); this.startFill(td, e); });
+    }
+
+    startFill(td, ev) {
+      const tb = this.el.querySelector('tbody'), key = td.dataset.k, srcId = td.closest('tr').dataset.id;
+      const trs = Array.from(tb.querySelectorAll('tr[data-id]'));
+      const from = trs.findIndex((t) => t.dataset.id === String(srcId));
+      let to = from;
+      const mark = () => {
+        tb.querySelectorAll('td.cg-fillrange').forEach((x) => x.classList.remove('cg-fillrange'));
+        const a = Math.min(from, to), b = Math.max(from, to);
+        for (let i = a; i <= b; i++) if (i !== from) { const c = trs[i].querySelector('td[data-k="' + key + '"]'); if (c) c.classList.add('cg-fillrange'); }
+      };
+      const move = (e) => {
+        const el = document.elementFromPoint(e.clientX, e.clientY), tr = el && el.closest ? el.closest('tr[data-id]') : null;
+        if (!tr) return;
+        const i = trs.indexOf(tr);
+        if (i >= 0 && i !== to) { to = i; mark(); }
+      };
+      const up = async () => {
+        document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+        document.body.classList.remove('cg-filling');
+        tb.querySelectorAll('td.cg-fillrange').forEach((x) => x.classList.remove('cg-fillrange'));
+        if (to === from) return;
+        const a = Math.min(from, to), b = Math.max(from, to);
+        const ids = []; for (let i = a; i <= b; i++) if (i !== from) ids.push(trs[i].dataset.id);
+        await this.fillCells(srcId, key, ids);
+      };
+      document.body.classList.add('cg-filling');
+      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+    }
+
+    /** copia il valore della cella sorgente nella stessa colonna delle righe indicate (una modifica alla volta, con gli stessi controlli della modifica in cella) */
+    async fillCells(srcId, key, ids) {
+      if (!this.bh.inlineEdit) return;
+      const c = this.col(key), src = this.rowById(srcId);
+      if (!src) return;
+      const val = String(makeInput(c, src[key]).value == null ? '' : makeInput(c, src[key]).value);
+      const err = this.localCheck(c, val);
+      if (err) { window.toast(err, true); return; }
+      let n = 0;
+      try {
+        for (const id of ids) {
+          const row = this.rowById(id);
+          if (!row) continue;
+          const cur = row[key] == null ? '' : String(row[key]);
+          if (cur.trim() === val.trim() || (G.isNumeric(c) && G.parseNum(val) != null && Number(G.parseNum(val)) === Number(row[key]))) continue;
+          const upd = await CPQ.api('PATCH', this.base + '/' + encodeURIComponent(id), { field: key, value: val });
+          const i = this.rows.findIndex((r) => String(r.id) === String(id));
+          if (i >= 0) this.rows[i] = upd;
+          n++;
+        }
+        window.toast(n ? 'Valore copiato in ' + n + (n === 1 ? ' riga' : ' righe') : 'Nessuna riga da aggiornare');
+      } catch (e) {
+        window.toast((n ? 'Copiate ' + n + ' righe, poi: ' : '') + e.message, true);
+      }
+      this.renderBody();
     }
 
     localCheck(c, v) {

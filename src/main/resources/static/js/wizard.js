@@ -353,6 +353,7 @@
     });
     $('#totalbar').hidden = n === 1 || n === 6;
     if (n === 5) renderServices();
+    if (n === 9) renderSmitech();
     if (n === 6) renderProfileRates();
     if (n === 8) galEnter();
     if (n === 3) renderExtras();
@@ -406,7 +407,7 @@
     renderPowerOptions();
     $('#pw-users').value = S.powerUsers; $('#pw-unlimited').checked = S.powerUnlimited; $('#pw-users').disabled = S.powerUnlimited;
     $('#pw-lto8').checked = S.powerLto8; $('#pw-eth10').checked = S.powerEth10;
-    syncPowerUsers();
+    syncPowerUsers(); syncSmitechMode(false);
     $('#pw-cable').value = S.powerCable; $('#pw-edition').value = S.powerEdition; $('#pw-os').value = S.powerOs; $('#pw-disks').value = S.powerDisks; renderMaintBtn(); renderAmtSummary(); $('#pw-transfer').value = S.powerTransfer;
     $('#pw-tref').value = S.powerTransferRef; $('#pw-tref-box').hidden = S.powerTransfer === 'NO';
     $('#pw-cable-box').hidden = S.powerLto8;                  // con LTO8 il cavo di collegamento non si sceglie
@@ -634,7 +635,8 @@
     S.lines.forEach((l) => {
       const ap = appOf(l.applicationId); if (!ap) return;
       ap.drivers.forEach((d) => {
-        if (!C.driverIsFree(ap, d) && !((l.drivers[d.id] || 0) >= 1)) {
+        const needed = ap.family !== 'SMITECH' || ap.groups.filter((g) => g.driverId === d.id).some((g) => ap.modules.some((m) => m.groupId === g.id && l.modules[m.id] > 0));
+        if (needed && !C.driverIsFree(ap, d) && !((l.drivers[d.id] || 0) >= 1)) {
           add(2, 'users', '#apps-body .drv-in[data-drv="' + d.id + '"]', ap.name + ': indica il numero di ' + (d.unitLabel || d.label || 'utenti').toLowerCase(), () => { expanded.add(ap.id); });
         }
       });
@@ -727,7 +729,7 @@
     if (filter.onlySel && filter.family && !withSel.has(filter.family)) filter.family = '';
     renderFamilies();
     catalog.forEach((a) => {
-      if (a.family === GALILEO) return;                // i mercati Galileo si scelgono nella pagina Contenuti
+      if (a.family === GALILEO || a.family === 'SMITECH') return;                // i mercati Galileo si scelgono nella pagina Contenuti, i servizi SMITECH nella loro pagina
       const sel = lineOf(a.id);
       if (filter.family && a.family !== filter.family && !sel) return;
       if (filter.onlySel && !withSel.has(a.family)) return;
@@ -930,6 +932,15 @@
       const [kind, id] = td.dataset.amt.split(':'); const lc = lineCalc(Number(id));
       td.textContent = lc ? CPQ.eur(kind === 'lic' ? lc.licenseTotal : lc.maintenance) : '';
     });
+    // «Totali Dipartimentali»: solo le applicazioni a catalogo (senza Galileo)
+    const dl = calc ? calc.totalLicense : 0, dm = calc ? calc.totalMaintenance : 0;
+    $('#dip-t-list').textContent = CPQ.eur(dl);
+    $('#dip-t-maint').textContent = CPQ.eur(dm);
+    $('#dip-t-note').textContent = S.lines.length ? S.lines.length + (S.lines.length === 1 ? ' applicazione' : ' applicazioni') : '';
+    $('#dip-lines').innerHTML = S.lines.map((l) => {
+      const lc = lineCalc(l.applicationId), ap = appOf(l.applicationId);
+      return '<tr class="gal-lines"><td>' + esc(ap ? ap.name : '') + '</td><td class="num pr">' + (lc ? CPQ.eur(lc.licenseTotal) : '') + '</td><td class="num pr">' + (lc ? CPQ.eur(lc.maintenance) : '') + '</td></tr>';
+    }).join('');
     const n = nets();
     $('#t-lic').textContent = CPQ.eur(n.tl);
     $('#t-man').textContent = CPQ.eur(n.tm);
@@ -1164,7 +1175,7 @@
     const gt = galileoTotals();
     const galRow = stepVisible(8) && S.gal.calc && S.gal.calc.result && S.gal.calc.result.valid
       ? '<tr><td><b>Galileo</b><div class="hint">' + esc(galProfileLabel()) + '</div></td><td>' + esc(galSelectedText()) + '</td><td>Utenti: <b>' + CPQ.num(Number(S.gal.users) || 0, 0) + '</b></td><td class="num pr">' + CPQ.eur(gt.list) + '</td><td class="num pr">' + CPQ.eur(gt.maint) + '</td></tr>' : '';
-    $('#sum-body').innerHTML = rows + galRow;
+    $('#sum-body').innerHTML = galRow + rows;                                // Galileo, se presente, e' sempre la prima riga
     renderSummaryExtras();
     updateSummaryTotals();
     renderViolations('#sum-violations');
@@ -2063,6 +2074,90 @@
     });
   }
 
+  // ---------------------------------------------------------------- Servizi SMITECH: moduli della famiglia SMITECH con Area applicativa = SMITECH
+  const smitechApp = () => catalog.find((a) => a.code === 'SMITECH' || a.family === 'SMITECH');
+  const SM_KIND = { LICENSE: 'Valore fisso', ANNUAL: 'Canone annuo', MONTHLY: 'Canone mensile', ONETIME: 'Una tantum' };
+  /** con la sezione Power System la classe (P05 / P10) e' quella del gruppo processore del modello scelto, non modificabile */
+  function smitechPowerClass(app) {
+    if (!S.optPower || !S.powerModelId) return null;
+    const cls = String((powerModelOf(S.powerModelId) || {}).processorGroup || '').toUpperCase();
+    return app.modes.some((m) => m.code === cls) ? cls : null;
+  }
+  function syncSmitechMode(recalc) {
+    const app = smitechApp(); if (!app) return;
+    const cls = smitechPowerClass(app); if (!cls) { if (S.step === 9) renderSmitech(); return; }
+    S.smitechMode = cls;
+    const line = lineOf(app.id);
+    if (line && line.modeCode !== cls) { line.modeCode = cls; if (recalc) scheduleCalc(); }
+    if (S.step === 9) renderSmitech();
+  }
+  const smMode = (app, line) => smitechPowerClass(app) || (line && line.modeCode) || S.smitechMode || (app.modes.find((m) => m.preferred) || app.modes[0] || {}).code || null;
+  function smModules(app) { return app.modules.filter((m) => m.area === 'SMITECH' && m.section !== 'LINK'); }
+  /** testo del prezzo: importo del modulo per la classe scelta, oppure «da …» per i moduli a fasce di utenti */
+  function smPriceText(app, m, mode) {
+    if (m.groupId) {
+      const g = app.groups.find((x) => x.id === m.groupId);
+      const prices = g ? g.tiers.map((t) => C.modulePrice({ prices: t.unitByMode || {} }, mode)).filter((v) => v > 0) : [];
+      return prices.length ? 'da ' + CPQ.eur(Math.min.apply(null, prices)) + ' (a fasce di utenti)' : 'a fasce di utenti';
+    }
+    const p = C.modulePrice(m, mode);
+    return m.included ? 'incluso' : (p > 0 ? CPQ.eur(p) : 'da definire');
+  }
+  function renderSmitech() {
+    const app = smitechApp(), body = $('#sm-body'); if (!app || !body) { if (body) body.innerHTML = '<tr><td colspan="5" class="muted">Applicazione SMITECH non presente nell\'anagrafica.</td></tr>'; return; }
+    const line = lineOf(app.id), mode = smMode(app, line);
+    $('#sm-mode-box').hidden = !app.modes.length;
+    const forced = smitechPowerClass(app);
+    $('#sm-mode').disabled = !!forced;
+    const help = $('#sm-mode-help'); help.hidden = !forced; help.textContent = forced ? 'Impostata dal Power System (gruppo processore ' + forced + ')' : '';
+    $('#sm-mode').innerHTML = app.modes.map((m) => '<option value="' + esc(m.code) + '"' + (m.code === mode ? ' selected' : '') + '>' + esc(m.label) + '</option>').join('');
+    const mods = smModules(app);
+    body.innerHTML = mods.length ? mods.map((m) => {
+      const on = !!(line && line.modules[m.id] > 0);
+      const grp = m.groupId ? app.groups.find((x) => x.id === m.groupId) : null;
+      const drv = grp ? app.drivers.find((d) => d.id === grp.driverId) : null;
+      const users = on && drv ? '<div class="mini" style="margin-top:4px"><input type="number" min="0" step="1" class="sm-drv" data-drv="' + drv.id + '" value="' + (line.drivers[drv.id] || 0) + '" aria-label="' + esc(drv.label) + '" style="width:90px"><label>' + esc(drv.unitLabel) + '</label></div>' : '';
+      return '<tr class="' + (on ? 'sel' : '') + '"><td><input type="checkbox" class="sm-chk" data-mod="' + m.id + '"' + (on ? ' checked' : '') + (m.included ? ' disabled' : '') + ' aria-label="Seleziona ' + esc(m.code) + '"></td>' +
+        '<td class="mono"><b>' + esc(m.code) + '</b></td><td>' + esc(m.description) + (m.note ? '<div class="hint">' + esc(m.note) + '</div>' : '') + users + '</td>' +
+        '<td><span class="chip ' + (m.kind === 'LICENSE' ? '' : 'blue') + '">' + esc(SM_KIND[m.kind] || m.kind) + '</span></td>' +
+        '<td class="num pr">' + esc(smPriceText(app, m, mode)) + '</td></tr>';
+    }).join('') : '<tr><td colspan="5" class="muted">Nessun modulo SMITECH con Area applicativa «SMITECH»: imposta l\'area nelle Impostazioni > Applicazioni e moduli.</td></tr>';
+    const vs = violationList().filter((v) => v.applicationId === app.id && v.severity !== 'INFO');
+    $('#sm-violations').innerHTML = vs.map((v) => '<div class="gal-viol ' + (v.severity === 'ERROR' ? 'err' : 'warn') + '">' + esc(v.message) + '</div>').join('');
+  }
+  function bindSmitech() {
+    const body = $('#sm-body'); if (!body) return;
+    body.addEventListener('change', (e) => {
+      const app = smitechApp(); if (!app) return;
+      const chk = e.target.closest('.sm-chk');
+      if (chk) {
+        let line = lineOf(app.id);
+        if (chk.checked && !line) { line = C.newLine(app); line.modeCode = smitechPowerClass(app) || S.smitechMode || line.modeCode; S.lines.push(line); }
+        const r = C.selectModule(catalog, S.lines, app.id, Number(chk.dataset.mod), chk.checked);
+        const msgs = [];
+        if (r.addedModules.length) msgs.push('Aggiunti i prerequisiti: ' + r.addedModules.join(', '));
+        if (r.addedApps.length) msgs.push('Aggiunta all\'offerta anche: ' + r.addedApps.join(', '));
+        if (r.removed.length > 1) msgs.push('Rimossi anche i servizi che li richiedevano: ' + r.removed.slice(1).join(', '));
+        r.ambiguous.forEach((a) => msgs.push('Prerequisito ' + a.code + ': aggiungi una di queste applicazioni (' + a.apps.join(', ') + ')'));
+        if (msgs.length) toast(msgs.join(' · '), r.ambiguous.length > 0);
+        line = lineOf(app.id);
+        if (line && !Object.keys(line.modules).some((k) => line.modules[k] > 0)) S.lines = S.lines.filter((l) => l !== line);          // nessun servizio: l'applicazione esce dall'offerta
+        renderSmitech(); scheduleCalc(); CPQ.markDirty('page', root); refreshStepper(); refreshSaveState();
+      }
+    });
+    body.addEventListener('input', (e) => {
+      const d = e.target.closest('.sm-drv'); if (!d) return;
+      const app = smitechApp(), line = app && lineOf(app.id); if (!line) return;
+      line.drivers[Number(d.dataset.drv)] = Math.max(0, parseInt(d.value || '0', 10) || 0); scheduleCalc(); CPQ.markDirty('page', root);
+    });
+    $('#sm-mode').addEventListener('change', (e) => {
+      const app = smitechApp(), line = app && lineOf(app.id);
+      if (app && smitechPowerClass(app)) return;                         // classe fissata dal Power System
+      S.smitechMode = e.target.value; if (line) line.modeCode = e.target.value;
+      renderSmitech(); scheduleCalc(); CPQ.markDirty('page', root);
+    });
+  }
+
   // ---------------------------------------------------------------- trasferta: distanza dalla sede piu' vicina + tariffa
   function renderTravel() {
     $('#dist-km').textContent = S.distanceKm == null ? '—' : CPQ.num(S.distanceKm, 1) + ' km';
@@ -2160,13 +2255,19 @@
   $('#btn-to2').addEventListener('click', () => go(6));
   $('#btn-back6').addEventListener('click', () => go(1));
   $('#btn-next6').addEventListener('click', () => go(nextStep(6)));
-  $('#opt-smitech').addEventListener('change', (e) => { S.optSmitech = e.target.checked; refreshStepper(); });
+  $('#opt-smitech').addEventListener('change', async (e) => {
+    const app = smitechApp(), line = app && lineOf(app.id);
+    if (!e.target.checked && line && Object.keys(line.modules).length && !(await CPQ.confirm('Senza i servizi SMITECH i servizi selezionati vengono tolti dall\'offerta. Continuare?', { title: 'Servizi SMITECH', yes: 'Sì, togli', no: 'No', danger: true }))) { e.target.checked = true; return; }
+    S.optSmitech = e.target.checked;
+    if (!S.optSmitech && line) { S.lines = S.lines.filter((l) => l !== line); scheduleCalc(); }
+    refreshStepper(); refreshSaveState();
+  });
   $('#opt-power').addEventListener('change', (e) => {
     S.optPower = e.target.checked;
     if (!S.optPower) { S.powerModelId = null; S.powerRam = ''; S.powerDisk = ''; renderPower(); }
-    refreshStepper();
+    refreshStepper(); syncSmitechMode(true);
   });
-  $('#sel-power').addEventListener('change', (e) => { S.powerModelId = e.target.value ? Number(e.target.value) : null; renderPower(); refreshStepper(); });
+  $('#sel-power').addEventListener('change', (e) => { S.powerModelId = e.target.value ? Number(e.target.value) : null; renderPower(); refreshStepper(); syncSmitechMode(true); });
   $('#pw-ram').addEventListener('change', (e) => { S.powerRam = e.target.value; updatePowerLock(); });
   $('#pw-disks').addEventListener('input', (e) => { S.powerDisks = e.target.value.replace(/\D/g, ''); updatePowerLock(); });
   $('#pw-disk').addEventListener('change', (e) => { S.powerDisk = e.target.value; updatePowerLock(); });
@@ -2218,6 +2319,7 @@
   });
   $('#sel-galileo').addEventListener('change', (e) => { S.galileoId = e.target.value ? Number(e.target.value) : null; galReset(); refreshStepper(); });
   bindProfileRates();
+  bindSmitech();
   $('#hd-prev').addEventListener('click', () => go(prevStep(S.step)));
   $('#hd-next').addEventListener('click', () => go(nextStep(S.step)));
   $('#btn-back1').addEventListener('click', () => go(prevStep(2)));

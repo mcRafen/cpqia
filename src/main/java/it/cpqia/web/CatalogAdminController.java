@@ -57,6 +57,7 @@ public class CatalogAdminController {
     public String edit(@PathVariable long id, Model model) {
         model.addAttribute("app", catalog.find(id).orElseThrow());
         model.addAttribute("basePrices", admin.basePrices(id));
+        model.addAttribute("additionalReduction", admin.additionalReduction(id));
         return "admin/application-form";
     }
 

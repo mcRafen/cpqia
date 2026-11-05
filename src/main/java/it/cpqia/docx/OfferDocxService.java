@@ -18,7 +18,10 @@ import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.PackageRelationship;
 import org.apache.poi.openxml4j.opc.TargetMode;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
+import org.apache.poi.xwpf.usermodel.XWPFAbstractNum;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFNum;
+import org.apache.poi.xwpf.usermodel.XWPFNumbering;
 import org.apache.poi.xwpf.usermodel.XWPFPictureData;
 import org.apache.poi.xwpf.usermodel.XWPFFooter;
 import org.apache.poi.xwpf.usermodel.XWPFHeader;
@@ -29,6 +32,7 @@ import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.apache.xmlbeans.XmlObject;
 import org.apache.xmlbeans.impl.xb.xmlschema.SpaceAttribute;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTAbstractNum;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTP;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTR;
@@ -45,6 +49,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.NumberFormat;
@@ -65,7 +70,7 @@ import java.util.HashSet;
  * Genera l'offerta Word assemblando, nell'ordine, i file modello:
  * <pre>
  *   offer-template.docx   copertina ({{TITOLO}}, {{CLIENTE}}, {{INDIRIZZO1/2}}, {{PIVA}}, {{RIF}}, {{DATA}}, {{NUMERO}})
- *   licenze.docx          tabella licenze (righe prototipo {{L_*}}) e totali ({{T_*}}, {{N_*}})
+ *   licenze.docx          (con moduli.docx inserito prima della tabella: famiglie, aree e moduli selezionati, {{M_FAMIGLIA}} {{M_AREA}} {{M_MODULO}} {{M_DESCRIZIONE}}) tabella licenze (righe prototipo {{L_*}}) e totali ({{T_*}}, {{N_*}})
  *   attivita.docx   varie.docx   pagamenti.docx   condizioni-gdpr.docx
  * </pre>
  * Prima di ogni parte agganciata viene inserita un'interruzione di pagina (non serve dopo la copertina, che termina
@@ -172,6 +177,7 @@ public class OfferDocxService {
                 .param("id", h.id()).query(LineRow.class).list();
 
         List<TableLine> tableLines = new ArrayList<>();
+        List<String> lineFamilies = new ArrayList<>();            // famiglia di ogni riga, per ordinare la tabella come l'elenco dei moduli
         BigDecimal totLic = BigDecimal.ZERO;
         BigDecimal totMan = BigDecimal.ZERO;
         for (LineRow l : lines) {
@@ -186,6 +192,7 @@ public class OfferDocxService {
                 drivers.put(d.driverId(), d.qty());
             }
             tableLines.add(new TableLine(codes, descr, eur(l.licenseAmount()), eur(l.maintenanceAmount()), seatsText(app, drivers)));
+            lineFamilies.add(app.family() == null || app.family().isBlank() ? app.name() : app.family().trim());
             totLic = totLic.add(l.licenseAmount());
             totMan = totMan.add(l.maintenanceAmount());
         }
@@ -199,10 +206,23 @@ public class OfferDocxService {
                         rs.getString("label"), rs.getString("market"))).optional().orElse(null);
         if (gal != null && gal.list() != null) {
             BigDecimal gm = gal.maint() == null ? BigDecimal.ZERO : gal.maint();
-            tableLines.add(new TableLine(List.of("GALILEO"), List.of(gal.market() + " – " + gal.label()), eur(gal.list()), eur(gm), gal.users() + " utenti"));
+            tableLines.add(0, new TableLine(List.of("GALILEO"), List.of(gal.market() + " – " + gal.label()), eur(gal.list()), eur(gm), gal.users() + " utenti"));
+            lineFamilies.add(0, "JGALILEO");
             totLic = totLic.add(gal.list());
             totMan = totMan.add(gm);
         }
+
+        // Galileo e SMITECH per primi (uno di seguito all'altro), poi le altre applicazioni nell'ordine della selezione dei Dipartimentali
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < tableLines.size(); i++) {
+            order.add(i);
+        }
+        order.sort(java.util.Comparator.comparingInt(i -> "JGALILEO".equals(lineFamilies.get(i)) ? 0 : "SMITECH".equals(lineFamilies.get(i)) ? 1 : 2));       // ordinamento stabile
+        List<TableLine> sortedLines = new ArrayList<>();
+        for (int i : order) {
+            sortedLines.add(tableLines.get(i));
+        }
+        tableLines = sortedLines;
 
         PowerRow power = h.optPowerSystem() && h.powerModelId() != null ? powerModel(h.powerModelId()) : null;
         Map<String, String> tokens = new LinkedHashMap<>();
@@ -274,6 +294,8 @@ public class OfferDocxService {
             BigDecimal activitiesTotal = null;
             List<ActRow> activityRows = loadActivityRows(h);
 
+            Map<String, Map<String, List<String[]>>> moduleFamilies = loadModuleFamilies(h, lines);
+
             String prevKey = "";                               // hardware e software Power seguono il documento precedente senza salto pagina
             for (int idx = 0; idx < PARTS.size(); idx++) {
                 Part pt = PARTS.get(idx);
@@ -302,6 +324,7 @@ public class OfferDocxService {
                             fillTotals(part.getTables().get(1), eur(totLic), eur(totMan), eur(netLic), eur(netMan), hasDiscount);
                             replaceEverywhere(part, tokens);
                             elems = trimToOwnPart(part.getBodyElements(), idx);
+                            elems = withModuleList(doc, elems, moduleFamilies);      // elenco dei moduli appena prima della tabella degli importi
                         }
                         case "attivita" -> {
                             activitiesTotal = fillActivityTables(part, activityRows, h.activityDiscountPct(), h.optActivityDetail(), h.optServicesDays(), h.appTotalsMode(), tokens);
@@ -361,9 +384,10 @@ public class OfferDocxService {
                     }
                     boolean hardware = ("power-hardware".equals(pt.key()) && "power-model".equals(prevKey))
                             || ("power-software".equals(pt.key()) && "power-hardware".equals(prevKey))
+                            || "power-manutenzione".equals(pt.key())                                           // manutenzione: di seguito, senza salto pagina
                             || ("power-licenze".equals(pt.key()) && "power-manutenzione".equals(prevKey))
                             || "power-solution".equals(pt.key()) || "power-migrazione".equals(pt.key())
-                            || "power-nvme".equals(pt.key()) || "power-smaltimento".equals(pt.key());       // power-transfer: pagina nuova     // la manutenzione hardware va in una pagina nuova; le chiavi di licenza la seguono con una riga vuota
+                            || "power-nvme".equals(pt.key()) || "power-smaltimento".equals(pt.key());       // power-transfer: pagina nuova     // le chiavi di licenza seguono la manutenzione con una riga vuota
                     if (hardware) {
                         doc.createParagraph();            // tabella hardware di seguito al documento del modello: solo una riga vuota, nessun salto pagina
                         if ("power-licenze".equals(pt.key()) || "power-solution".equals(pt.key())
@@ -613,6 +637,176 @@ public class OfferDocxService {
             String suffix = q > 1 ? " (x " + q + ")" : "";
             codes.add(m.codeForPrint());
             descr.add(m.codeForPrint() + " - " + m.description().trim() + suffix);
+        }
+    }
+
+    /**
+     * Famiglie → aree → moduli (codice, descrizione) selezionati nell'offerta: prima Galileo (famiglia «JGALILEO»: moduli della configurazione
+     * base, release V11 e moduli scelti), poi i Dipartimentali raggruppati per famiglia dell'applicazione. L'area e' quella del modulo,
+     * in mancanza il nome dell'applicazione.
+     */
+    private Map<String, Map<String, List<String[]>>> loadModuleFamilies(OfferHeader h, List<LineRow> lines) {
+        Map<String, Map<String, List<String[]>>> out = new LinkedHashMap<>();
+        List<String[]> gal = jdbc.sql("""
+                select m.code, m.print_code, m.description, coalesce(m.area, '') as area
+                from offer_galileo og join galileo_module gm on gm.profile_id = og.profile_id
+                join module m on m.id = gm.module_id
+                where og.offer_id = :o
+                  and (gm.flag = 'CB' or (gm.flag = 'V11' and og.release = 'V11')
+                       or exists (select 1 from offer_galileo_module x where x.offer_id = og.offer_id and x.module_id = gm.module_id))
+                order by gm.sheet_order, m.id""")
+                .param("o", h.id())
+                .query((rs, n) -> new String[]{rs.getString("print_code") != null && !rs.getString("print_code").isBlank() ? rs.getString("print_code") : rs.getString("code"),
+                        rs.getString("description") == null ? "" : rs.getString("description").trim(), rs.getString("area")}).list();
+        Set<String> seen = new HashSet<>();
+        for (String[] g : gal) {
+            if (seen.add(g[0])) {
+                out.computeIfAbsent("JGALILEO", k -> new LinkedHashMap<>())
+                        .computeIfAbsent(g[2].isBlank() ? "Moduli" : g[2], k -> new ArrayList<>()).add(new String[]{g[0], g[1]});
+            }
+        }
+        for (LineRow l : lines) {
+            App app = catalog.find(l.applicationId()).orElseThrow();
+            Set<Long> sel = new HashSet<>();
+            for (ModRow r : jdbc.sql("select module_id, qty from offer_line_module where line_id = :l").param("l", l.id()).query(ModRow.class).list()) {
+                sel.add(r.moduleId());
+            }
+            String family = app.family() == null || app.family().isBlank() ? app.name() : app.family().trim();
+            for (Module m : app.modules()) {
+                if (!sel.contains(m.id())) {
+                    continue;
+                }
+                String area = m.area() == null || m.area().isBlank() ? app.name() : m.area().trim();
+                out.computeIfAbsent(family, k -> new LinkedHashMap<>()).computeIfAbsent(area, k -> new ArrayList<>())
+                        .add(new String[]{m.codeForPrint(), m.description() == null ? "" : m.description().trim()});
+            }
+        }
+        if (out.containsKey("SMITECH") && out.containsKey("JGALILEO")) {         // SMITECH subito dopo Galileo
+            Map<String, Map<String, List<String[]>>> sorted = new LinkedHashMap<>();
+            sorted.put("JGALILEO", out.get("JGALILEO"));
+            sorted.put("SMITECH", out.get("SMITECH"));
+            out.forEach(sorted::putIfAbsent);
+            return sorted;
+        }
+        return out;
+    }
+
+    /** inserisce l'elenco famiglie / aree / moduli (modello moduli.docx) subito prima della prima tabella della parte «licenze» */
+    private List<IBodyElement> withModuleList(XWPFDocument main, List<IBodyElement> elems, Map<String, Map<String, List<String[]>>> families) throws IOException {
+        if (families.isEmpty()) {
+            return elems;
+        }
+        try (InputStream in = openTemplate(List.of("moduli.docx"))) {
+            if (in == null) {
+                return elems;
+            }
+            // il documento del modello resta aperto finche' appendPart non ha copiato i paragrafi generati
+            XWPFDocument mod = new XWPFDocument(in);
+            List<IBodyElement> list = fillModuleList(main, mod, families);
+            if (list.isEmpty()) {
+                return elems;
+            }
+            list.add(mod.createParagraph());                  // riga vuota prima della tabella
+            List<IBodyElement> out = new ArrayList<>(elems);
+            int at = 0;
+            while (at < out.size() && !(out.get(at) instanceof XWPFTable)) {
+                at++;
+            }
+            out.addAll(at, list);
+            return out;
+        }
+    }
+
+    /** costruisce nel modello moduli.docx i paragrafi famiglia / area (elenco puntato) / modulo clonando i tre paragrafi prototipo */
+    private List<IBodyElement> fillModuleList(XWPFDocument main, XWPFDocument part, Map<String, Map<String, List<String[]>>> families) {
+        CTP famProto = null;
+        CTP areaProto = null;
+        CTP modProto = null;
+        for (IBodyElement e : part.getBodyElements()) {
+            if (e instanceof XWPFParagraph p) {
+                String t = p.getText();
+                if (t.contains("{{M_FAMIGLIA}}")) {
+                    famProto = p.getCTP();
+                } else if (t.contains("{{M_AREA}}")) {
+                    areaProto = p.getCTP();
+                } else if (t.contains("{{M_MODULO}}")) {
+                    modProto = p.getCTP();
+                }
+            }
+        }
+        if (famProto == null || areaProto == null || modProto == null) {
+            return new ArrayList<>();
+        }
+        CTP fam = (CTP) famProto.copy();
+        CTP area = (CTP) areaProto.copy();
+        CTP mod = (CTP) modProto.copy();
+        BigInteger numId = importBulletNumbering(main, part, area);
+        // prototipi: via dal corpo del modello (restano solo i paragrafi generati)
+        for (int i = part.getBodyElements().size() - 1; i >= 0; i--) {
+            if (part.getBodyElements().get(i) instanceof XWPFParagraph) {
+                part.removeBodyElement(i);
+            }
+        }
+        List<IBodyElement> out = new ArrayList<>();
+        boolean firstFamily = true;
+        for (Map.Entry<String, Map<String, List<String[]>>> f : families.entrySet()) {
+            CTP pf = (CTP) fam.copy();
+            setParagraphText(pf, f.getKey());
+            CTPPr fp = pf.isSetPPr() ? pf.getPPr() : pf.addNewPPr();
+            fp.addNewKeepNext();
+            fp.addNewSpacing().setBefore(BigInteger.valueOf(firstFamily ? 240 : 480));
+            firstFamily = false;
+            out.add(addParagraph(part, pf));
+            for (Map.Entry<String, List<String[]>> a : f.getValue().entrySet()) {
+                CTP pa = (CTP) area.copy();
+                setParagraphText(pa, a.getKey());
+                if (numId != null && pa.isSetPPr() && pa.getPPr().isSetNumPr()) {
+                    pa.getPPr().getNumPr().getNumId().setVal(numId);
+                }
+                pa.getPPr().addNewKeepNext();
+                out.add(addParagraph(part, pa));
+                for (String[] m : a.getValue()) {
+                    CTP pm = (CTP) mod.copy();
+                    setParagraphText(pm, m[1].isBlank() ? m[0] : m[0] + " - " + m[1]);
+                    out.add(addParagraph(part, pm));
+                }
+            }
+        }
+        return out;
+    }
+
+    private static XWPFParagraph addParagraph(XWPFDocument doc, CTP src) {
+        XWPFParagraph np = doc.createParagraph();
+        np.getCTP().set(src);
+        return np;
+    }
+
+    /** copia nel documento principale la definizione dell'elenco puntato usata dal paragrafo e restituisce il nuovo numId (null = invariato) */
+    private static BigInteger importBulletNumbering(XWPFDocument main, XWPFDocument part, CTP para) {
+        try {
+            if (!para.isSetPPr() || !para.getPPr().isSetNumPr() || part.getNumbering() == null) {
+                return null;
+            }
+            BigInteger oldId = para.getPPr().getNumPr().getNumId().getVal();
+            XWPFNum num = part.getNumbering().getNum(oldId);
+            if (num == null) {
+                return null;
+            }
+            XWPFAbstractNum abs = part.getNumbering().getAbstractNum(num.getCTNum().getAbstractNumId().getVal());
+            if (abs == null) {
+                return null;
+            }
+            XWPFNumbering dst = main.getNumbering() != null ? main.getNumbering() : main.createNumbering();
+            CTAbstractNum copy = (CTAbstractNum) abs.getCTAbstractNum().copy();
+            BigInteger absId = BigInteger.valueOf(900);
+            while (dst.getAbstractNum(absId) != null) {
+                absId = absId.add(BigInteger.ONE);
+            }
+            copy.setAbstractNumId(absId);
+            absId = dst.addAbstractNum(new XWPFAbstractNum(copy));
+            return dst.addNum(absId);
+        } catch (RuntimeException ex) {
+            return null;                                  // resta il numId originale: nel peggiore dei casi punto/numerazione dell'elenco del modello base
         }
     }
 

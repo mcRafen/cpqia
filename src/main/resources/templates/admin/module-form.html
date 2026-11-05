@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Modulo')}"></head>
 <body>
 <div th:replace="~{fragments/layout :: shell('apps')}"></div>
-<main class="content"><div class="inner" style="max-width:980px">
+<main class="content mod-page"><div class="inner">
     <div th:replace="~{fragments/layout :: settingsTabs('apps')}"></div>
     <div class="pagehead">
         <a class="btn icon" th:href="@{/admin/applications/{id}(id=${app.id})}" title="Torna all'applicazione"><svg class="ic"><use href="#i-back"/></svg></a>

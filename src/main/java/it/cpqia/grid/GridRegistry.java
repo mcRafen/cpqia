@@ -204,6 +204,7 @@ public class GridRegistry {
                 .col(c("family", "Famiglia", "coalesce(a.family, '')").edit("family").maxLen(60).width(140))
                 .col(c("modules", "Moduli", "(select count(*) from module m where m.application_id = a.id and m.deleted_at is null)").type("int").agg("sum").width(90))
                 .col(c("maintenancePct", "Manut. %", "a.maintenance_pct").type("percent").edit("maintenance_pct").range(0d, 100d).width(90))
+                .col(c("additionalReductionPct", "Riduz. moduli agg. %", "a.additional_reduction_pct").type("percent").edit("additional_reduction_pct").range(0d, 100d).width(130))
                 .col(c("needsReview", "Da verificare", "a.needs_review").type("bool").width(100))
                 .col(c("active", "Attiva", "a.active").type("bool").edit("active").width(80))
                 .col(c("sortOrder", "Ordine", "a.sort_order").type("int").edit("sort_order").width(80).service())

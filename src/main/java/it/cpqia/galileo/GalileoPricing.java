@@ -98,14 +98,21 @@ public final class GalileoPricing {
     }
 
     private static Result result(Profile p, BigDecimal raw, List<Line> lines) {
-        BigDecimal list = raw.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal list = r2(raw);                          // importo licenze all'intero (arrotondamento matematico), sempre con due decimali
         BigDecimal maint = list.multiply(p.maintenancePct()).divide(HUNDRED, 2, RoundingMode.HALF_UP);
         BigDecimal rent = list.add(maint.multiply(FOUR)).divide(FORTY_EIGHT, 2, RoundingMode.HALF_UP);
         return new Result(true, null, list, maint, rent, rent.multiply(new BigDecimal("12")), lines);
     }
 
+    /** valore dei moduli ridotto della percentuale «Riduzione su moduli aggiuntivi» dell'applicazione (anagrafica applicazioni); senza percentuale resta invariato */
+    private static BigDecimal reduced(BigDecimal v, Profile p) {
+        BigDecimal pct = p.reductionPct();
+        return pct == null || pct.signum() <= 0 ? v : v.multiply(BigDecimal.ONE.subtract(pct.divide(HUNDRED, MC)));
+    }
+
+    /** all'euro intero (mezzo euro per eccesso), mantenendo due decimali (es. 1234.00) */
     private static BigDecimal r2(BigDecimal v) {
-        return v.setScale(2, RoundingMode.HALF_UP);
+        return v.setScale(0, RoundingMode.HALF_UP).setScale(2);
     }
 
     // ------------------------------------------------------------------ calcolo
@@ -123,33 +130,34 @@ public final class GalileoPricing {
                 if (users < 1 || users > (p.maxUsers() == null ? 3 : p.maxUsers())) {
                     return invalid(users < 1 ? "Indica il numero di utenti" : "Oltre " + p.maxUsers() + " utenti non è prevista la configurazione immobiliare: usa la configurazione Holding amministrativa");
                 }
-                lines.add(new Line("Configurazione immobiliare (fino a " + p.maxUsers() + " utenti)", cfg));
+                lines.add(new Line("Configurazione immobiliare (fino a " + p.maxUsers() + " utenti)", r2(cfg)));
                 return result(p, cfg, lines);
             }
             case "NEW" -> {
                 if (users <= 0) {
                     return invalid("Indica il numero di utenti");
                 }
-                BigDecimal sum = eSum(p, in, false);
+                BigDecimal sum = reduced(eSum(p, in, false), p);
                 BigDecimal base = sum.add(cfg);
                 BigDecimal total = tierTotal(base, users, p.tiers().get("MAIN"), p.proRataBelowFirst());
                 // dettaglio: configurazione (con gli utenti inclusi), moduli aggiuntivi, utenti aggiuntivi rispetto al minimo previsto dallo scenario
                 String included = firstTierUsers(p, "MAIN");
                 int inc = "—".equals(included) ? 0 : Integer.parseInt(included);
                 lines.add(new Line("Configurazione " + rel + (inc > 0 ? " (configurazione base a " + inc + " utenti)" : ""), r2(cfg)));
-                lines.add(new Line("Moduli aggiuntivi selezionati", r2(sum)));
+                lines.add(new Line("Importo moduli aggiuntivi", r2(sum)));
                 int extra = inc > 0 ? users - inc : 0;
-                lines.add(new Line(extra < 0 ? "Utenti sotto il minimo previsto (" + (-extra) + ")" : "Utenti aggiuntivi (" + Math.max(0, extra) + ")", r2(total.subtract(base))));
+                // la riga utenti e' la differenza tra i totali arrotondati: le tre righe sommano esattamente al totale
+                lines.add(new Line(extra < 0 ? "Utenti sotto il minimo previsto (" + (-extra) + ")" : "Utenti aggiuntivi (" + Math.max(0, extra) + ")", r2(total).subtract(r2(cfg)).subtract(r2(sum))));
                 return result(p, total, lines);
             }
             case "CONS" -> {
                 if (users <= 0) {
                     return invalid("Indica il numero di utenti");
                 }
-                BigDecimal sum = eSum(p, in, aggiunta);
+                BigDecimal sum = reduced(eSum(p, in, aggiunta), p);
                 BigDecimal base = sum.add(aggiunta ? BigDecimal.ZERO : cfg);
                 BigDecimal c124 = tierTotal(base, users, p.tiers().get("MAIN"), false);
-                BigDecimal gs = gSum(p, in);
+                BigDecimal gs = reduced(gSum(p, in), p);
                 BigDecimal r44 = tierTotal(gs, users, p.tiers().get("NEWMOD"), false);
                 BigDecimal part = c124.divide(p.consDivisor(), MC);
                 lines.add(new Line("Configurazione consociata (moduli in comune e utenti)", r2(c124)));
@@ -169,7 +177,7 @@ public final class GalileoPricing {
                 if (users <= 0) {
                     return invalid("Indica il numero di utenti");
                 }
-                BigDecimal sum = eSum(p, in, aggiunta);
+                BigDecimal sum = reduced(eSum(p, in, aggiunta), p);
                 BigDecimal o14 = sum.add(aggiunta ? BigDecimal.ZERO : cfg);
                 BigDecimal c124 = tierTotal(o14, users, p.tiers().get("MAIN"), false);
                 BigDecimal n24 = switch (k5) {
@@ -177,7 +185,7 @@ public final class GalileoPricing {
                     case 2 -> c124.multiply(p.migVisuale()).divide(HUNDRED, MC);
                     default -> p.migV9Flat();
                 };
-                BigDecimal o37 = gSum(p, in).multiply(SEVEN_TENTHS);
+                BigDecimal o37 = reduced(gSum(p, in), p).multiply(SEVEN_TENTHS);
                 BigDecimal n25 = tierTotal(o37, users, p.tiers().get("NEWMOD"), false);
                 BigDecimal n26 = addUsersTotal(o14, in.addUsers(), p.tiers().get("ADDUSR"));
                 BigDecimal total = n24.add(n25).add(n26).divide(p.consDivisor(), MC);

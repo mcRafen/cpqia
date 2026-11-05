@@ -176,9 +176,13 @@
         <!-- ============ STEP 9: SERVIZI SMITECH ============ -->
         <section data-step="9" hidden>
             <div class="card" id="smitech-card">
-                <h2>Servizi SMITECH</h2>
-                <div class="hint" style="margin-bottom:10px">Configurazione dei servizi SMITECH dell'offerta (SMISMP, SMIDRI, ecc.).</div>
-                <div class="muted">Le voci di configurazione dei servizi SMITECH verranno rese disponibili in questa pagina.</div>
+                <div class="cardhead" style="margin-bottom:6px"><h2 class="grow" style="margin:0">Servizi SMITECH</h2>
+                    <div class="field" style="min-width:230px" id="sm-mode-box"><select id="sm-mode"></select><label for="sm-mode" class="on">Classe del sistema Power</label><div class="help" id="sm-mode-help" hidden></div></div></div>
+                <div class="hint" style="margin-bottom:10px">Seleziona i servizi SMITECH dell'offerta. Per ciascuno sono indicati il prezzo (secondo la classe scelta) e la modalità di proposizione: valore fisso, canone annuo o mensile, una tantum. I servizi che ne richiedono altri li selezionano in automatico.</div>
+                <div class="tablewrap"><table class="t sm-t" id="sm-table">
+                    <thead><tr><th style="width:44px"></th><th style="width:130px">Codice</th><th>Descrizione</th><th style="width:190px">Modalità di proposizione</th><th class="num pr" style="width:170px">Prezzo</th></tr></thead>
+                    <tbody id="sm-body"></tbody></table></div>
+                <div id="sm-violations" style="margin-top:10px"></div>
             </div>
             <div style="display:flex;justify-content:space-between;margin-top:8px">
                 <button type="button" class="btn outlined" id="btn-back9"><svg class="ic"><use href="#i-back"/></svg>Indietro</button>
@@ -205,7 +209,7 @@
             <div class="card pr" id="gal-card-tot">
                 <h2>Totali Galileo</h2>
                 <div class="alert err" id="gal-invalid" hidden><svg class="ic"><use href="#i-warning"/></svg><span></span></div>
-                <div class="grid c4" style="align-items:start">
+                <div class="grid c4" style="align-items:stretch">
                     <div class="kv-box"><small>Listino di vendita</small><b id="gal-t-list">€ 0,00</b><span class="note" id="gal-t-note"></span></div>
                     <div class="kv-box"><small>Canone di manutenzione annuo</small><b id="gal-t-maint">€ 0,00</b></div>
                 </div>
@@ -226,7 +230,15 @@
         </section>
 
         <section data-step="2" hidden>
-            <div class="card" style="padding-bottom:8px">
+            <div class="card pr" id="dip-card-tot">
+                <h2>Totali Dipartimentali</h2>
+                <div class="grid c4" style="align-items:stretch">
+                    <div class="kv-box"><small>Listino di vendita</small><b id="dip-t-list">€ 0,00</b><span class="note" id="dip-t-note"></span></div>
+                    <div class="kv-box"><small>Canone di manutenzione annuo</small><b id="dip-t-maint">€ 0,00</b></div>
+                </div>
+                <table class="t" style="margin-top:12px" id="dip-lines-t"><thead><tr><th>Applicazione</th><th class="num pr">Licenze</th><th class="num pr">Manutenzione annua</th></tr></thead><tbody id="dip-lines"></tbody></table>
+            </div>
+            <div class="card" id="dip-card-apps" style="padding-bottom:8px">
                 <div class="cardhead" style="margin-bottom:12px;flex-wrap:wrap">
                     <h2 class="grow" style="margin:0">Dipartimentali – applicazioni a catalogo</h2>
                     <div class="field sm" style="min-width:280px"><input type="search" id="app-search" data-noguard placeholder="Cerca applicazione o modulo…" aria-label="Cerca"></div>

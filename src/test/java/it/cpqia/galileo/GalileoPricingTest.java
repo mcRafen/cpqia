@@ -64,7 +64,7 @@ class GalileoPricingTest {
                         d, dn, !p.has("v11Discount") || p.get("v11Discount").asBoolean(), cons,
                         dec(p.get("migCaratterePct")), dec(p.get("migVisualePct")), dec(p.get("migV9Flat")), p.has("maxUsers") ? p.get("maxUsers").asInt() : null,
                         p.has("aggiuntaSupported") && p.get("aggiuntaSupported").asBoolean(), p.has("proRataBelowFirst") && p.get("proRataBelowFirst").asBoolean(),
-                        new BigDecimal("18"), tiers, mods));
+                        new BigDecimal("18"), tiers, mods, BigDecimal.ZERO));
             }
         }
         return out;
@@ -93,7 +93,7 @@ class GalileoPricingTest {
                     assertFalse(r.valid(), where);
                 } else {
                     assertTrue(r.valid(), where + " " + r.message());
-                    assertEquals(g.get("expected").doubleValue(), r.list().doubleValue(), 0.011, where);
+                    assertEquals(g.get("expected").doubleValue(), r.list().doubleValue(), 0.5001, where); // importo arrotondato all'euro intero
                 }
                 n++;
             }

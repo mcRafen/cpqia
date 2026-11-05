@@ -97,7 +97,7 @@ public class CatalogRepository {
     private record ModuleRow(long id, long applicationId, Long groupId, String code, String printCode, String description,
                              String section, String kind, boolean qtyEnabled, String exclGroup, boolean defaultSelected,
                              boolean included, BigDecimal maintenancePct, BigDecimal onetimePrice, String linkText,
-                             String note, boolean active) {
+                             String note, boolean active, String area) {
     }
 
     private record PriceRow(long moduleId, String modeCode, BigDecimal price) {
@@ -117,7 +117,7 @@ public class CatalogRepository {
         List<TierPriceRow> tierPrices = jdbc.sql("select tier_id, mode_code, unit_price from pricing_tier_price").query(TierPriceRow.class).list();
         List<ModuleRow> modules = jdbc.sql("""
                 select id, application_id, group_id, code, print_code, description, section, kind, qty_enabled, excl_group,
-                       default_selected, included, maintenance_pct, onetime_price, link_text, note, active
+                       default_selected, included, maintenance_pct, onetime_price, link_text, note, active, area
                 from module where active and deleted_at is null order by application_id, sort_order, id""").query(ModuleRow.class).list();
         List<PriceRow> prices = jdbc.sql("select module_id, mode_code, price from module_price").query(PriceRow.class).list();
         List<RuleRow> rules = jdbc.sql("select id, module_id, rule_type, target_codes, severity, message from module_rule where deleted_at is null order by id").query(RuleRow.class).list();
@@ -171,7 +171,7 @@ public class CatalogRepository {
                     mods.add(new Module(m.id(), m.code(), m.printCode(), m.description(), m.groupId(), m.section(), m.kind(),
                             m.qtyEnabled(), m.exclGroup(), m.defaultSelected(), m.included(), m.maintenancePct(),
                             m.onetimePrice(), m.linkText(), m.note(), priceMap.getOrDefault(m.id(), Map.of()),
-                            ruleMap.getOrDefault(m.id(), List.of())));
+                            ruleMap.getOrDefault(m.id(), List.of()), m.area()));
                 }
             }
             result.add(new App(a.id(), a.code(), a.name(), a.family(), a.maintenancePct(), a.needsReview(), a.active(), a.notes(), ms, ds, gs, mods));

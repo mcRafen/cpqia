@@ -30,7 +30,7 @@ public final class PricingModel {
     public record Module(long id, String code, String printCode, String description, Long groupId, String section,
                          String kind, boolean qtyEnabled, String exclGroup, boolean defaultSelected, boolean included,
                          BigDecimal maintenancePct, BigDecimal onetimePrice, String linkText, String note,
-                         Map<String, BigDecimal> prices, List<Rule> rules) {
+                         Map<String, BigDecimal> prices, List<Rule> rules, String area) {
 
         public String codeForPrint() {
             return printCode != null && !printCode.isBlank() ? printCode : code;

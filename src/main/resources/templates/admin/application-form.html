@@ -14,6 +14,7 @@
             <div class="field span2"><input name="name" required maxlength="150" placeholder=" " th:value="${app?.name}"><label>Nome applicazione *</label></div>
             <div class="field"><input name="family" maxlength="60" placeholder=" " th:value="${app?.family}"><label>Famiglia</label></div>
             <div class="field"><input name="maintenancePct" type="number" step="0.01" min="0" placeholder=" " th:value="${app != null} ? ${app.maintenancePct} : 18"><label>Manutenzione annua %</label></div>
+            <div class="field"><input name="additionalReductionPct" type="number" step="0.01" min="0" max="100" placeholder=" " th:value="${additionalReduction}"><label>Riduzione su moduli aggiuntivi %</label><div class="help">Facoltativo (0–100)</div></div>
             <div class="field"><input name="sortOrder" type="number" step="1" placeholder=" "><label>Ordine (vuoto = invariato)</label></div>
             <div class="field span4"><input name="notes" placeholder=" " th:value="${app?.notes}"><label>Note (mostrate nel configuratore)</label></div>
         </div>

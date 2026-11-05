@@ -458,6 +458,10 @@ dialog .dlg-head { background: linear-gradient(90deg, #e6eeff, #f1e4ff, #ffe6ef)
 .cg-f input:focus, .cg-f select:focus { outline: 2px solid var(--primary); border-color: transparent; }
 .cg-table td.cg-c.ed { cursor: cell; }
 .cg-table td.cg-c.ed:hover { background: var(--secondary-container); }
+.cg-table td.cg-anchor { position: relative; outline: 2px solid var(--primary); outline-offset: -2px; }
+.cg-fill { position: absolute; right: -4px; bottom: -4px; width: 9px; height: 9px; background: var(--primary); border: 1.5px solid var(--surface); cursor: crosshair; z-index: 3; }
+.cg-table td.cg-fillrange { background: var(--primary-container); outline: 1px dashed var(--primary); outline-offset: -1px; }
+body.cg-filling, body.cg-filling * { cursor: crosshair !important; user-select: none; }
 .cg-table td.ctr { text-align: center; }
 .cg-table td.editing { padding: 2px 4px; background: var(--primary-container); }
 .cg-editor { width: 100%; box-sizing: border-box; min-width: 80px; height: 32px; border: 1.5px solid var(--primary); border-radius: 6px; padding: 0 8px; font: inherit; background: var(--surface); color: var(--on-surface); }
@@ -1073,3 +1077,20 @@ dialog.cg-dialog form { min-width: 0; }
 .gal-t td:nth-child(2) { width: 130px; }
 .gal-t td:nth-child(4) { width: 130px; }
 .gal-t td:nth-child(3) { overflow-wrap: anywhere; }
+
+/* «Totali Galileo» e «Totali Dipartimentali»: stesso baffo superiore, indipendente dalla posizione del box nella pagina */
+#gal-card-tot, #dip-card-tot { border-top-color: #e0a030; }
+html[data-theme="dark"] #gal-card-tot, html[data-theme="dark"] #dip-card-tot { border-top-color: #ffd36b; }
+
+/* «Dipartimentali – applicazioni a catalogo» ha lo stesso baffo di «Moduli» nella pagina Galileo */
+#gal-card-mods, #dip-card-apps { border-top-color: var(--c-blue); }
+
+/* etichette dei campi su una sola riga (con puntini se il campo e' stretto): niente testo che esce dal riquadro */
+.field label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 28px); }
+.field input:focus + label, .field input:not(:placeholder-shown) + label, .field select + label, .field textarea:focus + label,
+.field textarea:not(:placeholder-shown) + label, .field input[type=date] + label, .field input[type=number]:not(:placeholder-shown) + label { max-width: calc((100% - 28px) / .78); }
+/* scheda modulo: su finestre medie la griglia a 4 colonne passa a 2, con i campi lunghi a tutta larghezza */
+@media (max-width: 1250px) {
+  .mod-page .grid.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mod-page .grid.c4 > .span2, .mod-page .grid.c4 > .span3, .mod-page .grid.c4 > .span4 { grid-column: 1 / -1; }
+}

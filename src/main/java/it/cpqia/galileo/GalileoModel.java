@@ -36,7 +36,7 @@ public final class GalileoModel {
                           BigDecimal discountPct, BigDecimal newDiscountPct, boolean v11Discount, BigDecimal consDivisor,
                           BigDecimal migCarattere, BigDecimal migVisuale, BigDecimal migV9Flat, Integer maxUsers,
                           boolean aggiuntaSupported, boolean proRataBelowFirst, BigDecimal maintenancePct,
-                          Map<String, List<Tier>> tiers, List<Mod> modules) {
+                          Map<String, List<Tier>> tiers, List<Mod> modules, BigDecimal reductionPct) {
 
         public boolean hasV11() {
             return cfgV11 != null;
