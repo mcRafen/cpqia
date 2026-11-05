@@ -1,0 +1,8 @@
+# normalizza i fine riga del codice e tratta come binari i documenti Office
+* text=auto
+*.docx binary
+*.xlsx binary
+*.xlsm binary
+*.png binary
+*.jpg binary
+*.sh text eol=lf

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Tabelle tariffe')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('rates')}"></div>
+<main class="content"><div class="inner">
+    <div th:replace="~{fragments/layout :: settingsTabs('rates')}"></div>
+    <div class="pagehead"><h1>Tabelle tariffe</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="card-title" style="margin:18px 0 8px;font-weight:500">Profili professionali</div>
+    <div class="cpgrid" data-grid="rates-profiles"></div>
+    <div class="card-title" style="margin:18px 0 8px;font-weight:500">Trasferte Italia</div>
+    <div class="cpgrid" data-grid="rates-travel"></div>
+    <p class="hint">Le voci disattivate non saranno proposte nelle offerte. L'ordine determina la sequenza di visualizzazione.</p>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script th:src="@{/js/grid-core.js}"></script>
+<script th:src="@{/js/grid.js}"></script>
+</body>
+</html>

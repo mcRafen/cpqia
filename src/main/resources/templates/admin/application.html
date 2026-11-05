@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Applicazione')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('apps')}"></div>
+<main class="content"><div class="inner">
+    <div th:replace="~{fragments/layout :: settingsTabs('apps')}"></div>
+    <div class="pagehead">
+        <a class="btn icon" th:href="@{/admin/applications}" title="Elenco"><svg class="ic"><use href="#i-back"/></svg></a>
+        <h1><span th:text="${app.name}">App</span> <span class="mono muted" th:text="${app.code}"></span></h1>
+        <span class="chip" th:classappend="${app.active} ? 'ok' : 'err'" th:text="${app.active} ? 'attiva' : 'disattivata'"></span>
+        <span class="chip warn" th:if="${app.needsReview}">da verificare</span>
+        <span class="grow"></span>
+        <a class="btn tonal" th:href="@{/admin/applications/{id}/edit(id=${app.id})}"><svg class="ic"><use href="#i-edit"/></svg>Dati applicazione</a>
+        <form th:action="@{/admin/applications/{id}/delete(id=${app.id})}" method="post" th:data-confirm="|Eliminare definitivamente ${app.name} e tutti i suoi moduli?|">
+            <button class="btn text danger" type="submit"><svg class="ic"><use href="#i-delete"/></svg>Elimina</button></form>
+    </div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="alert info" th:if="${app.notes != null}"><svg class="ic"><use href="#i-info"/></svg><span th:text="${app.notes}"></span></div>
+
+    <!-- ============ MODULI ============ -->
+    <div class="card" style="padding:0">
+        <div class="cardhead" style="padding:16px 20px 0"><h2 class="grow" style="margin:0">Moduli</h2>
+            <span id="mod-selinfo" class="muted" hidden></span>
+            <button type="button" class="btn sm danger" id="mod-del-sel" hidden><svg class="ic"><use href="#i-delete"/></svg>Elimina selezionati</button>
+            <a class="btn sm" th:href="@{/admin/applications/{id}/modules/new(id=${app.id})}"><svg class="ic"><use href="#i-add"/></svg>Nuovo modulo</a></div>
+        <div class="tablewrap" style="margin-top:8px">
+            <table class="t" id="mod-table">
+                <thead><tr><th class="nowrap" style="padding-left:6px;padding-right:4px"><input type="checkbox" id="mod-all" title="Seleziona / deseleziona tutti"></th><th>Codice</th><th>Descrizione</th><th>Area</th><th>Modalità di proposizione</th><th>Gruppo prezzo</th><th class="num">Prezzo</th><th>Vincoli</th></tr>
+                    <tr class="mod-filter-row">
+                        <th></th>
+                        <th><input type="search" data-col="1" placeholder="Cerca" aria-label="Cerca per codice"></th>
+                        <th><input type="search" data-col="2" placeholder="Cerca" aria-label="Cerca per descrizione"></th>
+                        <th><input type="search" data-col="3" placeholder="Cerca" aria-label="Cerca per area"></th>
+                        <th><input type="search" data-col="4" placeholder="Cerca" aria-label="Cerca per modalità di proposizione"></th>
+                        <th><input type="search" data-col="5" placeholder="Cerca" aria-label="Cerca per gruppo prezzo"></th>
+                        <th><input type="search" data-col="6" placeholder="Cerca" aria-label="Cerca per prezzo"></th>
+                        <th><input type="search" data-col="7" placeholder="Cerca" aria-label="Cerca per vincoli"></th>
+                    </tr></thead>
+                <tbody>
+                <tr th:each="m : ${app.modules}">
+                    <td class="actions nowrap" style="white-space:nowrap;padding-left:6px;padding-right:4px">
+                        <input type="checkbox" class="mod-sel" th:value="${m.id}" style="vertical-align:middle;margin:0 2px 0 0">
+                        <a class="btn icon sm" th:href="@{/admin/applications/{a}/modules/{m}(a=${app.id},m=${m.id})}" title="Modifica"><svg class="ic"><use href="#i-edit"/></svg></a>
+                        <button type="button" class="btn icon sm mod-more" th:attr="data-del=@{/admin/applications/{a}/modules/{m}/delete(a=${app.id},m=${m.id})},data-name=${m.code},data-hist=${me != null and me.administrator} ? @{/audit/module/{m}(m=${m.id})} : ''" title="Altre azioni" aria-haspopup="menu"><svg class="ic"><use href="#i-more"/></svg></button>
+                    </td>
+                    <td class="mono nowrap"><b th:text="${m.code}">SMI</b></td>
+                    <td th:text="${m.description}">desc</td>
+                    <td class="muted" th:text="${areas != null and areas.get(m.id) != null} ? ${areas.get(m.id)} : ''">area</td>
+                    <td>
+                        <span class="chip blue" th:if="${m.section == 'SCALED'}">per utente</span>
+                        <span class="chip" th:if="${m.section == 'FIXED'}">prezzo fisso</span>
+                        <span class="chip warn" th:if="${m.section == 'LINK'}">collegamento</span>
+                        <span class="chip" th:if="${m.kind == 'MONTHLY'}">canone mensile</span>
+                        <span class="chip" th:if="${m.kind == 'ANNUAL'}">canone annuo</span>
+                        <span class="chip" th:if="${m.kind == 'ONETIME'}">una tantum</span>
+                        <span class="chip" th:if="${m.qtyEnabled}">quantità</span>
+                        <span class="chip" th:if="${m.exclGroup != null}" th:text="'alt. ' + ${m.exclGroup}"></span>
+                    </td>
+                    <td class="muted" th:text="${m.groupId != null} ? 'sì' : '—'"></td>
+                    <td class="num nowrap mono" th:text="${priceText.get(m.id)}">0</td>
+                    <td><span class="chip" th:if="${!#lists.isEmpty(m.rules)}" th:text="${#lists.size(m.rules)} + ' vincoli'"></span></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ============ MODALITA' ============ -->
+    <div class="card">
+        <h2>Modalità di prezzo <span class="hint">(es. nuova installazione / migrazione: i moduli possono avere un prezzo per modalità)</span></h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <form th:each="m : ${app.modes}" th:action="@{/admin/applications/{id}/modes/{c}/delete(id=${app.id},c=${m.code})}" method="post" style="display:inline">
+                <span class="chip blue"><b th:text="${m.code}"></b>&nbsp;<span th:text="${m.label}"></span><span th:if="${m.preferred}"> · predefinita</span>
+                    <button class="btn icon sm" style="width:20px;height:20px" type="submit" title="Rimuovi"><svg class="ic" style="width:14px;height:14px"><use href="#i-close"/></svg></button></span></form>
+            <span class="muted" th:if="${#lists.isEmpty(app.modes)}">Nessuna: prezzo unico (STD).</span>
+        </div>
+        <form th:action="@{/admin/applications/{id}/modes/add(id=${app.id})}" method="post" class="grid c4" style="align-items:center">
+            <div class="field"><input name="code" required maxlength="20" placeholder=" "><label>Codice (es. NEW)</label></div>
+            <div class="field span2"><input name="label" required maxlength="100" placeholder=" "><label>Descrizione</label></div>
+            <div style="display:flex;gap:12px;align-items:center"><label class="check"><input type="checkbox" name="preferred"> Predefinita</label><button class="btn tonal sm" type="submit">Aggiungi</button></div>
+        </form>
+    </div>
+
+    <!-- ============ DRIVER / GRUPPI / FASCE ============ -->
+    <div class="card">
+        <h2>Utenti, gruppi di prezzo e fasce <span class="hint">(moltiplicatore licenze moduli × utenti)</span></h2>
+        <h3 style="margin:8px 0">Grandezze (utenti, macchine, …)</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <form th:each="d : ${app.drivers}" th:action="@{/admin/applications/{id}/drivers/{d}/delete(id=${app.id},d=${d.id})}" method="post" style="display:inline">
+                <span class="chip blue"><b th:text="${d.code}"></b>&nbsp;<span th:text="${d.label}"></span>&nbsp;<span class="muted" th:text="${d.licenseCode}"></span>
+                    <button class="btn icon sm" style="width:20px;height:20px" type="submit" title="Rimuovi"><svg class="ic" style="width:14px;height:14px"><use href="#i-close"/></svg></button></span></form>
+            <span class="muted" th:if="${#lists.isEmpty(app.drivers)}">Nessuna: l'applicazione non è a utenti.</span>
+        </div>
+        <form th:action="@{/admin/applications/{id}/drivers/add(id=${app.id})}" method="post" class="grid c4" style="align-items:center">
+            <div class="field"><input name="code" required maxlength="30" placeholder=" "><label>Codice (es. UTENTI)</label></div>
+            <div class="field"><input name="label" required maxlength="100" placeholder=" "><label>Etichetta</label></div>
+            <div class="field"><input name="licenseCode" maxlength="40" placeholder=" "><label>Codice licenza (SMI…LIC)</label></div>
+            <div style="display:flex;gap:8px;align-items:center"><div class="field" style="flex:1"><input name="unitLabel" maxlength="30" placeholder=" " value="utenti"><label>Unità</label></div><button class="btn tonal sm" type="submit">Aggiungi</button></div>
+        </form>
+
+        <div th:each="g : ${app.groups}" style="margin-top:22px;border-top:1px solid var(--outline-var);padding-top:14px">
+            <div class="cardhead"><h3 class="grow"><span th:text="${g.label}"></span> <span class="mono muted" th:text="${g.code}"></span>
+                <span class="chip" th:text="${g.baseMode == 'LINEAR'} ? 'lineare' : (${g.baseMode == 'STEP'} ? 'importo per fascia' : 'prima fascia = valore moduli')"></span>
+                <span class="chip blue" th:each="b : ${g.fixedBase}" th:text="'base ' + ${b.key} + ' = ' + ${b.value}"></span></h3>
+                <form th:action="@{/admin/applications/{id}/groups/{g}/delete(id=${app.id},g=${g.id})}" method="post" th:data-confirm="|Eliminare il gruppo ${g.label}?|">
+                    <button class="btn icon sm" type="submit" title="Elimina gruppo"><svg class="ic"><use href="#i-delete"/></svg></button></form></div>
+            <table class="t" style="margin-top:6px">
+                <thead><tr><th>Da</th><th>A</th><th>Etichetta</th><th>% del valore moduli</th><th>Prezzi unitari espliciti (es. NEW=500;MIGR=250)</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="t : ${g.tiers}">
+                    <td colspan="6" style="padding:4px 12px">
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <form th:action="@{/admin/applications/{id}/tiers/save(id=${app.id})}" method="post" style="display:flex;gap:8px;align-items:center;flex:1">
+                                <input type="hidden" name="tierId" th:value="${t.id}"><input type="hidden" name="groupId" th:value="${g.id}">
+                                <input class="mono" name="fromQty" type="number" required th:value="${t.fromQty}" style="width:90px;height:34px">
+                                <input class="mono" name="toQty" type="number" th:value="${t.toQty}" placeholder="∞" style="width:110px;height:34px">
+                                <input name="label" required th:value="${t.label}" style="flex:1;height:34px">
+                                <input class="mono" name="pct" th:value="${t.pct}" style="width:90px;height:34px">
+                                <input class="mono" name="unitPrices" th:value="${tierText.get(t.id)}" style="width:210px;height:34px">
+                                <button class="btn icon sm" type="submit" title="Salva fascia"><svg class="ic"><use href="#i-save"/></svg></button>
+                            </form>
+                            <form th:action="@{/admin/applications/{id}/tiers/{t}/delete(id=${app.id},t=${t.id})}" method="post" th:data-confirm="|Eliminare la fascia ${t.label}?|">
+                                <button class="btn icon sm" type="submit" title="Elimina fascia"><svg class="ic"><use href="#i-delete"/></svg></button></form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <form th:action="@{/admin/applications/{id}/tiers/save(id=${app.id})}" method="post" style="display:flex;gap:8px;align-items:center;margin-top:8px">
+                <input type="hidden" name="groupId" th:value="${g.id}">
+                <span class="muted">Nuova fascia:</span>
+                <input name="fromQty" type="number" required placeholder="da" style="width:90px;height:34px">
+                <input name="toQty" type="number" placeholder="a (vuoto = ∞)" style="width:130px;height:34px">
+                <input name="label" required placeholder="es. da 11 a 20 utenti" style="flex:1;height:34px">
+                <input name="pct" placeholder="%" style="width:80px;height:34px">
+                <input name="unitPrices" placeholder="prezzi espliciti" style="width:160px;height:34px">
+                <button class="btn tonal sm" type="submit">Aggiungi</button>
+            </form>
+        </div>
+
+        <h3 style="margin:22px 0 8px" th:if="${!#lists.isEmpty(app.drivers)}">Nuovo gruppo di prezzo</h3>
+        <form th:if="${!#lists.isEmpty(app.drivers)}" th:action="@{/admin/applications/{id}/groups/add(id=${app.id})}" method="post" class="grid c4" style="align-items:center">
+            <div class="field"><input name="code" required maxlength="30" placeholder=" "><label>Codice (es. MOD)</label></div>
+            <div class="field"><input name="label" required placeholder=" "><label>Etichetta</label></div>
+            <div class="field"><select name="driverId"><option th:each="d : ${app.drivers}" th:value="${d.id}" th:text="${d.label}"></option></select><label>Grandezza</label></div>
+            <div class="field"><select name="baseMode"><option value="TIER1">Prima fascia = valore moduli</option><option value="LINEAR">Lineare (qtà × unitario)</option><option value="STEP">Importo per fascia (canone della fascia di utenti)</option></select><label>Calcolo</label></div>
+            <div class="field span2"><input name="fixedBase" placeholder=" "><label>Base fissa (vuoto = somma moduli del gruppo; es. 5000 oppure NEW=400;MIGR=200)</label></div>
+            <div><button class="btn tonal sm" type="submit">Aggiungi gruppo</button></div>
+        </form>
+    </div>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<form id="mod-del-form" method="post" hidden></form>
+<form id="mod-many-form" method="post" th:action="@{/admin/applications/{id}/modules/delete-many(id=${app.id})}" hidden></form>
+<script>
+    (function () {
+        var all = document.getElementById('mod-all'), btn = document.getElementById('mod-del-sel'), info = document.getElementById('mod-selinfo');
+        function boxes() { return Array.prototype.slice.call(document.querySelectorAll('.mod-sel')).filter(function (x) { return !x.closest('tr').hidden; }); }        // solo le righe visibili (filtro per colonna)
+        function upd() {
+            var b = boxes(), n = b.filter(function (x) { return x.checked; }).length;
+            all.checked = b.length > 0 && n === b.length; all.indeterminate = n > 0 && n < b.length;
+            btn.hidden = n === 0; info.hidden = n === 0; info.textContent = n + (n === 1 ? ' selezionato' : ' selezionati');
+            b.forEach(function (x) { x.closest('tr').classList.toggle('cg-picked', x.checked); });
+        }
+        all.addEventListener('change', function () { boxes().forEach(function (x) { x.checked = all.checked; }); upd(); });
+        document.addEventListener('change', function (e) { if (e.target.classList && e.target.classList.contains('mod-sel')) upd(); });
+        btn.addEventListener('click', async function () {
+            var ids = boxes().filter(function (x) { return x.checked; }).map(function (x) { return x.value; });
+            if (!ids.length) return;
+            if (!(await CPQ.confirm('Eliminare ' + (ids.length === 1 ? 'il modulo selezionato' : 'i ' + ids.length + ' moduli selezionati') + '? Finiranno nel Cestino.', { title: 'Elimina moduli', yes: 'Sì, elimina', no: 'No', danger: true }))) return;
+            var f = document.getElementById('mod-many-form');
+            ids.forEach(function (v) { var i = document.createElement('input'); i.type = 'hidden'; i.name = 'ids'; i.value = v; f.appendChild(i); });
+            var t = document.querySelector('meta[name=_csrf]');
+            if (t && t.content) { var c = document.createElement('input'); c.type = 'hidden'; c.name = '_csrf'; c.value = t.content; f.appendChild(c); }
+            f.submit();
+        });
+        document.addEventListener('modfilter', upd);
+        upd();
+    })();
+</script>
+<script>
+    /* ricerca per colonna nella griglia dei moduli: tutte le caselle di ricerca si combinano (senza maiuscole/accenti) */
+    (function () {
+        var table = document.getElementById('mod-table'); if (!table) return;
+        var inputs = Array.prototype.slice.call(table.querySelectorAll('.mod-filter-row input'));
+        function norm(t) { return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+        function apply() {
+            var q = inputs.map(function (i) { return [Number(i.dataset.col), norm(i.value).trim()]; }).filter(function (x) { return x[1]; });
+            Array.prototype.forEach.call(table.tBodies[0].rows, function (tr) {
+                var ok = q.every(function (f) { var td = tr.cells[f[0]]; return td && norm(td.textContent).indexOf(f[1]) >= 0; });
+                tr.hidden = !ok;
+                if (!ok) { var cb = tr.querySelector('.mod-sel'); if (cb) { cb.checked = false; tr.classList.remove('cg-picked'); } }
+            });
+            document.dispatchEvent(new Event('modfilter'));
+        }
+        inputs.forEach(function (i) { i.addEventListener('input', apply); });
+    })();
+</script>
+<style>
+    .mod-filter-row th { padding: 4px 6px; font-weight: 400; }
+    .mod-filter-row input { width: 100%; min-width: 70px; height: 30px; border: 1px solid var(--outline); border-radius: 6px; padding: 0 8px; font: inherit; font-size: 13px; background: var(--surface); color: var(--on-surface); }
+</style>
+<script>
+    (function () {
+        var menu = null;
+        function close() { if (menu) { menu.remove(); menu = null; } }
+        document.addEventListener('click', function (e) {
+            var b = e.target.closest ? e.target.closest('.mod-more') : null;
+            if (e.target.closest && e.target.closest('.cg-rowmenu')) return;
+            if (!b) { close(); return; }
+            e.stopPropagation(); var same = menu && menu.dataset.for === b.dataset.del; close(); if (same) return;
+            menu = document.createElement('div'); menu.className = 'cg-rowmenu'; menu.setAttribute('role', 'menu'); menu.dataset.for = b.dataset.del;
+            menu.innerHTML = (b.dataset.hist ? '<a role="menuitem" href="' + b.dataset.hist + '"><svg class="ic"><use href="#i-restore"/></svg>Storico modifiche</a><hr>' : '') +
+                '<button type="button" role="menuitem" class="danger"><svg class="ic"><use href="#i-delete"/></svg>Elimina</button>';
+            document.body.appendChild(menu);
+            var r = b.getBoundingClientRect();
+            menu.style.position = 'fixed'; menu.style.top = (r.bottom + 4) + 'px'; menu.style.left = Math.max(8, r.left) + 'px';
+            menu.querySelector('button').addEventListener('click', async function () {
+                var name = b.dataset.name, url = b.dataset.del; close();
+                if (await CPQ.confirm('Eliminare il modulo «' + name + '»? Finirà nel Cestino.', { title: 'Elimina modulo', yes: 'Sì, elimina', no: 'No', danger: true })) {
+                    var f = document.getElementById('mod-del-form'); f.action = url;
+                    var t = document.querySelector('meta[name=_csrf]'), h = document.querySelector('meta[name=_csrf_header]');
+                    if (t && t.content && !f.querySelector('input')) { var i = document.createElement('input'); i.type = 'hidden'; i.name = '_csrf'; i.value = t.content; f.appendChild(i); }
+                    f.submit();
+                }
+            });
+        });
+    })();
+</script>
+</body>
+</html>

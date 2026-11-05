@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Comportamento griglie')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('grid-behavior')}"></div>
+<main class="content"><div class="inner">
+    <div th:replace="~{fragments/layout :: settingsTabs('grid-behavior')}"></div>
+    <div class="pagehead"><h1>Comportamento griglie</h1><span class="grow"></span>
+        <button type="button" class="btn" id="gb-save"><svg class="ic"><use href="#i-save"/></svg>Salva</button></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="card" style="padding:0"><div class="tablewrap">
+        <table class="t gb-table">
+            <thead><tr><th>Griglia</th><th class="c">Configurabile</th><th class="c">Spostamento colonne</th><th class="c">Ordinamento colonne</th>
+                <th class="c">Pivot</th><th class="c">Totali</th><th class="c">Subtotali</th><th class="c">Modifica in griglia</th></tr></thead>
+            <tbody>
+            <tr th:each="r : ${rows}" th:attr="data-key=${r.key}">
+                <td><b th:text="${r.title}">Griglia</b> <span class="muted mono" th:text="${r.key}">key</span></td>
+                <td class="c"><input type="checkbox" data-f="configurable" th:checked="${r.behavior.configurable}"></td>
+                <td class="c"><input type="checkbox" data-f="moveColumns" th:checked="${r.behavior.moveColumns}"></td>
+                <td class="c"><input type="checkbox" data-f="sortColumns" th:checked="${r.behavior.sortColumns}"></td>
+                <td class="c"><input type="checkbox" data-f="pivot" th:checked="${r.behavior.pivot}"></td>
+                <td class="c"><input type="checkbox" data-f="totals" th:checked="${r.behavior.totals}"></td>
+                <td class="c"><input type="checkbox" data-f="subtotals" th:checked="${r.behavior.subtotals}"></td>
+                <td class="c"><input type="checkbox" data-f="inlineEdit" th:checked="${r.behavior.inlineEdit}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div></div>
+    <p class="hint">Per ogni griglia dell'applicazione si scelgono le funzioni disponibili agli utenti. Se «Configurabile» è disattivato la griglia è fissa
+        (nessuna scelta delle colonne, nessuna vista salvata) e le altre funzioni sono disabilitate. <b>Pivot</b>: raggruppamento per colonne;
+        <b>Totali</b>: riga dei totali in fondo; <b>Subtotali</b>: totali di ciascun gruppo della pivot; <b>Modifica in griglia</b>: se attiva i campi non calcolati si modificano direttamente nelle celle (doppio clic), altrimenti la modifica si fa solo dalla scheda del record (indipendente da «Configurabile»). Le modifiche valgono dal prossimo caricamento della griglia.</p>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<style>
+    .gb-table th.c, .gb-table td.c { text-align: center; }
+    .gb-table input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+    .gb-table input[type=checkbox]:disabled { opacity: .35; cursor: not-allowed; }
+</style>
+<script>
+(function () {
+    const rows = Array.from(document.querySelectorAll('.gb-table tbody tr'));
+    const dep = ['moveColumns', 'sortColumns', 'pivot', 'totals', 'subtotals'];
+    function sync(tr) {
+        const on = tr.querySelector('[data-f=configurable]').checked;
+        dep.forEach((f) => { tr.querySelector('[data-f=' + f + ']').disabled = !on; });
+    }
+    rows.forEach((tr) => { sync(tr); tr.querySelector('[data-f=configurable]').addEventListener('change', () => sync(tr)); });
+    document.getElementById('gb-save').addEventListener('click', async () => {
+        const body = rows.map((tr) => {
+            const o = { key: tr.dataset.key };
+            ['configurable', 'inlineEdit'].concat(dep).forEach((f) => { o[f] = tr.querySelector('[data-f=' + f + ']').checked; });
+            return o;
+        });
+        try { await CPQ.api('POST', '/api/grid-behavior', body); window.toast('Comportamento delle griglie salvato'); }
+        catch (e) { window.toast(e.message, true); }
+    });
+})();
+</script>
+</body>
+</html>

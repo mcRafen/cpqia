@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Anagrafica applicazioni')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('apps')}"></div>
+<main class="content"><div class="inner">
+    <div th:replace="~{fragments/layout :: settingsTabs('apps')}"></div>
+    <div class="pagehead"><h1>Anagrafica applicazioni</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="cpgrid" data-grid="applications"></div>
+    <p class="hint">Le applicazioni disattivate non compaiono nel configuratore ma restano nelle offerte già emesse. Doppio clic su una cella per modificarla (Invio conferma, Esc annulla); trascina le intestazioni per spostare le colonne, clic per ordinare (Maiusc+clic per ordinare su più colonne), trascina una colonna nella barra «Raggruppa per» per fare la pivot con i totali.</p>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script th:src="@{/js/grid-core.js}"></script>
+<script th:src="@{/js/grid.js}"></script>
+</body>
+</html>

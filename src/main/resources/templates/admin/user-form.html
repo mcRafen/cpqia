@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Utente')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('users')}"></div>
+<main class="content"><div class="inner" style="max-width:860px">
+    <div th:replace="~{fragments/layout :: settingsTabs('users')}"></div>
+    <div class="pagehead"><a class="btn icon" th:href="@{/admin/users}"><svg class="ic"><use href="#i-back"/></svg></a>
+        <h1 th:text="${u == null} ? 'Nuovo utente' : ${u.displayName}">Utente</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <form class="card" th:action="@{/admin/users/save}" method="post">
+        <input type="hidden" name="id" th:value="${u != null} ? ${u.id}">
+        <div class="grid c2">
+            <div class="field"><input name="email" type="email" required placeholder=" " th:value="${u?.email}" th:readonly="${u != null}"><label>Email (account Google/Apple) *</label></div>
+            <div class="field"><input name="initials" maxlength="6" placeholder=" " th:value="${u?.initials}" style="text-transform:uppercase"><label>Iniziali (vuoto = calcolate)</label></div>
+            <div class="field"><input name="firstName" placeholder=" " th:value="${u?.firstName}"><label>Nome</label></div>
+            <div class="field"><input name="lastName" placeholder=" " th:value="${u?.lastName}"><label>Cognome</label></div>
+            <div class="field" id="agent-field"><input type="text" name="agentCode" id="agent-code" maxlength="20" autocomplete="off" placeholder=" " th:value="${u?.agentCode}"><label for="agent-code">Codice agente</label>
+                <div class="agent-list" id="agent-list" hidden></div>
+                <div class="help" th:if="${#lists.isEmpty(agents)}" style="color:var(--error)">La tabella Agenti è vuota: esegui la «Sync Agenti» in Impostazioni &gt; Integrazioni.</div>
+                <div class="help" th:unless="${#lists.isEmpty(agents)}">Clic o digitazione: scegli dall'elenco (per descrizione, codice tra parentesi). Con un agente l'utente vede solo i propri prospect e i clienti dello stesso agente</div></div>
+            <div class="field"><input type="text" id="agent-desc" disabled placeholder=" " value=""><label class="on" for="agent-desc">Descrizione agente</label><div class="help">Calcolata dal codice</div></div>
+        </div>
+        <h3 style="margin:22px 0 10px">Abilitazioni</h3>
+        <div class="grid c2" style="gap:10px 24px">
+            <label class="check"><input type="checkbox" name="active" th:checked="${u == null or u.active}"> Utente attivo (può accedere)</label>
+            <label class="check"><input type="checkbox" name="administrator" th:checked="${u != null and u.administrator}"> <b>Administrator</b> (tutte le funzioni e gestione utenti)</label>
+            <label class="check"><input type="checkbox" name="canCreateOffers" th:checked="${u == null or u.canCreateOffers}"> Creare nuove offerte</label>
+            <label class="check"><input type="checkbox" name="canEditOffers" th:checked="${u == null or u.canEditOffers}"> Modificare le proprie offerte</label>
+            <label class="check"><input type="checkbox" name="canViewAllOffers" th:checked="${u != null and u.canViewAllOffers}"> Vedere e modificare le offerte di tutti</label>
+            <label class="check"><input type="checkbox" name="canDeleteOffers" th:checked="${u != null and u.canDeleteOffers}"> Eliminare offerte</label>
+            <label class="check"><input type="checkbox" name="canExportDocx" th:checked="${u == null or u.canExportDocx}"> Generare il documento Word</label>
+            <label class="check"><input type="checkbox" name="canManageCustomers" th:checked="${u == null or u.canManageCustomers}"> Gestire gli Account (clienti e prospect)</label>
+            <label class="check"><input type="checkbox" name="canManageCatalog" th:checked="${u != null and u.canManageCatalog}"> Gestire applicazioni, moduli e prezzi</label>
+            <label class="check"><input type="checkbox" name="canViewPrices" th:checked="${u == null or u.canViewPrices}"> Vedere i prezzi di listino</label>
+        </div>
+        <p class="hint">Le modifiche ai permessi hanno effetto dal prossimo accesso dell'utente.</p>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+            <a class="btn text" th:href="@{/admin/users}">Annulla</a>
+            <button class="btn" type="submit"><svg class="ic"><use href="#i-save"/></svg>Salva</button>
+        </div>
+    </form>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script th:inline="javascript">
+    (function () {
+        var AGENTS = /*[[${agents}]]*/ [];          // [codice, descrizione], gia' in ordine di descrizione
+        var inp = document.getElementById('agent-code'), list = document.getElementById('agent-list'), desc = document.getElementById('agent-desc');
+        function norm(s) { return String(s || '').toLowerCase(); }
+        function descOf(code) { for (var i = 0; i < AGENTS.length; i++) if (AGENTS[i][0] === code) return AGENTS[i][1] || ''; return ''; }
+        function syncDesc() { desc.value = descOf(inp.value.trim()); }
+        function render(filter) {
+            var f = norm(filter), html = '';
+            AGENTS.forEach(function (a) {
+                if (f && norm(a[1]).indexOf(f) < 0 && norm(a[0]).indexOf(f) < 0) return;
+                var d = a[1] || a[0];
+                html += '<div class="agent-row" data-code="' + a[0].replace(/"/g, '&quot;') + '"><span></span> <span class="muted"></span></div>';
+            });
+            list.innerHTML = html || '<div class="agent-empty muted">Nessun agente</div>';
+            var rows = list.querySelectorAll('.agent-row'), k = 0;
+            AGENTS.forEach(function (a) {
+                if (f && norm(a[1]).indexOf(f) < 0 && norm(a[0]).indexOf(f) < 0) return;
+                rows[k].children[0].textContent = a[1] || a[0]; rows[k].children[1].textContent = '(' + a[0] + ')'; k++;
+            });
+        }
+        function open(filter) { render(filter); list.hidden = false; }
+        inp.addEventListener('focus', function () { open(''); });
+        inp.addEventListener('click', function () { if (list.hidden) open(''); });
+        inp.addEventListener('input', function () { syncDesc(); open(inp.value.trim()); });
+        list.addEventListener('mousedown', function (e) {
+            var r = e.target.closest('.agent-row'); if (!r) return;
+            e.preventDefault(); inp.value = r.dataset.code; syncDesc(); list.hidden = true;
+            inp.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        inp.addEventListener('blur', function () { list.hidden = true; });
+        inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') list.hidden = true; });
+        syncDesc();
+    })();
+</script>
+<style>
+    #agent-field { position: relative; }
+    .agent-list { position: absolute; left: 0; right: 0; top: 100%; z-index: 30; max-height: 260px; overflow-y: auto; background: var(--surface); border: 1px solid var(--outline-var); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.18); margin-top: 2px; }
+    .agent-row { padding: 9px 12px; cursor: pointer; }
+    .agent-row:hover { background: var(--surface-3); }
+    .agent-empty { padding: 9px 12px; }
+</style>
+</body>
+</html>

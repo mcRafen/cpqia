@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Storico modifiche')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('')}"></div>
+<main class="content"><div class="inner">
+    <div class="pagehead"><a class="btn icon" href="javascript:history.back()" title="Torna indietro" aria-label="Torna indietro"><svg class="ic"><use href="#i-back"/></svg></a>
+        <h1>Storico modifiche <span class="muted" style="font-size:.6em;font-weight:400" th:text="${h.tableTitle} + (${h.label != null} ? ' · ' + ${h.label} : '')"></span></h1></div>
+    <div class="card">
+        <div class="hint" th:if="${#lists.isEmpty(h.entries)}">Nessuna azione registrata per questo record (il journaling registra le modifiche successive alla sua attivazione).</div>
+        <div class="tablewrap" th:unless="${#lists.isEmpty(h.entries)}">
+            <table class="t">
+                <thead><tr><th style="width:170px">Data e ora</th><th style="width:200px">Utente</th><th style="width:190px">Azione</th><th>Dettaglio</th></tr></thead>
+                <tbody>
+                <tr th:each="e : ${h.entries}">
+                    <td class="nowrap mono" th:text="${#temporals.format(e.at, 'dd/MM/yyyy HH:mm:ss')}">01/01/2026 10:00:00</td>
+                    <td th:text="${e.userName}">utente</td>
+                    <td><span class="chip" th:classappend="${e.action == 'DELETE' or e.action == 'PURGE'} ? 'warn' : (${e.action == 'INSERT'} ? 'blue' : '')" th:text="${e.actionLabel}">Modifica</span></td>
+                    <td>
+                        <th:block th:if="${e.action == 'UPDATE'}">
+                            <div th:each="c : ${e.changes}"><b th:text="${c.field}">Campo</b>: <span class="muted" th:text="${c.oldValue}">prima</span> → <span th:text="${c.newValue}">dopo</span></div>
+                        </th:block>
+                        <details th:if="${(e.action == 'INSERT' or e.action == 'DELETE' or e.action == 'PURGE') and !#lists.isEmpty(e.changes)}">
+                            <summary th:text="${e.action == 'INSERT'} ? 'Valori inseriti' : 'Valori del record eliminato'">Valori</summary>
+                            <div th:each="c : ${e.changes}"><b th:text="${c.field}">Campo</b>: <span th:text="${c.newValue}">valore</span></div>
+                        </details>
+                        <span class="muted" th:if="${e.action == 'RESTORE'}">Record ripristinato dal Cestino</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+</body>
+</html>

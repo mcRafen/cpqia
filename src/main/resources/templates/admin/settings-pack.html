@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Aggiornamento impostazioni')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('settings-pack')}"></div>
+<main class="content"><div class="inner">
+    <div th:replace="~{fragments/layout :: settingsTabs('settings-pack')}"></div>
+    <div class="pagehead"><h1>Aggiornamento impostazioni</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="card">
+        <h2>Pacchetto delle impostazioni</h2>
+        <div class="hint" style="margin-bottom:12px">Il contenuto delle tabelle di Impostazioni di questo database (applicazioni e moduli, tabelle tariffe, modelli Power System, prodotti IBM i, sedi, tipi azienda e indirizzo, servizi accessori, listino Galileo, comportamento delle griglie) viene inserito nel WAR. Quando il WAR viene installato su Tomcat, all'avvio le impostazioni dell'installazione vengono allineate a questo pacchetto. <b>Offerte e account restano nel database in cui si trovano</b>; utenti, agenti, comuni, integrazioni e preferenze delle griglie non si trasportano.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button type="button" class="btn" id="sp-export"><svg class="ic"><use href="#i-save"/></svg>Esporta nel progetto</button>
+            <a class="btn outlined" th:href="@{/admin/settings-pack/download}"><svg class="ic"><use href="#i-download"/></svg>Scarica settings-pack.json</a>
+        </div>
+        <div id="sp-result" class="alert" hidden style="margin-top:14px"></div>
+        <div class="hint" style="margin-top:12px">Procedura: 1) fai le modifiche alle impostazioni nell'ambiente di sviluppo; 2) <b>Esporta nel progetto</b> (scrive <code>src/main/resources/settings/settings-pack.json</code>; se non sei in sviluppo scarica il file e copialo lì); 3) ricompila il WAR e installalo su Tomcat.</div>
+    </div>
+    <div class="card">
+        <h2>Su questa installazione</h2>
+        <div th:if="${last != null}">Ultimo pacchetto applicato il <b th:text="${#temporals.format(last.appliedAt, 'dd/MM/yyyy HH:mm:ss')}"></b><div class="muted" th:text="${last.summary}"></div></div>
+        <div th:if="${last == null}" class="muted">Nessun pacchetto applicato finora.</div>
+        <div style="margin-top:10px" th:if="${packed}">Il WAR in esecuzione contiene un pacchetto con:
+            <span th:each="e : ${packedCounts}" class="chip" style="margin:2px" th:text="${e.key} + ' ' + ${e.value}"></span></div>
+        <div style="margin-top:10px" class="muted" th:unless="${packed}">Il WAR in esecuzione non contiene un pacchetto delle impostazioni.</div>
+    </div>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script>
+document.getElementById('sp-export').addEventListener('click', async () => {
+    const box = document.getElementById('sp-result'), b = document.getElementById('sp-export'); b.disabled = true;
+    try {
+        const r = await CPQ.api('POST', '/admin/settings-pack/export', {});
+        box.hidden = false; box.className = 'alert ok';
+        box.textContent = r.message + (r.path ? ' – ' + r.path : '') + ' · ' + Object.entries(r.counts).map(([k, v]) => k + ' ' + v).join(', ');
+    } catch (e) { box.hidden = false; box.className = 'alert err'; box.textContent = e.message; }
+    b.disabled = false;
+});
+</script>
+</body>
+</html>

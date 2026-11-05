@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Nuova offerta')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('offers')}"></div>
+
+<main class="content"><div class="inner">
+    <div id="wizard"
+         th:attr="data-today=${today},data-next-progressive=${nextProgressive},data-offer-id=${offerId},data-customer-id=${customerId},data-initials=${me != null ? me.initials : ''},data-prices=${#authorization.expression('hasAuthority(''P_VIEW_PRICES'')')},data-docx=${#authorization.expression('hasAuthority(''P_EXPORT_DOCX'')')}">
+
+        <div class="pagehead">
+            <a class="btn icon" th:href="@{/offers}" title="Torna indietro" aria-label="Torna indietro"><svg class="ic"><use href="#i-back"/></svg></a>
+            <h1 th:text="${offerId == null} ? 'Nuova offerta' : 'Modifica offerta'">Nuova offerta</h1>
+            <span class="grow"></span>
+            <a class="btn outlined hd-cancel" th:href="@{/offers}" title="Annulla" aria-label="Annulla"><svg class="ic hd-cancel-ic"><use href="#i-close"/></svg><span class="hd-cancel-txt">Annulla</span></a>
+            <span class="hd-sep" aria-hidden="true"></span>
+            <button type="button" class="btn icon" id="hd-prev" title="Pagina precedente" aria-label="Pagina precedente"><svg class="ic"><use href="#i-back"/></svg></button>
+            <button type="button" class="btn icon" id="hd-next" title="Pagina successiva" aria-label="Pagina successiva"><svg class="ic"><use href="#i-forward"/></svg></button>
+        </div>
+
+        <div class="stepper">
+            <div class="step active" data-go="1"><span class="dot">1</span><span>Dati iniziali</span></div>
+            <div class="bar"></div>
+            <div class="step" data-go="6"><span class="dot">2</span><span>Contenuti</span></div>
+            <div class="bar" id="bar-galileo" hidden></div>
+            <div class="step" data-go="8" id="st-galileo" hidden><span class="dot">3</span><span>Galileo</span></div>
+            <div class="bar" id="bar-power" hidden></div>
+            <div class="step" data-go="7" id="st-power" hidden><span class="dot">3</span><span>Power System</span></div>
+            <div class="bar" id="bar-smitech" hidden></div>
+            <div class="step" data-go="9" id="st-smitech" hidden><span class="dot">3</span><span>Servizi SMITECH</span></div>
+            <div class="bar" id="bar-dept"></div>
+            <div class="step" data-go="2" id="st-dept"><span class="dot">2</span><span>Dipartimentali</span></div>
+            <div class="bar" id="bar-services"></div>
+            <div class="step" data-go="5" id="st-services"><span class="dot">3</span><span>Servizi</span></div>
+            <div class="bar" id="bar-extras" hidden></div>
+            <div class="step" data-go="3" id="st-extras" hidden><span class="dot">3</span><span>Servizi accessori</span></div>
+            <div class="bar"></div>
+            <div class="step" data-go="4"><span class="dot">3</span><span>Riepilogo finale</span></div>
+        </div>
+
+        <!-- ============ STEP 1 ============ -->
+        <section data-step="1">
+            <div class="card">
+                <h2>Testata offerta</h2>
+                <div class="grid c4">
+                    <div class="field"><input type="date" id="f-date" placeholder=" " required><label for="f-date">Data offerta</label></div>
+                    <div class="field"><input type="number" id="f-prog" min="1" step="1" placeholder=" " required><label for="f-prog">N. progressivo</label>
+                        <div class="help">Proposto in base alle offerte del giorno</div></div>
+                    <div class="field span2"><input type="text" id="f-number" readonly placeholder=" "><label for="f-number">Numero offerta</label>
+                        <div class="help">Data (AAAAMMGG) . progressivo + tue iniziali</div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="cardhead"><h2 class="grow" style="margin:0">Cliente / prospect</h2>
+                    <button type="button" class="btn tonal sm" id="btn-newcust"><svg class="ic"><use href="#i-add"/></svg>Nuovo account</button></div>
+                <div class="combo" style="margin-top:14px">
+                    <div class="field"><input type="text" id="f-cust" data-noguard autocomplete="off" placeholder=" "><label for="f-cust">Cerca per ragione sociale, codice, P.IVA o città</label></div>
+                    <div class="list" id="cust-list" hidden></div>
+                </div>
+                <dl class="custbox" id="custbox" hidden></dl>
+            </div>
+
+            <div class="card">
+                <h2>Dati opzionali</h2>
+                <div class="grid c3">
+                    <div class="field span2"><input type="text" id="f-title" maxlength="250" placeholder=" "><label for="f-title">Titolo progetto (se vuoto: dalle applicazioni scelte)</label></div>
+                    <div class="field"><input type="text" id="f-ref" maxlength="150" placeholder=" "><label for="f-ref">Rif. (referente del cliente)</label></div>
+                                    </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end"><button type="button" class="btn" id="btn-to2">Contenuti<svg class="ic"><use href="#i-forward"/></svg></button></div>
+        </section>
+
+        <!-- ============ STEP 6: ELEMENTI ============ -->
+        <section data-step="6" hidden>
+            <div class="card">
+                <h2>Contenuti dell'offerta</h2>
+                <div class="hint" style="margin-bottom:10px">Scegli le componenti che fanno parte dell'offerta.</div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                        <label class="check"><input type="checkbox" id="opt-services-on"> Servizi</label>
+                        <div id="svc-mode-wrap" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;flex:1;min-width:0"><div class="field" id="svc-mode-box" style="min-width:240px;flex:0 1 280px"><select id="sel-svc-mode"><option value="MANUAL">Manuale</option><option value="RFQ">RFQ</option></select><label for="sel-svc-mode" class="on">Gestione dei servizi</label></div></div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                        <label class="check"><input type="checkbox" id="opt-galileo"> Galileo</label>
+                        <div class="field" id="galileo-box" style="min-width:300px;flex:0 1 380px" hidden><select id="sel-galileo"></select><label for="sel-galileo" class="on">Tipologia Galileo *</label></div>
+                    </div>
+                    <label class="check"><input type="checkbox" id="opt-power"> Power System <span class="hint">(modello e configurazione si scelgono nella pagina «Power System»)</span></label>
+                    <label class="check"><input type="checkbox" id="opt-smitech"> Servizi SMITECH <span class="hint">(SMISMP, SMIDRI, ecc: si configurano in un passo dedicato)</span></label>
+                    <label class="check"><input type="checkbox" id="opt-dept"> Dipartimentali</label>
+                    <label class="check"><input type="checkbox" id="opt-services"> Servizi accessori <span class="hint">(Audit, Discovery Xchange, Firmae, CRC: si configurano in un passo dedicato)</span></label>
+                </div>
+            </div>
+            <div class="card pr" id="rates-card">
+                <div class="cardhead"><h2 class="grow" style="margin:0">Tariffe per profilo professionale</h2>
+                    <button type="button" class="btn outlined sm" id="rates-reset" title="Ripristina le tariffe dell'account (o di listino)" disabled><svg class="ic"><use href="#i-restore"/></svg>Ripristina</button></div>
+                <div class="hint" style="margin:6px 0 10px" id="rates-hint">Tariffe orarie applicate alle attività dell'offerta: se l'account ha tariffe dedicate vengono caricate quelle, altrimenti il listino. Puoi modificarle per questa offerta.</div>
+                <div class="tablewrap"><table class="t" id="rates-table"><thead><tr><th>Profilo professionale</th><th class="num">Tariffa di partenza</th><th class="num" style="width:180px">Tariffa in offerta (€/h)</th></tr></thead><tbody id="rates-body"></tbody></table></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+                <button type="button" class="btn outlined" id="btn-back6"><svg class="ic"><use href="#i-back"/></svg>Dati iniziali</button>
+                <button type="button" class="btn" id="btn-next6">Avanti<svg class="ic"><use href="#i-forward"/></svg></button>
+            </div>
+        </section>
+
+        <!-- ============ STEP 7: POWER SYSTEM ============ -->
+        <section data-step="7" hidden>
+            <div class="pw-layout">
+                <div class="card pw-model" id="pw-card-model">
+                    <h2>Selezione del modello</h2>
+                    <div class="grid c4" style="align-items:start;margin-bottom:6px">
+                        <div class="field span3"><select id="sel-power"></select><label for="sel-power" class="on">Modello *</label>
+                            <div class="help" id="power-model-info"></div></div>
+                    </div>
+                    <div class="grid c4" style="align-items:start">
+                        <div class="field"><select id="pw-ram"></select><label for="pw-ram" class="on">RAM *</label></div>
+                        <div class="field"><select id="pw-disk"></select><label for="pw-disk" class="on">Disco *</label></div>
+                        <div class="field"><input type="number" id="pw-disks" min="1" max="24" step="1" value="2" placeholder=" "><label for="pw-disks">Numero dischi *</label></div>
+                    </div>
+                    <div class="grid c4" style="align-items:start;margin-top:16px">
+                        <div class="field"><input type="number" id="pw-users" min="1" step="1" placeholder=" "><label for="pw-users">N. utenti IBM i licenziati *</label><div class="help" id="pw-users-link" hidden>Collegato agli utenti di Galileo</div></div>
+                        <div style="align-self:center"><label class="check"><input type="checkbox" id="pw-unlimited"> ILLIMITATI</label></div>
+                    </div>
+                </div>
+
+                <div class="card pw-opt locked" id="pw-card-amt">
+                    <h2>Importi <span class="pw-lock" title="Si abilita dopo aver compilato «Selezione del modello»">🔒</span></h2>
+                    <div class="pw-lockmsg">Compila prima la sezione «Selezione del modello»</div>
+                    <fieldset class="pw-fs" disabled>
+                        <div class="pw-stack">
+                            <button type="button" class="btn tonal" id="pw-amt-open"><svg class="ic"><use href="#i-euro"/></svg>Imposta valori</button>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <div class="card pw-opt locked" id="pw-card-hw">
+                    <h2>Opzioni Hardware <span class="pw-lock" title="Si abilita dopo aver compilato «Selezione del modello»">🔒</span></h2>
+                    <div class="pw-lockmsg">Compila prima la sezione «Selezione del modello»</div>
+                    <fieldset class="pw-fs" disabled>
+                        <div class="pw-stack">
+                            <label class="check"><input type="checkbox" id="pw-eth10"> Scheda ethernet 10 gbit</label>
+                            <label class="check"><input type="checkbox" id="pw-lto8"> LTO8</label>
+                            <div class="field" id="pw-cable-box"><select id="pw-cable"><option value="">— nessuno —</option><option value="LTO6">LTO6</option><option value="LTO7">LTO7</option></select><label for="pw-cable" class="on">Cavo di collegamento</label></div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <div class="card pw-opt locked" id="pw-card-sw">
+                    <h2>Opzioni Software <span class="pw-lock" title="Si abilita dopo aver compilato «Selezione del modello»">🔒</span></h2>
+                    <div class="pw-lockmsg">Compila prima la sezione «Selezione del modello»</div>
+                    <fieldset class="pw-fs" disabled>
+                        <div class="grid c2" style="align-items:start">
+                            <div class="field" id="pw-maint-box"><div class="cs"><button type="button" class="cs-btn" id="pw-maint-btn" aria-haspopup="listbox" aria-expanded="false"><span class="cs-val" id="pw-maint-val"></span><svg class="cs-chev" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><label class="on">Manutenzione SW/HW *</label></div>
+                            <div class="field"><select id="pw-os"><option value="7.5">7.5</option><option value="7.6">7.6</option></select><label for="pw-os" class="on">Sistema operativo</label></div>
+                            <div class="field"><select id="pw-edition"><option value="SOLUTION">Solution</option><option value="EXPRESS">Express</option></select><label for="pw-edition" class="on">Edition</label></div>
+                            <div class="field"><select id="pw-transfer"><option value="NO">No</option><option value="TRANSFER">Transfer</option><option value="CONVERSION">Conversion</option></select><label for="pw-transfer" class="on">Transfer-Conversion</label></div>
+                            <div class="field span2" id="pw-tref-box" hidden title="Riferimenti del Power da cui trasferire le licenze"><input type="text" id="pw-tref" maxlength="500" placeholder=" "><label for="pw-tref">Riferimenti Power *</label></div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 8px">
+                            <h3 style="margin:0">Prodotti IBM i <span class="muted" style="font-weight:400">(valore obbligatorio per ogni prodotto)</span></h3>
+                            <span class="grow" style="flex:1"></span>
+                            <button type="button" class="btn tonal sm" id="pw-copy-all" title="Copia su tutti i prodotti il valore impostato nel primo"><svg class="ic"><use href="#i-copy"/></svg>Copia su tutti</button>
+                        </div>
+                        <div id="pw-products" class="pw-products"></div>
+                    </fieldset>
+                </div>
+            </div>
+            <div class="muted" id="pw-blockers" style="margin:8px 0;color:var(--error)"></div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+                <button type="button" class="btn outlined" id="btn-back7"><svg class="ic"><use href="#i-back"/></svg>Indietro</button>
+                <button type="button" class="btn" id="btn-next7">Avanti<svg class="ic"><use href="#i-forward"/></svg></button>
+            </div>
+        </section>
+
+        <!-- ============ STEP 9: SERVIZI SMITECH ============ -->
+        <section data-step="9" hidden>
+            <div class="card" id="smitech-card">
+                <h2>Servizi SMITECH</h2>
+                <div class="hint" style="margin-bottom:10px">Configurazione dei servizi SMITECH dell'offerta (SMISMP, SMIDRI, ecc.).</div>
+                <div class="muted">Le voci di configurazione dei servizi SMITECH verranno rese disponibili in questa pagina.</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+                <button type="button" class="btn outlined" id="btn-back9"><svg class="ic"><use href="#i-back"/></svg>Indietro</button>
+                <button type="button" class="btn" id="btn-next9">Avanti<svg class="ic"><use href="#i-forward"/></svg></button>
+            </div>
+        </section>
+
+        <!-- ============ STEP 2 ============ -->
+        <!-- ============ STEP 8: GALILEO ============ -->
+        <section data-step="8" hidden>
+            <div class="card" id="gal-card-head">
+                <h2>Galileo – <span id="gal-market"></span></h2>
+                <div class="hint" id="gal-listino" style="margin-bottom:10px"></div>
+                <div class="alert warn" id="gal-expired" hidden><svg class="ic"><use href="#i-warning"/></svg><span></span></div>
+                <div class="grid c4" style="align-items:start">
+                    <div class="field span2"><select id="gal-kind"></select><label for="gal-kind" class="on">Scenario *</label></div>
+                    <div class="field" id="gal-release-box"><select id="gal-release"><option value="V9">V9</option><option value="V11">V11</option></select><label for="gal-release" class="on">Release *</label></div>
+                    <div class="field" id="gal-users-box"><input type="number" id="gal-users" min="1" step="1" placeholder=" "><label for="gal-users">Numero utenti *</label><div class="help" id="gal-users-help"></div></div>
+                    <div class="field span2" id="gal-source-box" hidden><select id="gal-source"><option value="0">— seleziona —</option><option value="1">Carattere</option><option value="2">Visuale</option><option value="3">V9</option></select><label for="gal-source" class="on">Il cliente migra da *</label></div>
+                    <div class="field" id="gal-add-box" hidden><input type="number" id="gal-addusers" min="0" step="1" placeholder=" "><label for="gal-addusers">Utenti aggiuntivi</label><div class="help">Posti di lavoro in più rispetto agli utenti migrati</div></div>
+                    <div style="align-self:center" id="gal-agg-box" hidden><label class="check"><input type="checkbox" id="gal-agg"> Aggiunta moduli (senza configurazione base)</label></div>
+                </div>
+            </div>
+            <div class="card pr" id="gal-card-tot">
+                <h2>Totali Galileo</h2>
+                <div class="alert err" id="gal-invalid" hidden><svg class="ic"><use href="#i-warning"/></svg><span></span></div>
+                <div class="grid c4" style="align-items:start">
+                    <div class="kv-box"><small>Listino di vendita</small><b id="gal-t-list">€ 0,00</b><span class="note" id="gal-t-note"></span></div>
+                    <div class="kv-box"><small>Canone di manutenzione annuo</small><b id="gal-t-maint">€ 0,00</b></div>
+                </div>
+                <table class="t" style="margin-top:12px" id="gal-lines-t"><tbody id="gal-lines"></tbody></table>
+                <div id="gal-violations" style="margin-top:10px"></div>
+            </div>
+            <div class="card" id="gal-card-mods">
+                <div class="cardhead"><h2 class="grow" style="margin:0">Moduli</h2>
+                    <label class="check" style="margin-right:12px"><input type="checkbox" id="gal-onlysel"> Solo selezionati</label>
+                    <div class="field" style="width:260px;margin:0"><input type="search" id="gal-filter" placeholder=" " data-noguard><label for="gal-filter">Cerca modulo…</label></div></div>
+                <div class="hint" id="gal-mods-help" style="margin:6px 0 10px"></div>
+                <div id="gal-mods"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+                <button type="button" class="btn outlined" id="btn-back8"><svg class="ic"><use href="#i-back"/></svg>Indietro</button>
+                <button type="button" class="btn" id="btn-next8">Avanti<svg class="ic"><use href="#i-forward"/></svg></button>
+            </div>
+        </section>
+
+        <section data-step="2" hidden>
+            <div class="card" style="padding-bottom:8px">
+                <div class="cardhead" style="margin-bottom:12px;flex-wrap:wrap">
+                    <h2 class="grow" style="margin:0">Dipartimentali – applicazioni a catalogo</h2>
+                    <div class="field sm" style="min-width:280px"><input type="search" id="app-search" data-noguard placeholder="Cerca applicazione o modulo…" aria-label="Cerca"></div>
+                </div>
+                <div id="families" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+                <div class="hint" style="margin-bottom:8px">Spunta le applicazioni da inserire in offerta: si abilita il numero di utenti e si apre il dettaglio dei moduli, ciascuno selezionabile con il relativo prezzo di listino.</div>
+                <div class="tablewrap">
+                    <table class="t apps">
+                        <thead><tr><th></th><th>Applicazione</th><th>Modalità</th><th>Utenti</th><th class="num pr">Licenze</th><th class="num pr">Manutenzione annua</th><th></th></tr></thead>
+                        <tbody id="apps-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="violations"></div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+                <button type="button" class="btn outlined" id="btn-back1"><svg class="ic"><use href="#i-back"/></svg>Indietro</button>
+                <button type="button" class="btn" id="btn-next2" disabled>Avanti<svg class="ic"><use href="#i-forward"/></svg></button>
+            </div>
+        </section>
+
+        <!-- ============ STEP 5: SERVIZI (attività sistemistiche) ============ -->
+        <section data-step="5" hidden>
+            <div class="card" id="svc-rfq-card" hidden>
+                <h2>Servizi – attività da RFQ</h2>
+                <div class="hint" style="margin-bottom:10px">Le attività si importano da un documento Google Sheets (RFQ): per ogni applicazione le righe sono raggruppate per titolo, con figura professionale, ore e tariffe dell'account.</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+                    <button type="button" class="btn" id="btn-rfq-import"><svg class="ic"><use href="#i-download"/></svg>Importa da RFQ</button>
+                    <button type="button" class="btn outlined danger" id="btn-rfq-clear" disabled><svg class="ic"><use href="#i-delete"/></svg>Elimina righe importate</button>
+                </div>
+                <div class="alert warn" id="rfq-mismatch" hidden style="margin-bottom:12px"><svg class="ic"><use href="#i-warning"/></svg><span></span></div>
+                <div id="svc-rfq-body"></div>
+            </div>
+            <div class="card" id="svc-manual-card">
+                <h2>Servizi – attività sistemistiche</h2>
+                <div class="hint" style="margin-bottom:10px">Scrivi le attività direttamente, oppure organizzale in gruppi (facoltativi): ogni gruppo ha un titolo e le sue righe (descrizione, profilo professionale e ore). Trascina l'icona a sinistra del titolo per cambiare l'ordine dei gruppi. Se l'offerta contiene applicazioni (Dipartimentali) puoi collegare un gruppo a un'applicazione. La tariffa oraria è quella del profilo (tabella Tariffe per profilo professionale, pagina Contenuti).</div>
+                <div id="svc-body"></div>
+            </div>
+            <div class="card pr">
+                <h2>Totali attività</h2>
+                <div class="hint" style="margin-bottom:10px">Lo sconto sulle tariffe orarie si imposta nel Riepilogo, box «Attività sistemistiche».</div>
+                <div class="grid c4" style="align-items:start">
+                    <div class="kv-box"><small>Totale attività a listino</small><b id="svc-t-list">€ 0,00</b><span class="note" id="svc-t-hours"></span></div>
+                    <div class="kv-box"><small>Totale attività scontato</small><b id="svc-t-net">€ 0,00</b><span class="note" id="svc-t-save"></span></div>
+                </div>
+            </div>
+            <div class="muted" id="svc-blockers" style="margin-bottom:8px;color:var(--error)"></div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+                <button type="button" class="btn outlined" id="btn-back5"><svg class="ic"><use href="#i-back"/></svg>Indietro</button>
+                <button type="button" class="btn" id="btn-next5">Avanti<svg class="ic"><use href="#i-forward"/></svg></button>
+            </div>
+        </section>
+
+        <!-- ============ STEP 3: SERVIZI ACCESSORI ============ -->
+        <section data-step="3" hidden>
+            <div class="card" style="padding-bottom:8px">
+                <div class="cardhead" style="margin-bottom:6px"><h2 class="grow" style="margin:0">Servizi accessori</h2>
+                    <span class="chip blue pr" id="x-total">una tantum € 0,00 · canone € 0,00</span></div>
+                <div class="hint" style="margin-bottom:10px">Spunta i servizi da inserire e, dove previsto, scegli la riga della tabella da attivare (fascia o scaglione). Gli importi dei servizi accessori non rientrano nello sconto.</div>
+            </div>
+            <div id="extras-body"></div>
+            <div id="x-violations"></div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px">
+                <button type="button" class="btn outlined" id="btn-back3"><svg class="ic"><use href="#i-back"/></svg>Indietro</button>
+                <button type="button" class="btn" id="btn-next3">Riepilogo<svg class="ic"><use href="#i-forward"/></svg></button>
+            </div>
+        </section>
+
+        <!-- ============ STEP 4: RIEPILOGO ============ -->
+        <section data-step="4" hidden>
+            <div class="card">
+                <h2>Riepilogo offerta <span class="mono" id="sum-number"></span></h2>
+                <div class="grid c2" style="margin-bottom:16px">
+                    <div><div class="muted">Cliente</div><b id="sum-customer"></b><div class="muted" style="margin-top:6px">Contenuti</div><b id="sum-elements"></b></div>
+                    <div class="field"><input type="text" id="sum-title" maxlength="250" placeholder=" "><label for="sum-title">Titolo del progetto (copertina)</label></div>
+                </div>
+                <div class="tablewrap">
+                    <table class="t">
+                        <thead><tr><th>Applicazione</th><th>Moduli</th><th>Utenti</th><th class="num pr">Licenze</th><th class="num pr">Manutenzione annua</th></tr></thead>
+                        <tbody id="sum-body"></tbody>
+                        <tfoot id="sum-foot"></tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="card" id="sum-extras-card" hidden>
+                <h2>Servizi accessori</h2>
+                <div class="tablewrap"><table class="t"><thead><tr><th>Servizio</th><th>Scelte</th><th class="num pr">Una tantum</th><th class="num pr">Canone annuo</th></tr></thead>
+                    <tbody id="sum-extras"></tbody></table></div>
+            </div>
+            <div class="card pr">
+                <h2>Licenze</h2>
+                <div class="grid c4" style="align-items:start">
+                    <div class="field"><input type="number" id="sum-disc" min="0" max="100" step="0.5" placeholder=" "><label for="sum-disc">Sconto %</label>
+                        <div class="help">Si applica a licenze e manutenzione</div></div>
+                    <div class="kv-box"><small>Netto a voi riservato – licenze</small><b id="n-lic">€ 0,00</b><span class="was" id="n-lic-was"></span></div>
+                    <div class="kv-box"><small>Netto a voi riservato – manutenzione annua</small><b id="n-man">€ 0,00</b><span class="was" id="n-man-was"></span></div>
+                    <div class="kv-box margin"><small>Margine commerciale</small><b id="n-margin">€ 0,00</b><span class="was">netto licenze + netto manutenzione</span></div>
+                </div>
+            </div>
+            <div class="card pr" id="sum-pw-card" hidden>
+                <h2>Power System</h2>
+                <div class="grid c4" style="align-items:start">
+                    <div class="kv-box"><small>Prezzo di listino</small><b id="sum-pw-list">€ 0,00</b><span class="note" id="sum-pw-model"></span></div>
+                    <div class="kv-box margin"><small>Prezzo netto</small><b id="sum-pw-net">€ 0,00</b><span class="note" id="sum-pw-disc"></span></div>
+                </div>
+                <div class="tablewrap" id="sum-pw-periods-wrap" style="margin-top:12px" hidden><table class="t"><thead><tr><th>Manutenzione SW/HW</th><th>Sezione</th><th class="num">Listino</th><th class="num">Netto scontato</th></tr></thead><tbody id="sum-pw-periods"></tbody></table></div>
+            </div>
+            <div class="card pr" id="sum-act-card">
+                <h2>Attività sistemistiche</h2>
+                <div class="grid c4" style="align-items:start">
+                    <div class="field"><input type="number" id="svc-disc" min="0" max="100" step="0.5" placeholder=" "><label for="svc-disc">Sconto %</label>
+                        <div class="help">Riduce tutte le tariffe orarie</div></div>
+                    <div class="kv-box"><small>Totale a listino</small><b id="sum-act-list">€ 0,00</b><span class="note" id="sum-act-hours"></span></div>
+                    <div class="kv-box"><small>Risparmio</small><b id="sum-act-save">€ 0,00</b><span class="note">listino meno scontato</span></div>
+                    <div class="kv-box margin"><small>Totale scontato</small><b id="sum-act-net">€ 0,00</b><span class="note">compare come “Attività di progetto” nel riepilogo finale del documento</span></div>
+                </div>
+                <div class="hint" id="sum-act-none" hidden>Nessuna attività configurata nel passo “Servizi”: nel documento resta il totale stimato di attivita.docx.</div>
+            </div>
+            <div class="card">
+                <h2>Trasferta</h2>
+                <div class="grid c4" style="align-items:start">
+                    <div class="kv-box"><small>Distanza dalla sede Sanmarco più vicina</small><b id="dist-km">—</b><span class="note" id="dist-sede"></span></div>
+                    <div class="field"><select id="travel-rate"></select><label for="travel-rate" class="on">Spese di trasferta</label>
+                        <div class="help" id="travel-help">Dalla tabella “Trasferte Italia”: suggerita in base ai km, modificabile</div></div>
+                    <div><button type="button" class="btn tonal sm" id="dist-refresh" title="Ricalcola la distanza dall'indirizzo dell'account"><svg class="ic"><use href="#i-search"/></svg>Ricalcola</button>
+                        <div class="hint" id="dist-note" style="margin-top:6px"></div></div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Modalità di fatturazione e pagamento</h2>
+                <div id="terms-body"></div>
+                <div class="hint" style="margin-top:8px">Predefiniti: pagamento RI.BA. 30 gg dffm per un prospect, “solito in uso” per un cliente. Compaiono nella tabella “Modalità di fatturazione e pagamento” del documento.</div>
+            </div>
+            <div class="card">
+                <h2>Opzioni del documento</h2>
+                <div class="grid c2" style="align-items:start;gap:10px 28px">
+                    <div style="display:flex;flex-direction:column;gap:10px">
+                        <label class="check"><input type="checkbox" id="opt-summary"> Modello offerta Light <span class="hint">(aggiunge al documento il riepilogo finale)</span></label>
+                        <label class="check"><input type="checkbox" id="opt-days" checked> Servizi espressi in gg <span class="hint">(nel documento la colonna «STIMA» riporta i giorni invece delle ore)</span></label>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:10px">
+                        <div id="row-detail" hidden><label class="check"><input type="checkbox" id="svc-detail"> Dettaglio importi attività <span class="hint">(nel documento compaiono ore, tariffa e valore di ogni riga di attività; altrimenti per ogni applicazione solo le attività e il totale)</span></label></div>
+                        <div id="row-apptot" hidden><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><span style="font-weight:500;white-space:nowrap">Totali applicazioni</span><div class="field" style="flex:0 1 300px"><select id="opt-apptot"><option value="NO">No</option><option value="HOURS">Solo totale ore</option><option value="AMOUNT">Solo totale importo</option><option value="BOTH">Totale ore e importo</option></select><label for="opt-apptot" class="on">Aggiungi totale attività</label></div></div></div>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+                    <label class="check"><input type="checkbox" id="maint-on-net" checked> <span style="white-space:nowrap;flex:none">Manutenzione su netto scontato</span></label>
+                    <label class="check"><input type="checkbox" id="opt-maint"> Canone di manutenzione in aggiunta all'attuale</label>
+                </div>
+                <div class="hint" id="opt-maint-hint" style="margin-top:8px" hidden>La dicitura “in aggiunta all'attuale” compare nel riepilogo finale: attiva anche “Modello offerta Light”.</div>
+            </div>
+            <div id="sum-violations"></div>
+            <div class="muted" id="sum-blockers" style="margin-bottom:8px;color:var(--error)"></div>
+            <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+                <button type="button" class="btn outlined" id="btn-back2"><svg class="ic"><use href="#i-back"/></svg>Indietro</button>
+                <span style="display:flex;gap:8px">
+                    <button type="button" class="btn tonal" id="btn-save"><svg class="ic"><use href="#i-save"/></svg>Salva offerta</button>
+                    <button type="button" class="btn" id="btn-save-docx"><svg class="ic"><use href="#i-download"/></svg>Salva e genera Word</button>
+                </span>
+            </div>
+        </section>
+
+        <!-- barra totali -->
+        <div class="totalbar" id="totalbar" hidden>
+            <div class="kv"><small>Configurazione</small><b id="t-count">0 applicazioni</b></div>
+            <div class="kv pr"><small>Licenze</small><b id="t-lic">€ 0,00</b></div>
+            <div class="kv pr"><small>Manutenzione annua</small><b id="t-man">€ 0,00</b></div>
+            <div class="kv pr" id="t-net-wrap" hidden><small>Netto riservato (licenze / manutenzione)</small><b><span id="t-net-lic"></span> / <span id="t-net-man"></span></b></div>
+            <div class="kv pr"><small>Margine commerciale</small><b id="t-margin">€ 0,00</b></div>
+            <div class="kv pr"><small>Attività sistemistiche (listino / scontate)</small><b><span id="t-act-list">€ 0,00</span> / <span id="t-act-net">€ 0,00</span></b></div>
+            <span class="grow"></span>
+        </div>
+    </div>
+
+    <!-- dialog nuova anagrafica -->
+    <dialog id="pw-amt-dialog" class="pw-amt-dlg">
+        <div class="dlg-head"><h2>Importi manutenzione SW/HW</h2><div class="hint" style="margin-top:4px">Per ogni periodo selezionato indica prezzo di listino e netto scontato. Tutti i campi sono obbligatori.</div></div>
+        <div class="dlg-body" id="pw-amt-body"></div>
+        <div class="dlg-foot"><button type="button" class="btn text" id="pw-amt-cancel">Annulla</button><button type="button" class="btn" id="pw-amt-ok"><svg class="ic"><use href="#i-check"/></svg>Conferma</button></div>
+    </dialog>
+    <dialog id="rfq-dialog">
+        <form id="rfq-form" method="dialog" novalidate>
+            <div class="dlg-head"><h2>Importa da RFQ</h2>
+                <div class="muted">Indica l'indirizzo del documento Google Sheets. Viene letto il primo foglio con il tuo account Google (sola lettura).</div></div>
+            <div class="dlg-body">
+                <div class="alert err" id="rfq-err" hidden><svg class="ic"><use href="#i-warning"/></svg><span></span></div>
+                <div class="field" style="margin-top:8px"><input type="url" id="rfq-url" placeholder=" " autocomplete="off"><label for="rfq-url">URL del documento Google Sheets *</label></div>
+                <div class="hint" id="rfq-status" style="margin-top:8px" hidden></div>
+                <button type="button" class="btn text sm" id="rfq-reauth" hidden>Accedi con un altro account Google</button>
+            </div>
+            <div class="dlg-foot">
+                <button type="button" class="btn text" id="rfq-cancel">Annulla</button>
+                <button type="submit" class="btn" id="rfq-go">Importa</button>
+            </div>
+        </form>
+    </dialog>
+    <dialog id="cust-dialog">
+        <form id="cust-dialog-form" method="dialog" novalidate>
+            <div class="dlg-head"><h2>Nuovo account</h2>
+                <div class="muted">Il codice cliente viene assegnato automaticamente al salvataggio. L'account sarà subito selezionato per l'offerta.</div></div>
+            <div class="dlg-body">
+                <div class="alert err" id="cust-formerr" hidden><svg class="ic"><use href="#i-warning"/></svg><span></span></div>
+                <div class="grid c6" style="margin-top:8px">
+                    <div class="field span4"><input type="text" name="vatNumber" maxlength="20" placeholder=" " autofocus inputmode="numeric"><label>Partita IVA * (inseriscila per primo)</label><div class="err"></div></div>
+                    <div style="display:flex;align-items:flex-start;grid-column:span 2"><button type="button" class="btn tonal" id="cust-vat-btn" style="height:52px;width:100%"><svg class="ic"><use href="#i-search"/></svg>Recupera dati online</button></div>
+                    <div class="span6" id="cust-vatmsg" hidden></div>
+                    <div class="field span3"><input type="text" value="" disabled placeholder=" " id="cust-code"><label for="cust-code">Codice cliente</label><div class="help">Automatico, non modificabile</div></div>
+                    <div class="field span3"><input type="text" value="Prospect" disabled placeholder=" " id="cust-type"><label for="cust-type">Tipo anagrafica</label><div class="help">Le nuove anagrafiche nascono come Prospect</div></div>
+                    <div class="field span6"><input type="text" name="companyName" maxlength="200" placeholder=" "><label>Ragione sociale *</label><div class="err"></div></div>
+                    <div class="field span2"><select name="streetType"><option th:each="v : ${@lookupRepository.streetTypes()}" th:value="${v}" th:text="${v}"></option></select><label>Via *</label><div class="err"></div></div>
+                    <div class="field span3"><input type="text" name="streetName" maxlength="200" placeholder=" "><label>Indirizzo *</label><div class="err"></div></div>
+                    <div class="field"><input type="text" name="streetNumber" maxlength="20" placeholder=" "><label>N. civico *</label><div class="err"></div></div>
+                    <div class="field span2"><input type="text" name="postalCode" maxlength="10" inputmode="numeric" placeholder=" "><label>CAP *</label><div class="err"></div></div>
+                    <div class="field span3"><input type="text" name="city" maxlength="100" placeholder=" "><label>Città *</label><div class="err"></div></div>
+                    <div class="field"><input type="text" name="province" maxlength="5" placeholder=" " style="text-transform:uppercase"><label>Prov.</label><div class="err"></div></div>
+                    <div class="field span6"><input type="text" name="taxCode" maxlength="20" placeholder=" " style="text-transform:uppercase"><label>Codice fiscale</label><div class="err"></div></div>
+                </div>
+            </div>
+            <div class="dlg-foot">
+                <button type="button" class="btn text" id="cust-cancel">Annulla</button>
+                <button type="submit" class="btn">Salva e seleziona</button>
+            </div>
+        </form>
+    </dialog>
+</div></main>
+
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script th:src="@{/js/wizard-core.js}"></script>
+<script th:src="@{/js/wizard.js}"></script>
+</body>
+</html>

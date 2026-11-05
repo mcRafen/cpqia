@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${title})}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell(${active})}"></div>
+<main class="content"><div class="inner">
+    <th:block th:if="${active != null and T(java.util.List).of('power','ibmi-products','sedi','agents').contains(active)}"><div th:replace="~{fragments/layout :: settingsTabs(${active})}"></div></th:block>
+    <div class="pagehead"><h1 th:text="${title}">Titolo</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="cpgrid" th:attr="data-grid=${gridKey}"></div>
+    <p class="hint" th:if="${hint != null}" th:text="${hint}"></p>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script th:src="@{/js/grid-core.js}"></script>
+<script th:src="@{/js/grid.js}"></script>
+</body>
+</html>

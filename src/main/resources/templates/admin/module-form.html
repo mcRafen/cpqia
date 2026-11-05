@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Modulo')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('apps')}"></div>
+<main class="content"><div class="inner" style="max-width:980px">
+    <div th:replace="~{fragments/layout :: settingsTabs('apps')}"></div>
+    <div class="pagehead">
+        <a class="btn icon" th:href="@{/admin/applications/{id}(id=${app.id})}" title="Torna all'applicazione"><svg class="ic"><use href="#i-back"/></svg></a>
+        <h1><span th:text="${module == null} ? 'Nuovo modulo' : ${module.code}">Modulo</span> <span class="muted" style="font-size:16px" th:text="'· ' + ${app.name}"></span></h1>
+        <span class="grow"></span>
+        <form th:if="${module != null}" th:action="@{/admin/applications/{a}/modules/{m}/delete(a=${app.id},m=${module.id})}" method="post" th:data-confirm="|Eliminare il modulo ${module.code}?|">
+            <button class="btn text danger" type="submit"><svg class="ic"><use href="#i-delete"/></svg>Elimina</button></form>
+    </div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <form class="card" th:action="@{/admin/applications/{a}/modules/save(a=${app.id})}" method="post">
+        <input type="hidden" name="id" th:value="${module != null} ? ${module.id}">
+        <div class="grid c4">
+            <div class="field"><input name="code" required maxlength="40" placeholder=" " th:value="${module?.code}"><label>Codice modulo *</label></div>
+            <div class="field"><input name="printCode" maxlength="40" placeholder=" " th:value="${module?.printCode}"><label>Codice in offerta (se diverso)</label></div>
+            <div class="field span2"><input name="description" required maxlength="500" placeholder=" " th:value="${module?.description}"><label>Descrizione *</label></div>
+            <div class="field"><select name="section">
+                <option value="SCALED" th:selected="${module != null and module.section == 'SCALED'}">A utente (moltiplicato)</option>
+                <option value="FIXED" th:selected="${module == null or module.section == 'FIXED'}">Prezzo fisso</option>
+                <option value="LINK" th:selected="${module != null and module.section == 'LINK'}">Collegamento ad altro listino</option></select><label>Tipo modulo</label></div>
+            <div class="field"><select name="groupId"><option value="">— nessuno (prezzo fisso) —</option>
+                <option th:each="g : ${app.groups}" th:value="${g.id}" th:text="${g.label}" th:selected="${module != null and module.groupId != null and module.groupId == g.id}"></option></select><label>Gruppo di prezzo</label></div>
+            <div class="field"><select name="kind">
+                <option value="LICENSE" th:selected="${module == null or module.kind == 'LICENSE'}">Licenza (+ manutenzione %)</option>
+                <option value="ANNUAL" th:selected="${module != null and module.kind == 'ANNUAL'}">Canone annuo</option>
+                <option value="MONTHLY" th:selected="${module != null and module.kind == 'MONTHLY'}">Canone mensile</option>
+                <option value="ONETIME" th:selected="${module != null and module.kind == 'ONETIME'}">Una tantum</option></select><label>Modalità di proposizione</label></div>
+            <div class="field"><input name="area" maxlength="120" placeholder=" " th:value="${moduleArea}"><label>Area applicativa</label><div class="help">Raggruppa i moduli (listino Galileo)</div></div>
+            <div class="field"><input name="exclGroup" maxlength="40" placeholder=" " th:value="${module?.exclGroup}"><label>Gruppo alternative</label><div class="help">Un solo modulo per gruppo</div></div>
+            <div class="field span2" th:if="${#lists.isEmpty(app.modes)}"><input name="prices" placeholder=" " th:value="${priceText}"><label>Prezzo: 4000 oppure per modalità NEW=6000;MIGR=3000</label></div>
+            <div class="span2" th:if="${!#lists.isEmpty(app.modes)}" id="pm-box">
+                <div style="font-weight:500;margin-bottom:6px">Prezzi per modalità <span class="muted" style="font-weight:400">(es. P05 e P10)</span></div>
+                <div id="pm-rows" style="display:flex;flex-direction:column;gap:8px"></div>
+                <div style="margin-top:8px"><button type="button" class="btn tonal sm" id="pm-add"><svg class="ic"><use href="#i-add"/></svg>Aggiungi prezzo</button></div>
+                <div class="help" style="margin-top:6px">Scegli la modalità e indica l'importo; «Prezzo unico» vale per tutte le modalità.</div>
+                <input type="hidden" name="prices" id="pm-hidden" th:value="${priceText}">
+                <select id="pm-proto" hidden><option value="STD">Prezzo unico</option>
+                    <option th:each="md : ${app.modes}" th:value="${md.code}" th:text="${md.code} + ' – ' + ${md.label}"></option></select>
+            </div>
+            <div class="field"><input name="onetimePrice" type="number" step="0.01" placeholder=" " th:value="${module != null} ? ${module.onetimePrice}"><label>Attivazione una tantum</label></div>
+            <div class="field"><input name="maintenancePct" type="number" step="0.01" placeholder=" " th:value="${module?.maintenancePct}"><label>Manutenzione % (vuoto = app)</label></div>
+            <div class="field"><input name="sortOrder" type="number" placeholder=" "><label>Ordine (vuoto = coda)</label></div>
+            <div class="field span2"><input name="linkText" maxlength="300" placeholder=" " th:value="${module?.linkText}"><label>Testo collegamento (listino di riferimento)</label></div>
+            <div class="field span4"><textarea name="note" placeholder=" " th:text="${module?.note}"></textarea><label>Note</label></div>
+        </div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:12px">
+            <label class="check"><input type="checkbox" name="qtyEnabled" th:checked="${module != null and module.qtyEnabled}"> Quantità selezionabile</label>
+            <label class="check"><input type="checkbox" name="defaultSelected" th:checked="${module != null and module.defaultSelected}"> Preselezionato</label>
+            <label class="check"><input type="checkbox" name="included" th:checked="${module != null and module.included}"> Incluso (prezzo 0, non selezionabile)</label>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+            <a class="btn text" th:href="@{/admin/applications/{id}(id=${app.id})}">Annulla</a>
+            <button class="btn" type="submit"><svg class="ic"><use href="#i-save"/></svg>Salva modulo</button>
+        </div>
+    </form>
+
+    <!-- documento Word (template) del modulo -->
+    <div class="card" th:if="${module != null}" id="mod-doc-card" th:attr="data-up=@{/admin/applications/{a}/modules/{m}/document(a=${app.id},m=${module.id})}">
+        <h2>Documento Word (template)</h2>
+        <div class="hint" style="margin-bottom:10px">Documento Word associato al modulo: è il template usato per questo servizio nell'offerta. Per sostituirlo carica un nuovo file .docx.</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <span id="mod-doc-cur"><b th:if="${moduleDoc != null}" th:text="${moduleDoc}"></b><span class="muted" th:if="${moduleDoc == null}">Nessun documento collegato</span></span>
+            <a class="btn text sm" th:if="${moduleDoc != null}" id="mod-doc-dl" th:href="@{/admin/applications/{a}/modules/{m}/document(a=${app.id},m=${module.id})}"><svg class="ic"><use href="#i-download"/></svg>Scarica</a>
+            <input type="file" id="mod-doc-file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+            <button type="button" class="btn tonal sm" id="mod-doc-up"><svg class="ic"><use href="#i-save"/></svg>Carica documento</button>
+        </div>
+    </div>
+
+    <!-- vincoli -->
+    <div class="card" th:if="${module != null}">
+        <h2>Vincoli verso altri moduli</h2>
+        <table class="t" th:if="${!#lists.isEmpty(module.rules)}">
+            <thead><tr><th>Tipo</th><th>Moduli</th><th>Gravità</th><th>Messaggio</th><th></th></tr></thead>
+            <tbody th:each="r : ${module.rules}"><tr>
+                <td th:text="${r.type == 'REQUIRES'} ? 'Richiede' : (${r.type == 'REQUIRES_ANY'} ? 'Richiede uno tra' : (${r.type == 'EXCLUDES'} ? 'Esclude' : 'Nota'))"></td>
+                <td class="mono" th:text="${r.targetCodes}"></td>
+                <td><span class="chip" th:classappend="${r.severity == 'ERROR'} ? 'err' : 'warn'" th:text="${r.severity == 'ERROR'} ? 'Bloccante' : 'Avviso'"></span></td>
+                <td th:text="${r.message}"></td>
+                <td class="actions"><button class="btn icon sm rule-edit-btn" type="button" title="Modifica il vincolo"><svg class="ic"><use href="#i-edit"/></svg></button>
+                    <form th:action="@{/admin/applications/{a}/modules/{m}/rules/{r}/delete(a=${app.id},m=${module.id},r=${r.id})}" method="post" style="display:inline">
+                    <button class="btn icon sm" type="submit" title="Elimina il vincolo"><svg class="ic"><use href="#i-delete"/></svg></button></form></td>
+            </tr>
+            <tr class="rule-edit" hidden><td colspan="5">
+                <form th:action="@{/admin/applications/{a}/modules/{m}/rules/{r}/update(a=${app.id},m=${module.id},r=${r.id})}" method="post" class="grid c4" style="align-items:start">
+                    <div class="field"><select name="type">
+                        <option value="REQUIRES" th:selected="${r.type == 'REQUIRES'}">Richiede (tutti i moduli indicati)</option>
+                        <option value="REQUIRES_ANY" th:selected="${r.type == 'REQUIRES_ANY'}">Richiede almeno uno tra</option>
+                        <option value="EXCLUDES" th:selected="${r.type == 'EXCLUDES'}">Esclude</option>
+                        <option value="INFO" th:selected="${r.type == 'INFO'}">Nota informativa</option></select><label class="on">Tipo</label></div>
+                    <div class="field"><input name="targets" placeholder=" " th:value="${r.targetCodes}"><label>Codici modulo (separati da virgola)</label></div>
+                    <div class="field"><select name="severity">
+                        <option value="ERROR" th:selected="${r.severity == 'ERROR'}">Bloccante</option>
+                        <option value="WARNING" th:selected="${r.severity == 'WARNING'}">Avviso</option></select><label class="on">Gravità</label></div>
+                    <div class="field span3"><input name="message" required placeholder=" " th:value="${r.message}"><label>Messaggio mostrato all'utente *</label></div>
+                    <div style="display:flex;gap:8px"><button class="btn" type="submit"><svg class="ic"><use href="#i-save"/></svg>Salva</button>
+                        <button class="btn text rule-edit-cancel" type="button">Annulla</button></div>
+                </form></td></tr></tbody>
+        </table>
+        <p class="muted" th:if="${#lists.isEmpty(module.rules)}">Nessun vincolo.</p>
+        <form th:action="@{/admin/applications/{a}/modules/{m}/rules/add(a=${app.id},m=${module.id})}" method="post" class="grid c4" style="margin-top:12px;align-items:start">
+            <div class="field"><select name="type"><option value="REQUIRES">Richiede (tutti i moduli indicati)</option><option value="REQUIRES_ANY">Richiede almeno uno tra</option><option value="EXCLUDES">Esclude</option><option value="INFO">Nota informativa</option></select><label>Tipo</label></div>
+            <div class="field"><input name="targets" placeholder=" "><label>Codici modulo (separati da virgola)</label></div>
+            <div class="field"><select name="severity"><option value="ERROR">Bloccante</option><option value="WARNING">Avviso</option></select><label>Gravità</label></div>
+            <div class="field span3"><input name="message" required placeholder=" "><label>Messaggio mostrato all'utente *</label></div>
+            <div><button class="btn tonal" type="submit"><svg class="ic"><use href="#i-add"/></svg>Aggiungi vincolo</button></div>
+        </form>
+    </div>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script>
+    document.querySelectorAll('.rule-edit-btn').forEach(function (b) {
+        b.addEventListener('click', function () { b.closest('tbody').querySelector('.rule-edit').hidden = false; });
+    });
+    document.querySelectorAll('.rule-edit-cancel').forEach(function (b) {
+        b.addEventListener('click', function () { b.closest('.rule-edit').hidden = true; });
+    });
+</script>
+<script>
+(function () {
+    const card = document.getElementById('mod-doc-card'); if (!card) return;
+    document.getElementById('mod-doc-up').addEventListener('click', async () => {
+        const f = document.getElementById('mod-doc-file').files[0];
+        if (!f) { window.toast('Seleziona un file Word (.docx)', true); return; }
+        const meta = (n) => { const m = document.querySelector('meta[name="' + n + '"]'); return m ? m.content : ''; };
+        const headers = {}; if (meta('_csrf')) headers[meta('_csrf_header') || 'X-CSRF-TOKEN'] = meta('_csrf');
+        const fd = new FormData(); fd.append('file', f);
+        try {
+            const res = await fetch(card.dataset.up, { method: 'POST', headers: headers, body: fd, credentials: 'same-origin' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.message || ('Caricamento non riuscito (' + res.status + ')'));
+            window.toast('Documento collegato: ' + data.file); window.location.reload();
+        } catch (e) { window.toast(e.message, true); }
+    });
+})();
+</script>
+<script>
+(function () {
+    const box = document.getElementById('pm-box'); if (!box) return;
+    const rows = document.getElementById('pm-rows'), hidden = document.getElementById('pm-hidden'), proto = document.getElementById('pm-proto');
+    const opts = Array.from(proto.options).map((o) => [o.value, o.textContent]);
+    function addRow(code, amount) {
+        const r = document.createElement('div'); r.className = 'pm-row'; r.style.cssText = 'display:flex;gap:8px;align-items:center';
+        r.innerHTML = '<select class="pm-mode" style="height:38px;border:1px solid var(--outline);border-radius:6px;padding:0 8px;font:inherit;background:var(--surface);color:var(--on-surface);min-width:200px" data-native>' +
+            opts.map((o) => '<option value="' + o[0] + '"' + (o[0] === code ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>' +
+            '<input class="pm-amt" type="number" step="0.01" min="0" placeholder="Importo" style="height:38px;width:160px;border:1px solid var(--outline);border-radius:6px;padding:0 10px;font:inherit;text-align:right;background:var(--surface);color:var(--on-surface)">' +
+            '<button type="button" class="btn icon sm pm-del" title="Rimuovi il prezzo"><svg class="ic"><use href="#i-delete"/></svg></button>';
+        r.querySelector('.pm-amt').value = amount == null ? '' : amount;
+        r.querySelector('.pm-del').addEventListener('click', () => { r.remove(); sync(); });
+        rows.appendChild(r);
+    }
+    function sync() {
+        const seen = new Set(); const parts = [];
+        rows.querySelectorAll('.pm-row').forEach((r) => {
+            const c = r.querySelector('.pm-mode').value, a = r.querySelector('.pm-amt').value;
+            if (a === '' || seen.has(c)) return;
+            seen.add(c); parts.push([c, a]);
+        });
+        hidden.value = parts.length === 1 && parts[0][0] === 'STD' ? parts[0][1] : parts.map((p) => p[0] + '=' + p[1]).join(';');
+    }
+    // valore iniziale: "4000" oppure "P05=2000;P10=2500"
+    const init = (hidden.value || '').trim();
+    if (init) {
+        if (init.indexOf('=') < 0) addRow('STD', init.replace(',', '.'));
+        else init.split(';').forEach((kv) => { const [c, v] = kv.split('='); if (c && v != null) addRow(c.trim(), v.trim().replace(',', '.')); });
+    }
+    if (!rows.children.length) addRow(opts.length > 1 ? opts[1][0] : 'STD', '');
+    document.getElementById('pm-add').addEventListener('click', () => {
+        const used = new Set(Array.from(rows.querySelectorAll('.pm-mode')).map((s) => s.value));
+        const free = opts.find((o) => !used.has(o[0]));
+        addRow(free ? free[0] : 'STD', ''); 
+    });
+    box.addEventListener('input', sync); box.addEventListener('change', sync);
+    box.closest('form').addEventListener('submit', (e) => {
+        const modes = Array.from(rows.querySelectorAll('.pm-row')).filter((r) => r.querySelector('.pm-amt').value !== '').map((r) => r.querySelector('.pm-mode').value);
+        if (new Set(modes).size !== modes.length) { e.preventDefault(); window.toast('Lo stesso prezzo è indicato due volte per la stessa modalità', true); return; }
+        sync();
+    });
+    sync();
+})();
+</script>
+</body>
+</html>

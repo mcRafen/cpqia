@@ -1,0 +1,35 @@
+{
+  "licBill": [
+    { "code": "DAYS30", "label": "Entro 30 gg dall’ordine" },
+    { "code": "DATE", "label": "Data", "date": true }
+  ],
+  "feeBill": [
+    { "code": "NEXT_MONTH", "label": "Entro il mese successivo della data di fatturazione delle licenze software" },
+    { "code": "DATE", "label": "Data", "date": true }
+  ],
+  "actBill": [
+    { "code": "CONSUNTIVO", "label": "A consuntivo" },
+    { "code": "PACCHETTO", "label": "A pacchetto" }
+  ],
+  "pay": [
+    { "code": "USUAL", "label": "Solito in uso" },
+    { "code": "RIBA30", "label": "RI.BA. 30 gg dffm" },
+    { "code": "IVA_30_60", "label": "IVA RI.BA. 30 gg dffm, IMPONIBILE 30-60 gg dffm" },
+    { "code": "IVA_30_60_90", "label": "IVA RI.BA. 30 gg dffm, IMPONIBILE 30-60-90 gg dffm" },
+    { "code": "IVA_60_90", "label": "IVA RI.BA. 30 gg dffm, IMPONIBILE 60-90 gg dffm" },
+    { "code": "IVA_60_90_120", "label": "IVA RI.BA. 30 gg dffm, IMPONIBILE 60-90-120 gg dffm" },
+    { "code": "IVA_60_90_120_150", "label": "IVA RI.BA. 30 gg dffm, IMPONIBILE 60-90-120-150 gg dffm" },
+    { "code": "IVA_60_90_120_150_180", "label": "IVA RI.BA. 30 gg dffm, IMPONIBILE 60-90-120-150-180 gg dffm" },
+    { "code": "OTHER", "label": "Altro (testo libero)", "free": true }
+  ],
+  "payLic": ["USUAL", "RIBA30", "IVA_30_60", "IVA_30_60_90", "IVA_60_90", "IVA_60_90_120", "IVA_60_90_120_150", "IVA_60_90_120_150_180", "OTHER"],
+  "payFee": ["USUAL", "RIBA30", "IVA_30_60", "IVA_30_60_90", "IVA_60_90", "IVA_60_90_120", "IVA_60_90_120_150", "IVA_60_90_120_150_180", "OTHER"],
+  "payAct": {
+    "CONSUNTIVO": ["USUAL", "RIBA30", "IVA_30_60", "OTHER"],
+    "PACCHETTO": ["USUAL", "IVA_30_60", "IVA_30_60_90", "IVA_60_90", "IVA_60_90_120", "IVA_60_90_120_150", "OTHER"]
+  },
+  "defaults": {
+    "billLic": "DAYS30", "billFee": "NEXT_MONTH", "billAct": "CONSUNTIVO",
+    "payProspect": "RIBA30", "payCustomer": "USUAL"
+  }
+}

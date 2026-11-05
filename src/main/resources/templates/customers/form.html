@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Account')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('customers')}"></div>
+<main class="content"><div class="inner" style="max-width:900px">
+    <div class="pagehead"><a class="btn icon" th:href="@{/customers}" title="Torna indietro" aria-label="Torna indietro"><svg class="ic"><use href="#i-back"/></svg></a><h1 th:text="${form.id == null} ? 'Nuovo account' : 'Modifica account'">Anagrafica</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <form class="card" id="custform" th:action="@{/customers/save}" th:object="${form}" method="post">
+        <input type="hidden" th:field="*{id}">
+        <div class="grid c6">
+            <div class="field span4" th:classappend="${#fields.hasErrors('vatNumber')} ? 'invalid'"><input type="text" th:field="*{vatNumber}" placeholder=" " maxlength="20" autofocus><label>Partita IVA * (inseriscila per prima)</label><div class="err" th:errors="*{vatNumber}"></div></div>
+            <div style="display:flex;align-items:flex-start;grid-column:span 2" th:if="${form.id == null}"><button type="button" class="btn tonal" id="vat-btn" style="height:52px;width:100%"><svg class="ic"><use href="#i-search"/></svg>Recupera dati online</button></div>
+            <div class="span6" id="vat-msg" hidden></div>
+                        <div class="field span2"><input type="text" th:value="${code != null} ? ${code} : 'Assegnato al salvataggio'" disabled placeholder=" " id="code"><label for="code">Codice cliente</label><div class="help">Automatico, non modificabile</div></div>
+            <div class="field span2" th:if="${form.id == null}"><input type="text" value="Prospect" disabled placeholder=" "><label>Tipo anagrafica</label><input type="hidden" th:field="*{type}"><div class="help">Le nuove anagrafiche nascono come Prospect</div></div>
+            <div class="field span2" th:if="${form.id != null}"><input type="text" th:value="${form.type == 'CLIENTE'} ? 'Cliente' : 'Prospect'" disabled placeholder=" "><label>Tipo anagrafica</label><input type="hidden" th:field="*{type}"><div class="help">Non modificabile: un prospect diventa cliente con la Sync Clienti</div></div>
+            <div class="field span6" th:classappend="${#fields.hasErrors('companyName')} ? 'invalid'"><input type="text" th:field="*{companyName}" placeholder=" " maxlength="200"><label>Ragione sociale *</label><div class="err" th:errors="*{companyName}"></div></div>
+            <div class="field span2" th:classappend="${#fields.hasErrors('streetType')} ? 'invalid'">
+                <select th:field="*{streetType}"><option th:each="v : ${@lookupRepository.streetTypes()}" th:value="${v}" th:text="${v}"></option></select>
+                <label>Via *</label><div class="err" th:errors="*{streetType}"></div></div>
+            <div class="field span3" th:classappend="${#fields.hasErrors('streetName')} ? 'invalid'"><input type="text" th:field="*{streetName}" placeholder=" " maxlength="200"><label>Indirizzo *</label><div class="err" th:errors="*{streetName}"></div></div>
+            <div class="field" th:classappend="${#fields.hasErrors('streetNumber')} ? 'invalid'"><input type="text" th:field="*{streetNumber}" placeholder=" " maxlength="20"><label>N. civico *</label><div class="err" th:errors="*{streetNumber}"></div></div>
+            <div class="field span2" th:classappend="${#fields.hasErrors('postalCode')} ? 'invalid'"><input type="text" th:field="*{postalCode}" placeholder=" " maxlength="10"><label>CAP *</label><div class="err" th:errors="*{postalCode}"></div></div>
+            <div class="field span3" th:classappend="${#fields.hasErrors('city')} ? 'invalid'"><input type="text" th:field="*{city}" placeholder=" " maxlength="100"><label>Città *</label><div class="err" th:errors="*{city}"></div></div>
+            <div class="field"><input type="text" th:field="*{province}" placeholder=" " maxlength="5"><label>Prov.</label><div class="err" th:errors="*{province}"></div></div>
+            <div class="field span6"><input type="text" th:field="*{taxCode}" placeholder=" " maxlength="20"><label>Codice fiscale</label><div class="err" th:errors="*{taxCode}"></div></div>
+            <div class="field span2" th:if="${form.id != null}"><input type="text" th:value="${agentCode}" disabled placeholder=" " id="agent-code"><label for="agent-code">Codice agente</label><div class="help">Da IBM Power System</div></div>
+            <div class="field span4" th:if="${form.id != null}"><input type="text" th:value="${agentName}" disabled placeholder=" " id="agent-name"><label for="agent-name">Agente</label></div>
+            <div class="field span2" th:if="${form.id != null and geo != null}"><input type="text" th:value="${geo.get('lat')}" disabled placeholder=" " id="geo-lat"><label for="geo-lat">Latitudine</label><div class="help">Sola lettura</div></div>
+            <div class="field span2" th:if="${form.id != null and geo != null}"><input type="text" th:value="${geo.get('lon')}" disabled placeholder=" " id="geo-lon"><label for="geo-lon">Longitudine</label><div class="help">Sola lettura</div></div>
+            <div class="field span2" th:if="${form.id != null and geo != null}"><input type="text" th:value="${geo.get('status')}" disabled placeholder=" " id="geo-st"><label for="geo-st">Geolocalizzazione</label><div class="help">Automatica a ogni inserimento / modifica dell'indirizzo</div></div>
+        </div>
+        <div class="alert warn" th:if="${clientLocked}" style="margin-top:16px"><svg class="ic"><use href="#i-info"/></svg><span>Account di tipo Cliente: l'anagrafica arriva da IBM Power System e non è modificabile. Si possono modificare solo le <b>tariffe</b> e la <b>voce di trasferta</b>.</span></div>
+        <div class="alert err" th:if="${#fields.hasGlobalErrors()}" style="margin-top:16px"><svg class="ic"><use href="#i-warning"/></svg><span th:each="e : ${#fields.globalErrors()}" th:text="${e}"></span></div>
+        <th:block th:if="${form.type == 'CLIENTE'}">
+        <h2 style="margin-top:28px">Tariffe</h2>
+        <div class="hint" style="margin-bottom:10px">Di base valgono i valori di listino (<i>Tabelle tariffe</i>). Per questo account puoi indicare una <b>tariffa dedicata</b> per ogni profilo professionale (campo vuoto = listino) e scegliere la <b>voce di trasferta</b> assegnata. Nelle offerte intestate all'account saranno usate per la prezzatura di attività e trasferte.</div>
+        <div class="grid" style="align-items:start;grid-template-columns:minmax(0,1fr)">
+            <div th:each="sec : ${rateSections}" style="min-width:0">
+                <div class="tablewrap"><table class="t" style="width:100%;table-layout:fixed;min-width:480px">
+                    <thead><tr><th th:text="${sec.title}">Voce</th><th class="num" style="width:150px">Listino</th><th class="num" style="width:170px">Tariffa dedicata</th></tr></thead>
+                    <tbody>
+                    <tr th:each="r : ${sec.rows}">
+                        <td th:text="${r.name}">Voce</td>
+                        <td class="num muted nowrap" th:text="'€ ' + ${#numbers.formatDecimal(r.listAmount, 1, 'POINT', 2, 'COMMA')}">€ 0,00</td>
+                        <td class="num"><input type="text" inputmode="decimal" th:name="${sec.prefix} + ${r.id}"
+                                th:value="${typed.get(sec.prefix + r.id) != null} ? ${typed.get(sec.prefix + r.id)} : (${r.customAmount != null} ? ${#numbers.formatDecimal(r.customAmount, 1, 'POINT', 2, 'COMMA')} : '')"
+                                th:placeholder="${#numbers.formatDecimal(r.listAmount, 1, 'POINT', 2, 'COMMA')}"
+                                style="width:100%;max-width:150px;height:34px;text-align:right;border:1px solid var(--outline);border-radius:6px;padding:0 8px;font:inherit"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(sec.rows)}"><td colspan="3" class="muted">Nessuna voce in tabella.</td></tr>
+                    </tbody>
+                </table></div>
+            </div>
+            <div class="field" style="max-width:50%;min-width:280px">
+                <select name="travelRateId">
+                    <option value="">— nessuna —</option>
+                    <option th:each="t : ${travelRates}" th:value="${t.id}" th:selected="${t.id == travelRateId}"
+                            th:text="${t.name} + ' – € ' + ${#numbers.formatDecimal(t.listAmount, 1, 'POINT', 2, 'COMMA')}"></option>
+                </select>
+                <label class="on">Spese di trasferta</label>
+                <div class="help">Voce unica dalla tabella “Trasferte Italia”, proposta nelle offerte dell'account</div>
+            </div>
+        </div>
+        </th:block>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+            <a class="btn text" th:href="@{/customers}">Annulla</a>
+            <button class="btn" type="submit"><svg class="ic"><use href="#i-save"/></svg>Salva</button>
+        </div>
+    </form>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script th:if="${clientLocked}">
+    /* account Cliente: anagrafica in sola lettura (i campi restano nel modulo, ma non si modificano) */
+    document.querySelectorAll('#custform .grid.c6 input:not([disabled]):not([type=hidden])').forEach(function (i) { i.readOnly = true; });
+    /* menu a tendina (tipo anagrafica, via): disabilitati, ma il valore viene inviato con un campo nascosto */
+    document.querySelectorAll('#custform .grid.c6 select').forEach(function (s) {
+        var h = document.createElement('input');
+        h.type = 'hidden'; h.name = s.name; h.value = s.value;
+        s.parentNode.appendChild(h);
+        s.disabled = true;
+    });
+</script>
+<script th:if="${form.id == null}">
+    CPQ.bindVatLookup(document.getElementById('custform'), document.getElementById('vat-btn'), document.getElementById('vat-msg'));
+</script>
+</body>
+</html>

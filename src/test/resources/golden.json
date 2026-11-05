@@ -1,0 +1,2427 @@
+[
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "5": 1,
+   "3": 1,
+   "9": 1,
+   "8": 1,
+   "4": 1,
+   "7": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 201
+  },
+  "expected_license": 136342.5,
+  "expected_maintenance": 24541.65
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "5": 1,
+   "2": 1,
+   "3": 1,
+   "4": 1,
+   "7": 1,
+   "0": 1,
+   "6": 1,
+   "9": 1
+  },
+  "driver_qty": {
+   "UTENTI": 2
+  },
+  "expected_license": 21500,
+  "expected_maintenance": 3870
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "5": 1,
+   "4": 1,
+   "3": 1,
+   "2": 1,
+   "9": 1,
+   "6": 1,
+   "7": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 80947.5,
+  "expected_maintenance": 14570.55
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "8": 1,
+   "1": 1,
+   "7": 1,
+   "0": 1,
+   "6": 1,
+   "3": 1,
+   "5": 1
+  },
+  "driver_qty": {
+   "UTENTI": 20
+  },
+  "expected_license": 30525,
+  "expected_maintenance": 5494.5
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "7": 1,
+   "8": 1,
+   "9": 1,
+   "2": 1,
+   "0": 1,
+   "5": 1,
+   "6": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6
+  },
+  "expected_license": 25500,
+  "expected_maintenance": 4590
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "9": 1,
+   "7": 1,
+   "0": 1,
+   "1": 1,
+   "3": 1,
+   "5": 1,
+   "2": 1,
+   "6": 1,
+   "4": 1,
+   "8": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6
+  },
+  "expected_license": 29500,
+  "expected_maintenance": 5310
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "4": 1,
+   "2": 1,
+   "1": 1,
+   "0": 1,
+   "5": 1,
+   "9": 1,
+   "3": 1,
+   "6": 1,
+   "8": 1,
+   "7": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1
+  },
+  "expected_license": 29500,
+  "expected_maintenance": 5310
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "9": 1,
+   "0": 1,
+   "4": 1,
+   "8": 1,
+   "7": 1,
+   "6": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 82830,
+  "expected_maintenance": 14909.4
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "4": 1,
+   "7": 1,
+   "5": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 11
+  },
+  "expected_license": 13312.5,
+  "expected_maintenance": 2396.25
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "5": 1,
+   "2": 1,
+   "4": 1,
+   "6": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 7500,
+  "expected_maintenance": 1350
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "4": 1,
+   "8": 1,
+   "3": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 500
+  },
+  "expected_license": 130650,
+  "expected_maintenance": 23517
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "8": 1,
+   "2": 1,
+   "4": 1,
+   "5": 1,
+   "3": 1,
+   "6": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1
+  },
+  "expected_license": 17500,
+  "expected_maintenance": 3150
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "7": 1,
+   "6": 1,
+   "4": 1,
+   "0": 1,
+   "5": 1,
+   "9": 1,
+   "2": 1,
+   "8": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 103537.5,
+  "expected_maintenance": 18636.75
+ },
+ {
+  "app": "DQ",
+  "mode": null,
+  "selected": {
+   "7": 1,
+   "5": 1,
+   "0": 1,
+   "6": 1,
+   "9": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 120
+  },
+  "expected_license": 71775,
+  "expected_maintenance": 12919.5
+ },
+ {
+  "app": "ICM",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "0": 1,
+   "3": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 34156,
+  "expected_maintenance": 6148.08
+ },
+ {
+  "app": "ICM",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "1": 1,
+   "3": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 201
+  },
+  "expected_license": 52876,
+  "expected_maintenance": 9517.68
+ },
+ {
+  "app": "ICM",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "0": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6
+  },
+  "expected_license": 13000,
+  "expected_maintenance": 2340
+ },
+ {
+  "app": "ICM",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "2": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 201
+  },
+  "expected_license": 28438,
+  "expected_maintenance": 5118.84
+ },
+ {
+  "app": "ICM",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 2500
+  },
+  "expected_license": 407520,
+  "expected_maintenance": 73353.6
+ },
+ {
+  "app": "ICM",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "1": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 12000,
+  "expected_maintenance": 2160
+ },
+ {
+  "app": "ICM",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "1": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 2500
+  },
+  "expected_license": 309640,
+  "expected_maintenance": 55735.2
+ },
+ {
+  "app": "ICM",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 21
+  },
+  "expected_license": 13680,
+  "expected_maintenance": 2462.4
+ },
+ {
+  "app": "TV",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 55
+  },
+  "expected_license": 29500,
+  "expected_maintenance": 5310
+ },
+ {
+  "app": "TV",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 501
+  },
+  "expected_license": 95676,
+  "expected_maintenance": 17221.68
+ },
+ {
+  "app": "TV",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 201
+  },
+  "expected_license": 48876,
+  "expected_maintenance": 8797.68
+ },
+ {
+  "app": "TV",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 33
+  },
+  "expected_license": 21120,
+  "expected_maintenance": 3801.6
+ },
+ {
+  "app": "TV",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 80
+  },
+  "expected_license": 30000,
+  "expected_maintenance": 5400
+ },
+ {
+  "app": "TV",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 11
+  },
+  "expected_license": 12600,
+  "expected_maintenance": 2268
+ },
+ {
+  "app": "TV",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 9
+  },
+  "expected_license": 16000,
+  "expected_maintenance": 2880
+ },
+ {
+  "app": "TV",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 41
+  },
+  "expected_license": 22980,
+  "expected_maintenance": 4136.4
+ },
+ {
+  "app": "AT",
+  "mode": null,
+  "selected": {
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 11
+  },
+  "expected_license": 4200,
+  "expected_maintenance": 756
+ },
+ {
+  "app": "AT",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 201
+  },
+  "expected_license": 57022,
+  "expected_maintenance": 10263.96
+ },
+ {
+  "app": "AT",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "2": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 201
+  },
+  "expected_license": 73314,
+  "expected_maintenance": 13196.52
+ },
+ {
+  "app": "AT",
+  "mode": null,
+  "selected": {
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 501
+  },
+  "expected_license": 31892,
+  "expected_maintenance": 5740.56
+ },
+ {
+  "app": "AT",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "2": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 10
+  },
+  "expected_license": 18000,
+  "expected_maintenance": 3240
+ },
+ {
+  "app": "AT",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1
+  },
+  "expected_license": 18000,
+  "expected_maintenance": 3240
+ },
+ {
+  "app": "AT",
+  "mode": null,
+  "selected": {
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 10
+  },
+  "expected_license": 4000,
+  "expected_maintenance": 720
+ },
+ {
+  "app": "AT",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 5
+  },
+  "expected_license": 10000,
+  "expected_maintenance": 1800
+ },
+ {
+  "app": "PIM",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 33
+  },
+  "expected_license": 20240,
+  "expected_maintenance": 3643.2
+ },
+ {
+  "app": "PIM",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 15500,
+  "expected_maintenance": 2790
+ },
+ {
+  "app": "PIM",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 2
+  },
+  "expected_license": 8000,
+  "expected_maintenance": 1440
+ },
+ {
+  "app": "PIM",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6
+  },
+  "expected_license": 11500,
+  "expected_maintenance": 2070
+ },
+ {
+  "app": "PIM",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 201
+  },
+  "expected_license": 36584,
+  "expected_maintenance": 6585.12
+ },
+ {
+  "app": "PIM",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "0": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 10
+  },
+  "expected_license": 15500,
+  "expected_maintenance": 2790
+ },
+ {
+  "app": "PIM",
+  "mode": null,
+  "selected": {
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 33
+  },
+  "expected_license": 6160,
+  "expected_maintenance": 1108.8
+ },
+ {
+  "app": "PIM",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 24104,
+  "expected_maintenance": 4338.72
+ },
+ {
+  "app": "CRMJ",
+  "mode": null,
+  "selected": {
+   "4": 1,
+   "0": 1,
+   "3": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 2
+  },
+  "expected_license": 15300,
+  "expected_maintenance": 2754
+ },
+ {
+  "app": "CRMJ",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "3": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 80
+  },
+  "expected_license": 34000,
+  "expected_maintenance": 6120
+ },
+ {
+  "app": "CRMJ",
+  "mode": null,
+  "selected": {
+   "4": 1,
+   "1": 1,
+   "2": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 9
+  },
+  "expected_license": 15300,
+  "expected_maintenance": 2754
+ },
+ {
+  "app": "CRMJ",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "1": 1,
+   "4": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 55
+  },
+  "expected_license": 15800,
+  "expected_maintenance": 2844
+ },
+ {
+  "app": "CRMJ",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 11
+  },
+  "expected_license": 14600,
+  "expected_maintenance": 2628
+ },
+ {
+  "app": "CRMJ",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6
+  },
+  "expected_license": 14000,
+  "expected_maintenance": 2520
+ },
+ {
+  "app": "CRMJ",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 2
+  },
+  "expected_license": 12000,
+  "expected_maintenance": 2160
+ },
+ {
+  "app": "CRMJ",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "2": 1,
+   "1": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 55
+  },
+  "expected_license": 31500,
+  "expected_maintenance": 5670
+ },
+ {
+  "app": "CRMS",
+  "mode": "MIGR",
+  "selected": {
+   "3": 1,
+   "0": 1,
+   "4": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 31130,
+  "expected_maintenance": 5603.4
+ },
+ {
+  "app": "CRMS",
+  "mode": "NEW",
+  "selected": {
+   "3": 1,
+   "1": 1,
+   "4": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 201
+  },
+  "expected_license": 71168,
+  "expected_maintenance": 12810.24
+ },
+ {
+  "app": "CRMS",
+  "mode": "NEW",
+  "selected": {
+   "4": 1,
+   "0": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6
+  },
+  "expected_license": 20000,
+  "expected_maintenance": 3600
+ },
+ {
+  "app": "CRMS",
+  "mode": "MIGR",
+  "selected": {
+   "1": 1,
+   "3": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 201
+  },
+  "expected_license": 22292,
+  "expected_maintenance": 4012.56
+ },
+ {
+  "app": "CRMS",
+  "mode": "ADD",
+  "selected": {
+   "3": 1,
+   "0": 1,
+   "4": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 501
+  },
+  "expected_license": 37892,
+  "expected_maintenance": 6820.56
+ },
+ {
+  "app": "CRMS",
+  "mode": "ADD",
+  "selected": {
+   "0": 1,
+   "3": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 900
+  },
+  "expected_license": 54640,
+  "expected_maintenance": 9835.2
+ },
+ {
+  "app": "CRMS",
+  "mode": "NEW",
+  "selected": {
+   "4": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 16000,
+  "expected_maintenance": 2880
+ },
+ {
+  "app": "CRMS",
+  "mode": "NEW",
+  "selected": {
+   "3": 1,
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 2500
+  },
+  "expected_license": 545360,
+  "expected_maintenance": 98164.8
+ },
+ {
+  "app": "B2B",
+  "mode": "MIGR",
+  "selected": {
+   "0": 1,
+   "4": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 15000,
+  "expected_maintenance": 2700
+ },
+ {
+  "app": "B2B",
+  "mode": "MIGR",
+  "selected": {
+   "4": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 501
+  },
+  "expected_license": 21255,
+  "expected_maintenance": 3825.9
+ },
+ {
+  "app": "B2B",
+  "mode": "MIGR",
+  "selected": {
+   "4": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 33
+  },
+  "expected_license": 10000,
+  "expected_maintenance": 1800
+ },
+ {
+  "app": "B2B",
+  "mode": "NEW",
+  "selected": {
+   "3": 1,
+   "0": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1001
+  },
+  "expected_license": 47510,
+  "expected_maintenance": 8551.8
+ },
+ {
+  "app": "B2B",
+  "mode": "NEW",
+  "selected": {
+   "4": 1,
+   "3": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 40
+  },
+  "expected_license": 20000,
+  "expected_maintenance": 3600
+ },
+ {
+  "app": "B2B",
+  "mode": "MIGR",
+  "selected": {
+   "3": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 33
+  },
+  "expected_license": 10000,
+  "expected_maintenance": 1800
+ },
+ {
+  "app": "B2B",
+  "mode": "MIGR",
+  "selected": {
+   "3": 1,
+   "4": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1
+  },
+  "expected_license": 15000,
+  "expected_maintenance": 2700
+ },
+ {
+  "app": "B2B",
+  "mode": "MIGR",
+  "selected": {
+   "3": 1,
+   "0": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 33
+  },
+  "expected_license": 15000,
+  "expected_maintenance": 2700
+ },
+ {
+  "app": "IOC",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 350
+  },
+  "expected_license": 11499.8,
+  "expected_maintenance": 2069.96
+ },
+ {
+  "app": "IOC",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 501
+  },
+  "expected_license": 15009.6,
+  "expected_maintenance": 2701.73
+ },
+ {
+  "app": "IOC",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 500
+  },
+  "expected_license": 19999.6,
+  "expected_maintenance": 3599.93
+ },
+ {
+  "app": "IOC",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 55
+  },
+  "expected_license": 13000,
+  "expected_maintenance": 2340
+ },
+ {
+  "app": "IOC",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1
+  },
+  "expected_license": 13000,
+  "expected_maintenance": 2340
+ },
+ {
+  "app": "IOC",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 8000,
+  "expected_maintenance": 1440
+ },
+ {
+  "app": "IOC",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 33
+  },
+  "expected_license": 13000,
+  "expected_maintenance": 2340
+ },
+ {
+  "app": "IOC",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 55
+  },
+  "expected_license": 8000,
+  "expected_maintenance": 1440
+ },
+ {
+  "app": "JTCE",
+  "mode": null,
+  "selected": {
+   "7": 1,
+   "4": 1,
+   "6": 1,
+   "0": 1,
+   "5": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 62000,
+  "expected_maintenance": 11160
+ },
+ {
+  "app": "JTCE",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "4": 1,
+   "7": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6
+  },
+  "expected_license": 37000,
+  "expected_maintenance": 6660
+ },
+ {
+  "app": "JTCE",
+  "mode": null,
+  "selected": {
+   "5": 1,
+   "7": 1,
+   "0": 1,
+   "3": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 41
+  },
+  "expected_license": 79040,
+  "expected_maintenance": 14227.2
+ },
+ {
+  "app": "JTCE",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "4": 1,
+   "7": 1,
+   "6": 1,
+   "5": 1
+  },
+  "driver_qty": {
+   "UTENTI": 21
+  },
+  "expected_license": 55350,
+  "expected_maintenance": 9963
+ },
+ {
+  "app": "JTCE",
+  "mode": null,
+  "selected": {
+   "7": 1,
+   "3": 1,
+   "0": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 120
+  },
+  "expected_license": 77700,
+  "expected_maintenance": 13986
+ },
+ {
+  "app": "JTCE",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "3": 1,
+   "6": 1,
+   "7": 1
+  },
+  "driver_qty": {
+   "UTENTI": 20
+  },
+  "expected_license": 39000,
+  "expected_maintenance": 7020
+ },
+ {
+  "app": "JTCE",
+  "mode": null,
+  "selected": {
+   "6": 1,
+   "0": 1,
+   "7": 1,
+   "5": 1
+  },
+  "driver_qty": {
+   "UTENTI": 40
+  },
+  "expected_license": 69000,
+  "expected_maintenance": 12420
+ },
+ {
+  "app": "JTCE",
+  "mode": null,
+  "selected": {
+   "6": 1,
+   "0": 1,
+   "5": 1
+  },
+  "driver_qty": {
+   "UTENTI": 33
+  },
+  "expected_license": 49025,
+  "expected_maintenance": 8824.5
+ },
+ {
+  "app": "BPB",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "2": 1,
+   "0": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 201
+  },
+  "expected_license": 50373.6,
+  "expected_maintenance": 9067.25
+ },
+ {
+  "app": "BPB",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "0": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6
+  },
+  "expected_license": 18060,
+  "expected_maintenance": 3250.8
+ },
+ {
+  "app": "BPB",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "1": 1,
+   "2": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 10
+  },
+  "expected_license": 22060,
+  "expected_maintenance": 3970.8
+ },
+ {
+  "app": "BPB",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "3": 1,
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 120
+  },
+  "expected_license": 41415,
+  "expected_maintenance": 7454.7
+ },
+ {
+  "app": "BPB",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 33
+  },
+  "expected_license": 23479.4,
+  "expected_maintenance": 4226.29
+ },
+ {
+  "app": "BPB",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 14060,
+  "expected_maintenance": 2530.8
+ },
+ {
+  "app": "BPB",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 10
+  },
+  "expected_license": 15060,
+  "expected_maintenance": 2710.8
+ },
+ {
+  "app": "BPB",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 15
+  },
+  "expected_license": 16331.9,
+  "expected_maintenance": 2939.74
+ },
+ {
+  "app": "DBM",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 33
+  },
+  "expected_license": 49680,
+  "expected_maintenance": 8942.4
+ },
+ {
+  "app": "DBM",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 2500
+  },
+  "expected_license": 2418000,
+  "expected_maintenance": 435240
+ },
+ {
+  "app": "DBM",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 350
+  },
+  "expected_license": 354000,
+  "expected_maintenance": 63720
+ },
+ {
+  "app": "DBM",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 40
+  },
+  "expected_license": 56400,
+  "expected_maintenance": 10152
+ },
+ {
+  "app": "DBM",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 80
+  },
+  "expected_license": 94800,
+  "expected_maintenance": 17064
+ },
+ {
+  "app": "DBM",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1
+  },
+  "expected_license": 12000,
+  "expected_maintenance": 2160
+ },
+ {
+  "app": "DBM",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 10
+  },
+  "expected_license": 20400,
+  "expected_maintenance": 3672
+ },
+ {
+  "app": "DBM",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1001
+  },
+  "expected_license": 978960,
+  "expected_maintenance": 176212.8
+ },
+ {
+  "app": "JMES",
+  "mode": null,
+  "selected": {
+   "6": 1,
+   "2": 1,
+   "5": 1,
+   "0": 1,
+   "3": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4,
+   "MACCHINE": 12
+  },
+  "expected_license": 34200,
+  "expected_maintenance": 6156
+ },
+ {
+  "app": "JMES",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "6": 1,
+   "1": 1,
+   "5": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6,
+   "MACCHINE": 0
+  },
+  "expected_license": 9906.4,
+  "expected_maintenance": 1783.15
+ },
+ {
+  "app": "JMES",
+  "mode": null,
+  "selected": {
+   "6": 1,
+   "3": 1,
+   "2": 1,
+   "0": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 41,
+   "MACCHINE": 3
+  },
+  "expected_license": 45036,
+  "expected_maintenance": 8106.48
+ },
+ {
+  "app": "JMES",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "2": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1001,
+   "MACCHINE": 3
+  },
+  "expected_license": 79206,
+  "expected_maintenance": 14257.08
+ },
+ {
+  "app": "JMES",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "1": 1,
+   "6": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 21,
+   "MACCHINE": 60
+  },
+  "expected_license": 54450,
+  "expected_maintenance": 9801
+ },
+ {
+  "app": "JMES",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "6": 1
+  },
+  "driver_qty": {
+   "UTENTI": 501,
+   "MACCHINE": 3
+  },
+  "expected_license": 9000,
+  "expected_maintenance": 1620
+ },
+ {
+  "app": "JMES",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "5": 1,
+   "1": 1,
+   "2": 1,
+   "6": 1
+  },
+  "driver_qty": {
+   "UTENTI": 40,
+   "MACCHINE": 0
+  },
+  "expected_license": 12936,
+  "expected_maintenance": 2328.48
+ },
+ {
+  "app": "JMES",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6,
+   "MACCHINE": 1
+  },
+  "expected_license": 19532,
+  "expected_maintenance": 3515.76
+ },
+ {
+  "app": "APS",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "0": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 350,
+   "VISUALIZZATORI": 3
+  },
+  "expected_license": 533580,
+  "expected_maintenance": 96044.4
+ },
+ {
+  "app": "APS",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "2": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 10,
+   "VISUALIZZATORI": 0
+  },
+  "expected_license": 79920,
+  "expected_maintenance": 14385.6
+ },
+ {
+  "app": "APS",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 10,
+   "VISUALIZZATORI": 3
+  },
+  "expected_license": 40380,
+  "expected_maintenance": 7268.4
+ },
+ {
+  "app": "APS",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 20,
+   "VISUALIZZATORI": 0
+  },
+  "expected_license": 47400,
+  "expected_maintenance": 8532
+ },
+ {
+  "app": "APS",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "0": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1,
+   "VISUALIZZATORI": 12
+  },
+  "expected_license": 24000,
+  "expected_maintenance": 4320
+ },
+ {
+  "app": "APS",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 500,
+   "VISUALIZZATORI": 12
+  },
+  "expected_license": 1045000,
+  "expected_maintenance": 188100
+ },
+ {
+  "app": "APS",
+  "mode": null,
+  "selected": {
+   "4": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 80,
+   "VISUALIZZATORI": 0
+  },
+  "expected_license": 63680,
+  "expected_maintenance": 11462.4
+ },
+ {
+  "app": "APS",
+  "mode": null,
+  "selected": {
+   "4": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 350,
+   "VISUALIZZATORI": 3
+  },
+  "expected_license": 237980,
+  "expected_maintenance": 42836.4
+ },
+ {
+  "app": "SCC",
+  "mode": null,
+  "selected": {
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 9
+  },
+  "expected_license": 16240,
+  "expected_maintenance": 2923.2
+ },
+ {
+  "app": "SCC",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "0": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6
+  },
+  "expected_license": 19240,
+  "expected_maintenance": 3463.2
+ },
+ {
+  "app": "SCC",
+  "mode": null,
+  "selected": {
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 501
+  },
+  "expected_license": 19530,
+  "expected_maintenance": 3515.4
+ },
+ {
+  "app": "SCC",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1001
+  },
+  "expected_license": 103590,
+  "expected_maintenance": 18646.2
+ },
+ {
+  "app": "SCC",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "2": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 21
+  },
+  "expected_license": 32680,
+  "expected_maintenance": 5882.4
+ },
+ {
+  "app": "SCC",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "0": 1,
+   "3": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 42735,
+  "expected_maintenance": 7692.3
+ },
+ {
+  "app": "SCC",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "0": 1,
+   "2": 1,
+   "1": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1
+  },
+  "expected_license": 24500,
+  "expected_maintenance": 4410
+ },
+ {
+  "app": "SCC",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 39270,
+  "expected_maintenance": 7068.6
+ },
+ {
+  "app": "JPA3",
+  "mode": "MIGR",
+  "selected": {
+   "4": 1,
+   "11": 1,
+   "6": 1,
+   "8": 1,
+   "5": 1,
+   "12": 1,
+   "0": 1,
+   "7": 1
+  },
+  "driver_qty": {
+   "UTENTI": 2
+  },
+  "expected_license": 8750,
+  "expected_maintenance": 1575
+ },
+ {
+  "app": "JPA3",
+  "mode": "ADD",
+  "selected": {
+   "4": 1,
+   "6": 1,
+   "8": 1,
+   "10": 1,
+   "11": 1,
+   "1": 3,
+   "7": 1,
+   "5": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 29000,
+  "expected_maintenance": 5220
+ },
+ {
+  "app": "JPA3",
+  "mode": "ADD",
+  "selected": {
+   "4": 1,
+   "1": 2,
+   "7": 1,
+   "12": 1,
+   "6": 1,
+   "8": 1,
+   "9": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 17000,
+  "expected_maintenance": 3060
+ },
+ {
+  "app": "JPA3",
+  "mode": "NEW",
+  "selected": {
+   "10": 1,
+   "2": 3,
+   "4": 1,
+   "11": 1,
+   "12": 1,
+   "0": 1,
+   "1": 2,
+   "8": 1,
+   "5": 1
+  },
+  "driver_qty": {
+   "UTENTI": 120
+  },
+  "expected_license": 65500,
+  "expected_maintenance": 11790
+ },
+ {
+  "app": "JPA3",
+  "mode": "MIGR",
+  "selected": {
+   "10": 1,
+   "8": 1,
+   "0": 1,
+   "1": 3,
+   "4": 1,
+   "6": 1,
+   "12": 1,
+   "11": 1,
+   "9": 1,
+   "7": 1
+  },
+  "driver_qty": {
+   "UTENTI": 350
+  },
+  "expected_license": 46250,
+  "expected_maintenance": 8325
+ },
+ {
+  "app": "JPA3",
+  "mode": "ADD",
+  "selected": {
+   "5": 1,
+   "2": 1,
+   "1": 1,
+   "12": 1,
+   "6": 1,
+   "10": 1,
+   "4": 1,
+   "7": 1,
+   "9": 1,
+   "8": 1
+  },
+  "driver_qty": {
+   "UTENTI": 6
+  },
+  "expected_license": 23000,
+  "expected_maintenance": 4140
+ },
+ {
+  "app": "JPA3",
+  "mode": "ADD",
+  "selected": {
+   "9": 1,
+   "2": 3,
+   "1": 2,
+   "12": 1,
+   "7": 1,
+   "11": 1
+  },
+  "driver_qty": {
+   "UTENTI": 20
+  },
+  "expected_license": 31000,
+  "expected_maintenance": 5580
+ },
+ {
+  "app": "JPA3",
+  "mode": "ADD",
+  "selected": {
+   "7": 1,
+   "11": 1,
+   "12": 1,
+   "2": 2,
+   "6": 1,
+   "9": 1,
+   "5": 1,
+   "1": 2
+  },
+  "driver_qty": {
+   "UTENTI": 10
+  },
+  "expected_license": 30000,
+  "expected_maintenance": 5400
+ },
+ {
+  "app": "JPM",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "6": 1,
+   "0": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "ENTERPRISE": 1,
+   "USER": 100
+  },
+  "expected_license": 44700,
+  "expected_maintenance": 8046
+ },
+ {
+  "app": "JPM",
+  "mode": null,
+  "selected": {
+   "2": 1,
+   "3": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "ENTERPRISE": 40,
+   "USER": 33
+  },
+  "expected_license": 40515,
+  "expected_maintenance": 7292.7
+ },
+ {
+  "app": "JPM",
+  "mode": null,
+  "selected": {
+   "3": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "ENTERPRISE": 501,
+   "USER": 8
+  },
+  "expected_license": 130400,
+  "expected_maintenance": 23472
+ },
+ {
+  "app": "JPM",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "4": 1,
+   "6": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "ENTERPRISE": 11,
+   "USER": 70
+  },
+  "expected_license": 54385.5,
+  "expected_maintenance": 9789.39
+ },
+ {
+  "app": "JPM",
+  "mode": null,
+  "selected": {
+   "6": 1,
+   "0": 1,
+   "3": 1,
+   "2": 1
+  },
+  "driver_qty": {
+   "ENTERPRISE": 81,
+   "USER": 70
+  },
+  "expected_license": 126287.5,
+  "expected_maintenance": 22731.75
+ },
+ {
+  "app": "JPM",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "0": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "ENTERPRISE": 2,
+   "USER": 100
+  },
+  "expected_license": 45065,
+  "expected_maintenance": 8111.7
+ },
+ {
+  "app": "JPM",
+  "mode": null,
+  "selected": {
+   "1": 1,
+   "3": 1,
+   "6": 1
+  },
+  "driver_qty": {
+   "ENTERPRISE": 55,
+   "USER": 70
+  },
+  "expected_license": 39942.5,
+  "expected_maintenance": 7189.65
+ },
+ {
+  "app": "JPM",
+  "mode": null,
+  "selected": {
+   "0": 1,
+   "1": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "ENTERPRISE": 10,
+   "USER": 8
+  },
+  "expected_license": 35920,
+  "expected_maintenance": 6465.6
+ },
+ {
+  "app": "ECM3",
+  "mode": "MIGR",
+  "selected": {
+   "9": 1,
+   "5": 1,
+   "8": 1,
+   "7": 1
+  },
+  "driver_qty": {
+   "UTENTI": 900
+  },
+  "expected_license": 8000,
+  "expected_maintenance": 1440
+ },
+ {
+  "app": "ECM3",
+  "mode": "MIGR",
+  "selected": {
+   "4": 1,
+   "9": 1,
+   "5": 1
+  },
+  "driver_qty": {
+   "UTENTI": 900
+  },
+  "expected_license": 5500,
+  "expected_maintenance": 990
+ },
+ {
+  "app": "ECM3",
+  "mode": "MIGR",
+  "selected": {
+   "9": 1,
+   "4": 1,
+   "5": 1,
+   "6": 1,
+   "7": 1
+  },
+  "driver_qty": {
+   "UTENTI": 40
+  },
+  "expected_license": 8000,
+  "expected_maintenance": 1440
+ },
+ {
+  "app": "ECM3",
+  "mode": "MIGR",
+  "selected": {
+   "5": 1,
+   "7": 1,
+   "9": 1,
+   "8": 1
+  },
+  "driver_qty": {
+   "UTENTI": 2500
+  },
+  "expected_license": 8000,
+  "expected_maintenance": 1440
+ },
+ {
+  "app": "ECM3",
+  "mode": "NEW",
+  "selected": {
+   "4": 1,
+   "8": 1,
+   "9": 1,
+   "7": 1,
+   "5": 1,
+   "6": 1
+  },
+  "driver_qty": {
+   "UTENTI": 900
+  },
+  "expected_license": 11000,
+  "expected_maintenance": 1980
+ },
+ {
+  "app": "ECM3",
+  "mode": "NEW",
+  "selected": {
+   "9": 1,
+   "6": 1,
+   "7": 1
+  },
+  "driver_qty": {
+   "UTENTI": 21
+  },
+  "expected_license": 4500,
+  "expected_maintenance": 810
+ },
+ {
+  "app": "ECM3",
+  "mode": "MIGR",
+  "selected": {
+   "4": 1,
+   "5": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 3500,
+  "expected_maintenance": 630
+ },
+ {
+  "app": "ECM3",
+  "mode": "NEW",
+  "selected": {
+   "8": 1,
+   "5": 1,
+   "7": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 6000,
+  "expected_maintenance": 1080
+ },
+ {
+  "app": "EPM",
+  "mode": "MIGR",
+  "selected": {
+   "7": 1,
+   "19": 1,
+   "11": 1,
+   "13": 1,
+   "10": 1,
+   "6": 1,
+   "17": 1,
+   "18": 1,
+   "15": 1,
+   "8": 1,
+   "0": 1,
+   "9": 1,
+   "5": 1,
+   "2": 1,
+   "1": 1,
+   "12": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 900
+  },
+  "expected_license": 137549,
+  "expected_maintenance": 24758.82
+ },
+ {
+  "app": "EPM",
+  "mode": "VIEW",
+  "selected": {
+   "10": 1,
+   "0": 1,
+   "19": 1,
+   "17": 1,
+   "4": 1,
+   "16": 1,
+   "14": 1,
+   "5": 1,
+   "13": 1,
+   "6": 1,
+   "1": 1,
+   "18": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 15880,
+  "expected_maintenance": 2858.4
+ },
+ {
+  "app": "EPM",
+  "mode": "MIGR",
+  "selected": {
+   "18": 1,
+   "8": 1,
+   "3": 1,
+   "19": 1,
+   "17": 1,
+   "13": 1,
+   "10": 1,
+   "6": 1,
+   "11": 1,
+   "9": 1,
+   "1": 1,
+   "2": 1,
+   "15": 1
+  },
+  "driver_qty": {
+   "UTENTI": 80
+  },
+  "expected_license": 48635.62,
+  "expected_maintenance": 8754.41
+ },
+ {
+  "app": "EPM",
+  "mode": "SENSE",
+  "selected": {
+   "7": 1,
+   "11": 1,
+   "1": 1,
+   "6": 1,
+   "10": 1,
+   "3": 1,
+   "14": 1,
+   "2": 1,
+   "15": 1,
+   "5": 1,
+   "19": 1,
+   "13": 1,
+   "8": 1
+  },
+  "driver_qty": {
+   "UTENTI": 5
+  },
+  "expected_license": 35430,
+  "expected_maintenance": 6377.4
+ },
+ {
+  "app": "EPM",
+  "mode": "MIGR",
+  "selected": {
+   "2": 1,
+   "6": 1,
+   "1": 1,
+   "9": 1,
+   "11": 1,
+   "17": 1,
+   "19": 1,
+   "0": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 18220,
+  "expected_maintenance": 3279.6
+ },
+ {
+  "app": "EPM",
+  "mode": "SENSE",
+  "selected": {
+   "8": 1,
+   "3": 1,
+   "6": 1,
+   "16": 1,
+   "15": 1,
+   "19": 1,
+   "7": 1,
+   "11": 1,
+   "9": 1,
+   "2": 1,
+   "12": 1,
+   "14": 1,
+   "18": 1,
+   "4": 1
+  },
+  "driver_qty": {
+   "UTENTI": 81
+  },
+  "expected_license": 72872.25,
+  "expected_maintenance": 13117.0
+ },
+ {
+  "app": "EPM",
+  "mode": "SENSE",
+  "selected": {
+   "6": 1,
+   "5": 1,
+   "14": 1,
+   "18": 1,
+   "3": 1,
+   "1": 1,
+   "8": 1,
+   "15": 1,
+   "9": 1,
+   "7": 1,
+   "0": 1,
+   "19": 1,
+   "4": 1,
+   "17": 1
+  },
+  "driver_qty": {
+   "UTENTI": 80
+  },
+  "expected_license": 76228.25,
+  "expected_maintenance": 13721.08
+ },
+ {
+  "app": "EPM",
+  "mode": "SENSE",
+  "selected": {
+   "9": 1,
+   "15": 1,
+   "18": 1,
+   "0": 1,
+   "3": 1,
+   "5": 1,
+   "13": 1,
+   "2": 1,
+   "14": 1,
+   "6": 1,
+   "17": 1,
+   "8": 1,
+   "16": 1
+  },
+  "driver_qty": {
+   "UTENTI": 55
+  },
+  "expected_license": 62284.5,
+  "expected_maintenance": 11211.21
+ },
+ {
+  "app": "EPM",
+  "mode": "SENSE",
+  "selected": {
+   "15": 1,
+   "19": 1,
+   "9": 1,
+   "12": 1,
+   "11": 1,
+   "8": 1,
+   "2": 1,
+   "5": 1,
+   "3": 1,
+   "7": 1,
+   "16": 1
+  },
+  "driver_qty": {
+   "UTENTI": 1001
+  },
+  "expected_license": 138277.25,
+  "expected_maintenance": 24889.9
+ },
+ {
+  "app": "EPM",
+  "mode": "SENSE",
+  "selected": {
+   "8": 1,
+   "13": 1,
+   "9": 1,
+   "19": 1,
+   "3": 1,
+   "5": 1,
+   "15": 1,
+   "2": 1,
+   "16": 1,
+   "18": 1,
+   "10": 1,
+   "17": 1,
+   "0": 1,
+   "1": 1,
+   "12": 1
+  },
+  "driver_qty": {
+   "UTENTI": 4
+  },
+  "expected_license": 38950,
+  "expected_maintenance": 7011
+ }
+]

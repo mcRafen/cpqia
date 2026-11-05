@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installazione · CPQIA</title>
+<style>
+  :root { --p:#0e7f77; --bg:#f5f7f8; --card:#fff; --line:#d4dadd; --txt:#1c2b2f; --mut:#5d6f74; --err:#b3261e; --ok:#1b6e3a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  header { background:var(--p); color:#fff; padding:14px 24px; display:flex; align-items:center; gap:12px; }
+  header .logo { width:34px; height:34px; border-radius:9px; background:#fff; color:var(--p); font-weight:700; display:grid; place-items:center; }
+  main { max-width:920px; margin:22px auto; padding:0 16px 60px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 22px; margin-bottom:16px; }
+  h1 { font-size:20px; margin:0; } h2 { font-size:17px; margin:0 0 4px; } .hint { color:var(--mut); font-size:13px; margin:2px 0 12px; }
+  .grid { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; align-items:start; }
+  .s1{grid-column:span 1}.s2{grid-column:span 2}.s3{grid-column:span 3}.s4{grid-column:span 4}.s6{grid-column:span 6}
+  @media (max-width:700px){ .grid{grid-template-columns:1fr 1fr} .s1,.s2,.s3,.s4,.s6{grid-column:span 2} }
+  label.f { display:block; font-size:12px; color:var(--mut); margin-bottom:3px; }
+  input[type=text],input[type=password],input[type=number],input[type=email],select,textarea { width:100%; height:38px; padding:0 10px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; color:var(--txt); }
+  textarea { height:90px; padding:8px 10px; font-family:ui-monospace,Menlo,monospace; font-size:13px; }
+  input:focus,select:focus,textarea:focus { outline:2px solid var(--p); outline-offset:-1px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .chk { display:flex; gap:8px; align-items:center; padding-top:20px; }
+  button { height:38px; padding:0 16px; border-radius:19px; border:1px solid var(--p); background:#fff; color:var(--p); font:inherit; font-weight:500; cursor:pointer; }
+  button.main { background:var(--p); color:#fff; } button:disabled { opacity:.5; cursor:default; } button.sm { height:30px; padding:0 10px; font-size:13px; }
+  .msg { margin-top:10px; padding:10px 12px; border-radius:8px; font-size:14px; display:none; white-space:pre-wrap; }
+  .msg.ok { display:block; background:#e6f4ea; color:var(--ok); } .msg.err { display:block; background:#fce8e6; color:var(--err); } .msg.info { display:block; background:#e8f0fe; color:#1a3d8f; }
+  code { background:#eef2f3; padding:1px 5px; border-radius:4px; font-size:13px; }
+  details summary { cursor:pointer; color:var(--p); font-weight:500; margin:8px 0; }
+</style>
+</head>
+<body>
+<header><span class="logo">Q</span><h1>CPQIA – installazione del contesto «@@NAME@@»</h1></header>
+<main>
+  <div class="card">
+    <h2>0. Codice di setup</h2>
+    <div class="hint">Il contesto non è ancora configurato. Per evitare che altri completino la procedura al posto tuo, inserisci il codice generato all'avvio:
+      leggilo nel file <code>@@TOKENFILE@@</code> sul server oppure nel log di Tomcat (<code>catalina.out</code>, riga «CPQIA setup»).</div>
+    <div class="grid"><div class="s3"><label class="f" for="token">Codice di setup *</label><input type="password" id="token" autocomplete="off"></div></div>
+  </div>
+
+  <div class="card">
+    <h2>1. Accesso a PostgreSQL</h2>
+    <div class="hint">Parametri con cui l'applicazione si collega al database (versione 12 o superiore). Vengono salvati in <code>@@FILE@@</code>.</div>
+    <div class="grid">
+      <div class="s3"><label class="f" for="dbHost">Server (host o IP) *</label><input type="text" id="dbHost" value="localhost"></div>
+      <div class="s1"><label class="f" for="dbPort">Porta *</label><input type="number" id="dbPort" value="5432" min="1" max="65535"></div>
+      <div class="s2"><label class="f" for="dbName">Database *</label><input type="text" id="dbName" value="cpqia"></div>
+      <div class="s2"><label class="f" for="dbUser">Utente *</label><input type="text" id="dbUser" value="cpqia" autocomplete="off"></div>
+      <div class="s3"><label class="f" for="dbPassword">Password *</label>
+        <div class="row"><input type="password" id="dbPassword" autocomplete="new-password" style="flex:1"><button type="button" class="sm" id="gen-db">Genera</button><button type="button" class="sm" id="show-db">Mostra</button></div></div>
+      <div class="s1"><label class="f" for="sslMode">Connessione SSL</label>
+        <select id="sslMode"><option value="disable">disable</option><option value="allow">allow</option><option value="prefer" selected>prefer</option><option value="require">require</option><option value="verify-ca">verify-ca</option><option value="verify-full">verify-full</option></select></div>
+    </div>
+    <details>
+      <summary>Opzioni avanzate (schema, timeout, pool di connessioni)</summary>
+      <div class="grid">
+        <div class="s2"><label class="f" for="dbSchema">Schema (vuoto = public)</label><input type="text" id="dbSchema"></div>
+        <div class="s2"><label class="f" for="connectTimeout">Timeout di connessione (secondi)</label><input type="number" id="connectTimeout" value="10" min="1" max="120"></div>
+        <div class="s1"><label class="f" for="poolMax">Connessioni massime</label><input type="number" id="poolMax" value="10" min="1" max="200"></div>
+        <div class="s1"><label class="f" for="poolMin">Connessioni minime</label><input type="number" id="poolMin" value="2" min="0" max="200"></div>
+      </div>
+    </details>
+    <details>
+      <summary>Il database o l'utente non esistono ancora? Creali da qui</summary>
+      <div class="hint">Inserisci le credenziali di un amministratore PostgreSQL (es. <code>postgres</code>): vengono usate solo ora e <b>non</b> vengono salvate. Se l'utente o il database esistono già non vengono modificati.</div>
+      <div class="grid">
+        <div class="s2"><label class="f" for="adminUser">Utente amministratore</label><input type="text" id="adminUser" value="postgres" autocomplete="off"></div>
+        <div class="s2"><label class="f" for="adminPassword">Password amministratore</label><input type="password" id="adminPassword" autocomplete="new-password"></div>
+        <div class="s2"><label class="f" for="adminDb">Database di servizio</label><input type="text" id="adminDb" value="postgres"></div>
+      </div>
+      <div class="row" style="margin-top:10px"><button type="button" id="btn-create">Crea utente e database</button></div>
+    </details>
+    <div class="row" style="margin-top:14px"><button type="button" id="btn-test">Verifica connessione</button></div>
+    <div id="msg-db" class="msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Applicazione</h2>
+    <div class="grid">
+      <div class="s3"><label class="f" for="adminEmail">Email del primo amministratore *</label><input type="email" id="adminEmail">
+        <div class="hint" style="margin-bottom:0">Al primo accesso con questo account Google viene creato come administrator.</div></div>
+      <div class="s3 chk"><input type="checkbox" id="autoRegister" checked><label for="autoRegister">Gli altri utenti, al primo accesso, vengono registrati non abilitati (li abilita un administrator)</label></div>
+      <div class="s3"><label class="f" for="googleId">Google – client ID *</label><input type="text" id="googleId" autocomplete="off"></div>
+      <div class="s3"><label class="f" for="googleSecret">Google – client secret *</label><input type="password" id="googleSecret" autocomplete="new-password"></div>
+      <div class="s6 hint" style="margin:0">Nella Google Cloud Console, sul client OAuth «Applicazione web», registra gli URI di reindirizzamento:
+        <code id="uri1"></code> (accesso) e <code id="uri2"></code> (Importa da RFQ / esportazione in Google Sheets).</div>
+      <div class="s4"><label class="f" for="cryptoKey">Chiave di cifratura dei segreti nel database *</label>
+        <div class="row"><input type="text" id="cryptoKey" value="@@CRYPTO@@" style="flex:1"><button type="button" class="sm" id="gen-key">Rigenera</button></div>
+        <div class="hint" style="margin-bottom:0">Cifra le password salvate (es. IBM i). Conservala: se la cambi dopo, le password già salvate non si leggono più.</div></div>
+      <div class="s2"><label class="f" for="templateDir">Cartella modelli Word (facoltativa)</label><input type="text" id="templateDir" placeholder="usa quelli del WAR"></div>
+      <div class="s6 chk" style="padding-top:0"><input type="checkbox" id="devLogin"><label for="devLogin">Accesso di sviluppo senza Google (solo per prove, <b>non</b> in produzione)</label></div>
+    </div>
+    <details>
+      <summary>Altre impostazioni (una per riga, formato chiave=valore)</summary>
+      <textarea id="extra" placeholder="cpqia.oauth.apple.client-id=&#10;cpqia.geo.enabled=true"></textarea>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>3. Salva e avvia</h2>
+    <div class="hint">Il file di configurazione viene scritto, il contesto si ricarica e al primo avvio vengono create le tabelle e il catalogo.</div>
+    <div class="row"><button type="button" class="main" id="btn-save">Salva e avvia CPQIA</button></div>
+    <div id="msg-save" class="msg"></div>
+  </div>
+</main>
+<script>
+(function () {
+  var CTX = "@@CTX@@";
+  var $ = function (id) { return document.getElementById(id); };
+  var origin = location.origin + CTX;
+  $('uri1').textContent = origin + '/login/oauth2/code/google';
+  $('uri2').textContent = origin + '/google-sheets/callback';
+  function rnd(n) { var a = new Uint8Array(n); crypto.getRandomValues(a); return Array.prototype.map.call(a, function (b) { return 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 56]; }).join(''); }
+  $('gen-db').onclick = function () { $('dbPassword').value = rnd(20); $('dbPassword').type = 'text'; $('show-db').textContent = 'Nascondi'; };
+  $('show-db').onclick = function () { var p = $('dbPassword'); p.type = p.type === 'password' ? 'text' : 'password'; this.textContent = p.type === 'password' ? 'Mostra' : 'Nascondi'; };
+  $('gen-key').onclick = function () { $('cryptoKey').value = rnd(43); };
+  var FIELDS = ['token','dbHost','dbPort','dbName','dbUser','dbPassword','sslMode','dbSchema','connectTimeout','poolMax','poolMin','adminUser','adminPassword','adminDb',
+                'adminEmail','googleId','googleSecret','cryptoKey','templateDir','extra'];
+  function body() {
+    var p = new URLSearchParams();
+    FIELDS.forEach(function (f) { p.set(f, $(f).value); });
+    p.set('autoRegister', $('autoRegister').checked ? 'on' : '');
+    p.set('devLogin', $('devLogin').checked ? 'on' : '');
+    return p;
+  }
+  function show(id, cls, text) { var m = $(id); m.className = 'msg ' + cls; m.textContent = text; }
+  async function call(path, msgId, working, btn) {
+    show(msgId, 'info', working); btn.disabled = true;
+    try {
+      var r = await fetch(CTX + path, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body: body().toString() });
+      var j = await r.json();
+      show(msgId, j.ok ? 'ok' : 'err', j.message);
+      return j;
+    } catch (e) { show(msgId, 'err', 'Errore di comunicazione: ' + e); return { ok: false }; }
+    finally { btn.disabled = false; }
+  }
+  $('btn-test').onclick = function () { call('/test', 'msg-db', 'Verifica in corso…', this); };
+  $('btn-create').onclick = function () { call('/create', 'msg-db', 'Creazione in corso…', this); };
+  $('btn-save').onclick = async function () {
+    var j = await call('/save', 'msg-save', 'Salvataggio in corso…', this);
+    if (!j.ok) return;
+    this.disabled = true;
+    var tries = 0;
+    (function poll() {
+      tries++;
+      fetch(CTX + '/setup-status', { cache: 'no-store' }).then(function (r) { return r.text().then(function (t) { return { ok: r.ok, t: t }; }); }).then(function (x) {
+        var still = x.t.indexOf('"setup":true') >= 0;
+        if (!still && x.ok && tries > 2) { show('msg-save', 'ok', 'CPQIA è attivo. Apertura in corso…'); setTimeout(function () { location.href = CTX + '/'; }, 800); return; }
+        if (tries < 150) setTimeout(poll, 2000); else show('msg-save', 'err', 'Il contesto non è ripartito: ricaricalo dal Manager di Tomcat o riavvia Tomcat, poi apri ' + CTX + '/');
+      }).catch(function () { if (tries < 150) setTimeout(poll, 2000); });
+    })();
+  };
+})();
+</script>
+</body>
+</html>

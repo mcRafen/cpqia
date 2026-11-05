@@ -1,0 +1,6210 @@
+[
+ {
+  "id": 1,
+  "code": "ICM",
+  "name": "ICM Raccolta Ordini",
+  "family": "4WORDS",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 1,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIWCPLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 1,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 1,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 1,
+      "fromQty": 1,
+      "toQty": 10,
+      "label": "fino a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 2,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 5.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 3,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 4,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 1.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 5,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 1.3,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 1,
+    "code": "SMIWCP",
+    "description": "Icm Catalogo prodotti",
+    "groupId": 1,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito obbligatorio SMIWPS4",
+    "prices": {
+     "STD": 6000.0
+    },
+    "rules": [
+     {
+      "id": 1,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWPS4",
+      "severity": "ERROR",
+      "message": "Prerequisito obbligatorio SMIWPS4 (Manager controllo e distribuzione App)"
+     }
+    ]
+   },
+   {
+    "id": 2,
+    "code": "SMIWCO",
+    "description": "Icm Carrello pre-ordine",
+    "groupId": 1,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito obbligatorio WCP Attenzione che se lil cliente ha Jgalileo è necessario SMIWOR come basket di raccolta per gli ordini che arrivano da app. Qiuesto prerequisito non è necessario ma opzionale nel caso in cui l'app debba invare ordini ad altri ERP",
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": [
+     {
+      "id": 2,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWCP",
+      "severity": "ERROR",
+      "message": "Prerequisito obbligatorio SMIWCP (Catalogo prodotti)"
+     },
+     {
+      "id": 3,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWOR",
+      "severity": "WARNING",
+      "message": "Se il cliente ha Jgalileo e' necessario SMIWOR come basket di raccolta per gli ordini da app. Non necessario (opzionale) se l'app deve inviare ordini ad altri ERP"
+     }
+    ]
+   },
+   {
+    "id": 3,
+    "code": "SMIWCX",
+    "description": "Icm Note Visita e Agenda",
+    "groupId": 1,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "se selezionato note visita CRM obbligatorio - va calcolato + WCP",
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": [
+     {
+      "id": 4,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWCP",
+      "severity": "ERROR",
+      "message": "Se selezionato Note visita, CRM obbligatorio; va calcolato anche SMIWCP"
+     }
+    ]
+   },
+   {
+    "id": 4,
+    "code": "SMIWPS4",
+    "description": "Manager controllo e distribuzione App",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 2,
+  "code": "TV",
+  "name": "App Tentata Vendita",
+  "family": "4WORDS",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 2,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIGTVLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 2,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 2,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 6,
+      "fromQty": 1,
+      "toQty": 10,
+      "label": "fino a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 7,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 5.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 8,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 9,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 1.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 10,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 1.3,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 5,
+    "code": "SMIGTV",
+    "description": "App tentata vendita",
+    "groupId": 2,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito obbligatorio SMIWPS4",
+    "prices": {
+     "STD": 12000.0
+    },
+    "rules": [
+     {
+      "id": 5,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWPS4",
+      "severity": "ERROR",
+      "message": "Prerequisito obbligatorio SMIWPS4"
+     }
+    ]
+   },
+   {
+    "id": 6,
+    "code": "SMIWPS4",
+    "description": "Manager controllo e distribuzione App",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 3,
+  "code": "AT",
+  "name": "Assistenza Tecnica",
+  "family": "4WORDS",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 3,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIWATLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 3,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 3,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 11,
+      "fromQty": 1,
+      "toQty": 10,
+      "label": "fino a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 12,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 5.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 13,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 14,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 1.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 15,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 1.3,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 7,
+    "code": "SMIWAT",
+    "description": "Assistenza tecnica WEB",
+    "groupId": 3,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "prerequisito la presenza del modulo SMIWOR se cliente con Galileo (Prezzo in bundle)",
+    "prices": {
+     "STD": 10000.0
+    },
+    "rules": [
+     {
+      "id": 6,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWOR",
+      "severity": "WARNING",
+      "message": "Prerequisito la presenza del modulo SMIWOR se cliente con Galileo (prezzo in bundle)"
+     }
+    ]
+   },
+   {
+    "id": 8,
+    "code": "SMIWATS",
+    "description": "Assistenza tecnica Smartphone",
+    "groupId": 3,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 9,
+    "code": "SMIWMAN",
+    "description": "APP manutentori offline",
+    "groupId": 3,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito SMIWAT",
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": [
+     {
+      "id": 7,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWAT",
+      "severity": "ERROR",
+      "message": "Prerequisito SMIWAT"
+     }
+    ]
+   },
+   {
+    "id": 10,
+    "code": "SMIEAST",
+    "description": "Analisi assistenza tecnica",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento listino EPM",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 11,
+    "code": "SMIWOR",
+    "description": "Jgalileo B2B (r24)",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento listino B2B",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 4,
+  "code": "PIM",
+  "name": "PIM",
+  "family": "4WORDS",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 4,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIWCMSLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 4,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 4,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 16,
+      "fromQty": 1,
+      "toQty": 10,
+      "label": "fino a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 17,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 5.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 18,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 19,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 1.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 20,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 1.3,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 12,
+    "code": "SMIWCMS",
+    "description": "Product Information Management",
+    "groupId": 4,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 8000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 13,
+    "code": "SMIWCS",
+    "description": "Catalogo multimediale prodotti smartphone",
+    "groupId": 4,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito obbligatorio SMIWPS4",
+    "prices": {
+     "STD": 3500.0
+    },
+    "rules": [
+     {
+      "id": 8,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWPS4",
+      "severity": "ERROR",
+      "message": "Prerequisito obbligatorio SMIWPS4"
+     }
+    ]
+   },
+   {
+    "id": 14,
+    "code": "SMIWPS4",
+    "description": "Manager controllo e distribuzione App",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 5,
+  "code": "CRMJ",
+  "name": "CRM JGalileo",
+  "family": "4WORDS",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 5,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMICRMWEBLLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 5,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 5,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 21,
+      "fromQty": 1,
+      "toQty": 10,
+      "label": "fino a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 22,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 5.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 23,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 24,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 1.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 25,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 1.3,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 15,
+    "code": "CRMWEBL",
+    "description": "JGalileo CRM",
+    "groupId": 5,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 8000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 16,
+    "code": "SMIWCXS",
+    "description": "App CRM per Smartphone",
+    "groupId": 5,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "prerequisito SMIWPS4",
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": [
+     {
+      "id": 9,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWPS4",
+      "severity": "ERROR",
+      "message": "Prerequisito SMIWPS4"
+     }
+    ]
+   },
+   {
+    "id": 17,
+    "code": "CRMMAIL",
+    "description": "Interfacciamento MailChimp",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito CRMWEBL",
+    "prices": {
+     "STD": 2000.0
+    },
+    "rules": [
+     {
+      "id": 10,
+      "type": "REQUIRES",
+      "targetCodes": "CRMWEBL",
+      "severity": "ERROR",
+      "message": "Prerequisito CRMWEBL"
+     }
+    ]
+   },
+   {
+    "id": 18,
+    "code": "SMIWPS4",
+    "description": "Manager controllo e distribuzione App",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 19,
+    "code": "SMICAL",
+    "description": "Sinergy - integrazione calendari Exchange",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 1300.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 6,
+  "code": "CRMS",
+  "name": "CRM Synergy",
+  "family": "4WORDS",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [
+   {
+    "code": "NEW",
+    "label": "Nuova installazione",
+    "preferred": true
+   },
+   {
+    "code": "MIGR",
+    "label": "In migrazione",
+    "preferred": false
+   },
+   {
+    "code": "ADD",
+    "label": "Funzionalita' aggiuntiva",
+    "preferred": false
+   }
+  ],
+  "drivers": [
+   {
+    "id": 6,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMICRSYNLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 6,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 6,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 26,
+      "fromQty": 1,
+      "toQty": 10,
+      "label": "fino a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 27,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 5.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 28,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 29,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 1.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 30,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 1.3,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 20,
+    "code": "SMICRSYN",
+    "description": "CRM Synergy",
+    "groupId": 6,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 12000.0,
+     "MIGR": 6000.0,
+     "ADD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 21,
+    "code": "SMIWCXS",
+    "description": "App CRM per Smartphone",
+    "groupId": 6,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "prerequisito SMIWPS4",
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": [
+     {
+      "id": 11,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWPS4",
+      "severity": "ERROR",
+      "message": "Prerequisito SMIWPS4"
+     }
+    ]
+   },
+   {
+    "id": 22,
+    "code": "SMIECREP",
+    "description": "ECM3 Repository",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento listino ECM3",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 23,
+    "code": "CRMMAIL",
+    "description": "Interfacciamento MailChimp",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito SMICRSYN",
+    "prices": {
+     "STD": 2000.0
+    },
+    "rules": [
+     {
+      "id": 12,
+      "type": "REQUIRES",
+      "targetCodes": "SMICRSYN",
+      "severity": "ERROR",
+      "message": "Prerequisito SMICRSYN"
+     }
+    ]
+   },
+   {
+    "id": 24,
+    "code": "SMIWPS4",
+    "description": "Manager controllo e distribuzione App",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 7,
+  "code": "B2B",
+  "name": "B2B",
+  "family": "4WORDS",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [
+   {
+    "code": "NEW",
+    "label": "Nuova installazione",
+    "preferred": true
+   },
+   {
+    "code": "MIGR",
+    "label": "In migrazione",
+    "preferred": false
+   }
+  ],
+  "drivers": [
+   {
+    "id": 7,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIWORLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 7,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 7,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 31,
+      "fromQty": 1,
+      "toQty": 50,
+      "label": "fino a 50 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 32,
+      "fromQty": 51,
+      "toQty": 100,
+      "label": "da 51 a 100 utenti",
+      "pct": 1.7,
+      "unitByMode": {}
+     },
+     {
+      "id": 33,
+      "fromQty": 101,
+      "toQty": 200,
+      "label": "da 101 a 200 utenti",
+      "pct": 0.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 34,
+      "fromQty": 201,
+      "toQty": 500,
+      "label": "da 201 a 500 utenti",
+      "pct": 0.3,
+      "unitByMode": {}
+     },
+     {
+      "id": 35,
+      "fromQty": 501,
+      "label": "oltre gli 501 utenti",
+      "pct": 0.1,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 25,
+    "code": "SMIWOR",
+    "description": "Jgalileo B2B (R24)",
+    "groupId": 7,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "uno è alternativo all'altro",
+    "prices": {
+     "NEW": 10000.0,
+     "MIGR": 5000.0
+    },
+    "rules": [
+     {
+      "id": 13,
+      "type": "INFO",
+      "severity": "WARNING",
+      "message": "Jgalileo B2B (R24): uno e' alternativo all'altro"
+     }
+    ]
+   },
+   {
+    "id": 26,
+    "code": "SMIWSW",
+    "description": "Galileo Stampe WEB",
+    "groupId": 7,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": true,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 27,
+    "code": "SMIWIN",
+    "description": "Galileo Interrogazioni WEB",
+    "groupId": 7,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": true,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 28,
+    "code": "SMIWCR",
+    "description": "Ricambi Web (R24)",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito SMIWOR",
+    "prices": {
+     "STD": 5000.0
+    },
+    "rules": [
+     {
+      "id": 14,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWOR",
+      "severity": "ERROR",
+      "message": "Prerequisito SMIWOR"
+     }
+    ]
+   },
+   {
+    "id": 29,
+    "code": "SMIWPS5",
+    "description": "Dashboard Rete Vendita",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 5000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 30,
+    "code": "SMIWCMS",
+    "description": "Product Information Management",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento Listino PIM",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 8,
+  "code": "IOC",
+  "name": "App Clienti iOC",
+  "family": "4WORDS",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 8,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIWCCLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 8,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 8,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 36,
+      "fromQty": 1,
+      "toQty": 200,
+      "label": "fino a 200 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 37,
+      "fromQty": 201,
+      "toQty": 500,
+      "label": "da 201 a 500 utenti",
+      "pct": 0.29165,
+      "unitByMode": {}
+     },
+     {
+      "id": 38,
+      "fromQty": 501,
+      "toQty": 1000,
+      "label": "da 501 a 1.000 utenti",
+      "pct": 0.125,
+      "unitByMode": {}
+     },
+     {
+      "id": 39,
+      "fromQty": 1001,
+      "label": "oltre i 1.000 utenti",
+      "pct": 0.0625,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 31,
+    "code": "SMIWCC",
+    "description": "App iOC raccolta ordini clienti smartphone",
+    "groupId": 8,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "prerequisito SMIWPS4 Prerequisito SMIWOR",
+    "prices": {
+     "STD": 8000.0
+    },
+    "rules": [
+     {
+      "id": 15,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWPS4",
+      "severity": "ERROR",
+      "message": "Prerequisito SMIWPS4"
+     },
+     {
+      "id": 16,
+      "type": "REQUIRES",
+      "targetCodes": "SMIWOR",
+      "severity": "ERROR",
+      "message": "Prerequisito SMIWOR (listino B2B)"
+     }
+    ]
+   },
+   {
+    "id": 32,
+    "code": "SMIWPS5",
+    "description": "Dashboard rete vendita",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 5000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 33,
+    "code": "SMIWOR",
+    "description": "Jgalileo B2B (r24)",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento listino B2B",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 9,
+  "code": "CONN",
+  "name": "Connettori",
+  "family": "4WORDS",
+  "maintenancePct": 18.0,
+  "needsReview": true,
+  "active": true,
+  "notes": "Modulo non va ad utenti: prezzi a modulo, manutenzione 18%",
+  "modes": [],
+  "drivers": [],
+  "groups": [],
+  "modules": [
+   {
+    "id": 34,
+    "code": "SMIWCON",
+    "description": "Connettore Web Services",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 35,
+    "code": "SMIWOC",
+    "description": "Connettore Prestashop - Jgalileo",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 10,
+  "code": "JTCE",
+  "name": "JTCE / CPQ",
+  "family": "TCE",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 9,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 9,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 9,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 40,
+      "fromQty": 1,
+      "toQty": 20,
+      "label": "fino a 20 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 41,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 42,
+      "fromQty": 41,
+      "toQty": 50,
+      "label": "da 41 a 50 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 43,
+      "fromQty": 51,
+      "toQty": 60,
+      "label": "da 51 a 60 utenti",
+      "pct": 1.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 44,
+      "fromQty": 61,
+      "toQty": 9999999,
+      "label": "oltre gli 61 utenti",
+      "pct": 0.5,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 36,
+    "code": "SMITCE",
+    "description": "JTCE Base",
+    "groupId": 9,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Da vendere su nuovo cliente con SMITWEB",
+    "prices": {
+     "STD": 12000.0
+    },
+    "rules": [
+     {
+      "id": 17,
+      "type": "REQUIRES",
+      "targetCodes": "SMITWEB",
+      "severity": "WARNING",
+      "message": "Da vendere su nuovo cliente con SMITWEB"
+     }
+    ]
+   },
+   {
+    "id": 37,
+    "code": "SMITCC",
+    "description": "TCE Clan",
+    "groupId": 9,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": true,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 38,
+    "code": "SMITM4",
+    "description": "Utility di manutenzione avanzata",
+    "groupId": 9,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": true,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 39,
+    "code": "SMITWEB",
+    "description": "Jtce Interfaccia Web di comunicazione",
+    "groupId": 9,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "licenza applicabile singolarmente solo in caso di migrazione dal vecchio TCE (x nuovo cliente prerequisito SMITCE)",
+    "prices": {
+     "STD": 8000.0
+    },
+    "rules": [
+     {
+      "id": 18,
+      "type": "REQUIRES",
+      "targetCodes": "SMITCE",
+      "severity": "WARNING",
+      "message": "Licenza applicabile singolarmente solo in caso di migrazione dal vecchio TCE; per un nuovo cliente prerequisito SMITCE"
+     }
+    ]
+   },
+   {
+    "id": 40,
+    "code": "SMITC3D",
+    "description": "Integrazione modelli 3D",
+    "groupId": 9,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Sonia Vanfretti: Prerequisiti SMITCE+SMITWEB",
+    "prices": {
+     "STD": 8000.0
+    },
+    "rules": [
+     {
+      "id": 19,
+      "type": "REQUIRES",
+      "targetCodes": "SMITCE",
+      "severity": "ERROR",
+      "message": "Prerequisiti SMITCE + SMITWEB"
+     },
+     {
+      "id": 20,
+      "type": "REQUIRES",
+      "targetCodes": "SMITWEB",
+      "severity": "ERROR",
+      "message": "Prerequisiti SMITCE + SMITWEB"
+     }
+    ]
+   },
+   {
+    "id": 41,
+    "code": "SMITCQUO",
+    "description": "CPQ - Quotes - Gestione offerte configurate",
+    "groupId": 9,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "nuova piattaforma dedicata alla preventivazione semplice e configurata - da analizzar con BU TCE",
+    "prices": {
+     "STD": 15000.0
+    },
+    "rules": [
+     {
+      "id": 21,
+      "type": "INFO",
+      "severity": "WARNING",
+      "message": "Nuova piattaforma dedicata alla preventivazione semplice e configurata: da analizzare con BU TCE"
+     }
+    ]
+   },
+   {
+    "id": 42,
+    "code": "SMITCSDC",
+    "description": "CPQ - Quotes - Scheda di costo",
+    "groupId": 9,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 10000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 43,
+    "code": "SMITCPRV",
+    "description": "Gestione preventivi configurati",
+    "groupId": 9,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prodotto obsoleto in fase di sostituzione con CPQ - da prevedere solo previo contatto con BU TCE",
+    "prices": {
+     "STD": 9000.0
+    },
+    "rules": [
+     {
+      "id": 22,
+      "type": "INFO",
+      "severity": "WARNING",
+      "message": "Prodotto obsoleto in fase di sostituzione con CPQ: da prevedere solo previo contatto con BU TCE"
+     }
+    ]
+   },
+   {
+    "id": 44,
+    "code": "SMIECREP",
+    "description": "ECM3 Repository",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento listino ECM3",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 11,
+  "code": "EPM",
+  "name": "EPM",
+  "family": "NEXT BI",
+  "maintenancePct": 18.0,
+  "needsReview": true,
+  "active": true,
+  "notes": "Listino EPM: prerequisito licenze Qlik. Il listino Excel usa tre gruppi di calcolo (moduli View/Sense/Migrazione, moduli 'a nuovo' solo Sense, Power BI): qui sono modellati con gruppi dedicati | ANOMALIA LISTINO: per i moduli 'a nuovo' la % della fascia oltre i 41 utenti (cella O25 del listino) e' vuota, quindi 0%: ripetuta cosi' com'e'. Correggere la fascia in Anagrafica se e' una dimenticanza",
+  "modes": [
+   {
+    "code": "VIEW",
+    "label": "View",
+    "preferred": false
+   },
+   {
+    "code": "SENSE",
+    "label": "Sense",
+    "preferred": true
+   },
+   {
+    "code": "MIGR",
+    "label": "Migrazione da View a Sense",
+    "preferred": false
+   },
+   {
+    "code": "POWERBI",
+    "label": "Power BI",
+    "preferred": false
+   }
+  ],
+  "drivers": [
+   {
+    "id": 10,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 10,
+    "code": "BASE",
+    "label": "Moduli View/Sense/Migrazione",
+    "driverId": 10,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 45,
+      "fromQty": 1,
+      "toQty": 5,
+      "label": "fino a 5 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 46,
+      "fromQty": 6,
+      "toQty": 10,
+      "label": "da 6 a 10 utenti",
+      "pct": 3.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 47,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 3.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 48,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 49,
+      "fromQty": 41,
+      "label": "oltre i 41 utenti",
+      "pct": 1.0,
+      "unitByMode": {}
+     }
+    ]
+   },
+   {
+    "id": 11,
+    "code": "NUOVO",
+    "label": "Moduli a nuovo (solo Sense)",
+    "driverId": 10,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 50,
+      "fromQty": 1,
+      "toQty": 5,
+      "label": "fino a 5 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 51,
+      "fromQty": 6,
+      "toQty": 10,
+      "label": "da 6 a 10 utenti",
+      "pct": 3.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 52,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 3.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 53,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 54,
+      "fromQty": 41,
+      "label": "oltre i 41 utenti",
+      "pct": 0.0,
+      "unitByMode": {}
+     }
+    ]
+   },
+   {
+    "id": 12,
+    "code": "PBI",
+    "label": "Moduli Power BI",
+    "driverId": 10,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 55,
+      "fromQty": 1,
+      "toQty": 5,
+      "label": "fino a 5 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 56,
+      "fromQty": 6,
+      "toQty": 10,
+      "label": "da 6 a 10 utenti",
+      "pct": 3.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 57,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 3.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 58,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 59,
+      "fromQty": 41,
+      "label": "oltre i 41 utenti",
+      "pct": 1.0,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 45,
+    "code": "SMIEOFV",
+    "description": "Analisi Vendite",
+    "groupId": 10,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "VIEW": 4130.0,
+     "SENSE": 4130.0,
+     "MIGR": 2065.0
+    },
+    "rules": []
+   },
+   {
+    "id": 46,
+    "code": "SMIEMAG",
+    "description": "Analisi Magazzino",
+    "groupId": 10,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "VIEW": 3250.0,
+     "SENSE": 3250.0,
+     "MIGR": 1625.0
+    },
+    "rules": []
+   },
+   {
+    "id": 47,
+    "code": "SMIEOAA",
+    "description": "Analisi Acquisti",
+    "groupId": 10,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "VIEW": 2800.0,
+     "SENSE": 2800.0,
+     "MIGR": 1400.0
+    },
+    "rules": []
+   },
+   {
+    "id": 48,
+    "code": "SMIECRE",
+    "description": "Analisi Crediti",
+    "groupId": 10,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "VIEW": 2800.0,
+     "SENSE": 2800.0,
+     "MIGR": 1400.0
+    },
+    "rules": []
+   },
+   {
+    "id": 49,
+    "code": "SMIEANA",
+    "description": "Analisi Contabilità analitica",
+    "groupId": 10,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "VIEW": 4000.0,
+     "SENSE": 4000.0,
+     "MIGR": 2000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 50,
+    "code": "SMIEMESX",
+    "description": "Analisi JMES",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 2800.0,
+     "MIGR": 2800.0
+    },
+    "rules": []
+   },
+   {
+    "id": 51,
+    "code": "SMIEAST",
+    "description": "Analisi Assistenza Tecnica",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 3000.0,
+     "MIGR": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 52,
+    "code": "SMIECOG",
+    "description": "Analisi Contabilita' Generale",
+    "groupId": 10,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "VIEW": 3000.0,
+     "SENSE": 3000.0,
+     "MIGR": 1500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 53,
+    "code": "SMIEPRO",
+    "description": "Analisi Produzione",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 3000.0,
+     "MIGR": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 54,
+    "code": "SMIESVCM",
+    "description": "Analisi Vendite Commessa",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 4130.0,
+     "MIGR": 4130.0
+    },
+    "rules": []
+   },
+   {
+    "id": 55,
+    "code": "SMIELOFE",
+    "description": "Analisi Vendite Moda",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 2000.0,
+     "MIGR": 2000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 56,
+    "code": "SMIEQSPC",
+    "description": "Modello Qualità Carte di Controllo SPC",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 1500.0,
+     "MIGR": 1500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 57,
+    "code": "SMIEQNC",
+    "description": "Analisi Non Conformità",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 2000.0,
+     "MIGR": 2000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 58,
+    "code": "SMIESCMM",
+    "description": "Analisi Commessa",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 2300.0,
+     "MIGR": 2300.0
+    },
+    "rules": []
+   },
+   {
+    "id": 59,
+    "code": "SMIECRM",
+    "description": "Analisi CRM",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 2240.0,
+     "MIGR": 2240.0
+    },
+    "rules": []
+   },
+   {
+    "id": 60,
+    "code": "SMIELMAG",
+    "description": "Modello Magazzino Moda",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 2240.0,
+     "MIGR": 2240.0
+    },
+    "rules": []
+   },
+   {
+    "id": 61,
+    "code": "SMIESPDS",
+    "description": "Modello Produzione Deviazione Standard",
+    "groupId": 11,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "SENSE": 3000.0,
+     "MIGR": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 62,
+    "code": "SMIEBOFV",
+    "description": "Analisi Vendite (PowerBi)",
+    "groupId": 12,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "POWERBI": 2890.0
+    },
+    "rules": []
+   },
+   {
+    "id": 63,
+    "code": "SMIEBOAA",
+    "description": "Analisi Acquisti (PowerBi)",
+    "groupId": 12,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Progetto ad hoc su cliente, contattare la BU",
+    "prices": {
+     "POWERBI": 2240.0
+    },
+    "rules": []
+   },
+   {
+    "id": 64,
+    "code": "SMIMCE",
+    "description": "Estrattore dati",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Per clienti che non hanno la BI Sanmarco. Prevedere 2 ore di attivita' per configurazione",
+    "prices": {
+     "STD": 4500.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 12,
+  "code": "BPB",
+  "name": "Business Place Budget",
+  "family": "NEXT BI",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 11,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIBPBDGLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 13,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 11,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 60,
+      "fromQty": 1,
+      "toQty": 10,
+      "label": "fino a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 61,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 2.3,
+      "unitByMode": {}
+     },
+     {
+      "id": 62,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 63,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 1.8,
+      "unitByMode": {}
+     },
+     {
+      "id": 64,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 1.0,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 65,
+    "code": "SMIBPBDG",
+    "description": "Business Place Budget - Simulatore Vendite",
+    "groupId": 13,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 11060.0
+    },
+    "rules": []
+   },
+   {
+    "id": 66,
+    "code": "SMIBPSPG",
+    "description": "Spese generali",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Business Place Budget SMIBPBDG + Contabilità analitica SMIAN",
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": [
+     {
+      "id": 23,
+      "type": "REQUIRES",
+      "targetCodes": "SMIBPBDG",
+      "severity": "ERROR",
+      "message": "Prerequisito Business Place Budget SMIBPBDG + Contabilita' analitica SMIAN"
+     }
+    ]
+   },
+   {
+    "id": 67,
+    "code": "SMIBPACQ",
+    "description": "Acquisti",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito SMIBPBDG Business Place Budget",
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": [
+     {
+      "id": 24,
+      "type": "REQUIRES",
+      "targetCodes": "SMIBPBDG",
+      "severity": "ERROR",
+      "message": "Prerequisito SMIBPBDG Business Place Budget"
+     }
+    ]
+   },
+   {
+    "id": 68,
+    "code": "SMIBPINV",
+    "description": "Investimenti",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito SMIBPBDG Business Place Budget + Spese Generali",
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": [
+     {
+      "id": 25,
+      "type": "REQUIRES",
+      "targetCodes": "SMIBPBDG",
+      "severity": "ERROR",
+      "message": "Prerequisito SMIBPBDG + Spese Generali"
+     },
+     {
+      "id": 26,
+      "type": "REQUIRES",
+      "targetCodes": "SMIBPSPG",
+      "severity": "ERROR",
+      "message": "Prerequisito SMIBPBDG + Spese Generali"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": 13,
+  "code": "DQ",
+  "name": "Discovery Quality",
+  "family": "DQ",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 12,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIDBASLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 14,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 12,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 65,
+      "fromQty": 1,
+      "toQty": 10,
+      "label": "fino a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 66,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 6.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 67,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 5.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 68,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 2.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 69,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 1.5,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 69,
+    "code": "SMIDBAS",
+    "description": "Modulo Base Qualità",
+    "groupId": 14,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 70,
+    "code": "SMIDQRCL",
+    "description": "Reclami",
+    "groupId": 14,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Sonia Vanfretti: Prerequisito per il funzionamento JPA Synergy V300",
+    "prices": {
+     "STD": 2000.0
+    },
+    "rules": [
+     {
+      "id": 27,
+      "type": "INFO",
+      "severity": "WARNING",
+      "message": "Prerequisito per il funzionamento di JPA Synergy V300"
+     }
+    ]
+   },
+   {
+    "id": 71,
+    "code": "SMIDQRNC",
+    "description": "Rapporti non conformità",
+    "groupId": 14,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Sonia Vanfretti: Prerequisito per il funzionamento JPA Synergy V300",
+    "prices": {
+     "STD": 2000.0
+    },
+    "rules": [
+     {
+      "id": 28,
+      "type": "INFO",
+      "severity": "WARNING",
+      "message": "Prerequisito per il funzionamento di JPA Synergy V300"
+     }
+    ]
+   },
+   {
+    "id": 72,
+    "code": "SMIDQAZN",
+    "description": "Azioni correttive",
+    "groupId": 14,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Sonia Vanfretti: Prerequisito per il funzionamento JPA Synergy V300",
+    "prices": {
+     "STD": 2000.0
+    },
+    "rules": [
+     {
+      "id": 29,
+      "type": "INFO",
+      "severity": "WARNING",
+      "message": "Prerequisito per il funzionamento di JPA Synergy V300"
+     }
+    ]
+   },
+   {
+    "id": 73,
+    "code": "SMIDQCON",
+    "description": "Controllo Qualità",
+    "groupId": 14,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 74,
+    "code": "SMIDQSTR",
+    "description": "Metrologia e Manutenzioni",
+    "groupId": 14,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 1500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 75,
+    "code": "SMIDQADT",
+    "description": "Audit",
+    "groupId": 14,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 1000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 76,
+    "code": "SMIDQBK",
+    "description": "Book Documenti",
+    "groupId": 14,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Vendita previa analisi della BU",
+    "prices": {
+     "STD": 2000.0
+    },
+    "rules": [
+     {
+      "id": 30,
+      "type": "INFO",
+      "severity": "WARNING",
+      "message": "Vendita previa analisi della BU"
+     }
+    ]
+   },
+   {
+    "id": 77,
+    "code": "SMIACM",
+    "description": "Asset Capital Management",
+    "groupId": 14,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 6000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 78,
+    "code": "SMIHCM",
+    "description": "Human Capital Management",
+    "groupId": 14,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 6000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 79,
+    "code": "(EX SMIDWKF)",
+    "description": "Gestione attività -->ora JPA3",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento listino JPA3",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 80,
+    "code": "SMIECREP",
+    "description": "ECM3 Repository",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento listino ECM3",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 81,
+    "code": "SMIEQNC",
+    "description": "Rapporti non conformità",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "Collegamento listino EPM",
+    "note": "Prerequisito licenza Qlik Sense",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 14,
+  "code": "JMES",
+  "name": "JMES",
+  "family": "FACTORY",
+  "maintenancePct": 18.0,
+  "needsReview": true,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 13,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIJMESLIC",
+    "unitLabel": "utenti"
+   },
+   {
+    "id": 14,
+    "code": "MACCHINE",
+    "label": "Numero macchine",
+    "licenseCode": "SMIJMDINLIC",
+    "unitLabel": "macchine"
+   }
+  ],
+  "groups": [
+   {
+    "id": 15,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 13,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 70,
+      "fromQty": 1,
+      "toQty": 5,
+      "label": "fino a 5 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 71,
+      "fromQty": 6,
+      "toQty": 10,
+      "label": "da 6 a 10 utenti",
+      "pct": 3.8,
+      "unitByMode": {}
+     },
+     {
+      "id": 72,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 3.3,
+      "unitByMode": {}
+     },
+     {
+      "id": 73,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 3.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 74,
+      "fromQty": 41,
+      "label": "oltre i 41 utenti",
+      "pct": 2.5,
+      "unitByMode": {}
+     }
+    ]
+   },
+   {
+    "id": 16,
+    "code": "MAC",
+    "label": "Collegamento macchine",
+    "driverId": 14,
+    "baseMode": "TIER1",
+    "fixedBase": {
+     "STD": 5000.0
+    },
+    "tiers": [
+     {
+      "id": 75,
+      "fromQty": 1,
+      "toQty": 1,
+      "label": "1 macchina",
+      "unitByMode": {}
+     },
+     {
+      "id": 76,
+      "fromQty": 2,
+      "toQty": 10,
+      "label": "da 2 a 10 macchine",
+      "pct": 10.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 77,
+      "fromQty": 11,
+      "toQty": 25,
+      "label": "da 11 a 25 macchine",
+      "pct": 9.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 78,
+      "fromQty": 26,
+      "toQty": 50,
+      "label": "da 26 a 50 macchine",
+      "pct": 8.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 79,
+      "fromQty": 51,
+      "label": "oltre 51 macchine",
+      "pct": 7.0,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 82,
+    "code": "SMIJMES",
+    "description": "Jmes",
+    "groupId": 15,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 14000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 83,
+    "code": "SMIJM",
+    "description": "Interfaccia JMES",
+    "groupId": 15,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prereq. SMIPC da rilasciare con JMES se collegato a Jgalileo - obbligatorio",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": [
+     {
+      "id": 31,
+      "type": "INFO",
+      "severity": "WARNING",
+      "message": "Prereq. SMIPC da rilasciare con JMES se collegato a Jgalileo - obbligatorio"
+     }
+    ]
+   },
+   {
+    "id": 84,
+    "code": "SMIJMDIN",
+    "description": "Digital industry",
+    "groupId": 15,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Modulo obbligatorio se inserito numero macchine da collegare",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": [
+     {
+      "id": 32,
+      "type": "INFO",
+      "severity": "WARNING",
+      "message": "Modulo obbligatorio se inserito il numero di macchine da collegare"
+     }
+    ]
+   },
+   {
+    "id": 85,
+    "code": "SMIEMESX",
+    "description": "Analisi EPM JMES",
+    "groupId": 15,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 2800.0
+    },
+    "rules": []
+   },
+   {
+    "id": 86,
+    "code": "SMIECREP",
+    "description": "ECM3 Repository",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento listino ECM3",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 87,
+    "code": "SMIJMTRX",
+    "description": "Jmetrix",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Questo add-on di JMES permette di avere una visione simultanea dell'operatività dei vari reparti, rappresentando dinamicamente ed in tempo reale la situazione della fabbrica. Si possono identificare con forme libere i centri di lavoro e macchine utensili. Inoltre abilita la possibilità di creare dashbord per il monitoraggio di tutti i dati rilevati da JMES e anche di dati presenti su altri database, ad esempio dal sistema ERP.",
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 88,
+    "code": "SMISDV",
+    "description": "DataViz - Reportistica avanzata",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Consente di predisporre analisi e report avanzati",
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 89,
+    "code": "PLC-M221-DI09",
+    "description": "Schneider: Modulo Acquisizione dati Plc Schneider Eletric M221 DI09 UB(4x2/3x3/2x4) 9 digital input 2 analog input Firmware JMES Integrato Costo € 314,00 cad.",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "maintenancePct": 0.0,
+    "onetimePrice": 0.0,
+    "note": "Listino Schneider indicativo - chiedere quotazione puntuale",
+    "prices": {
+     "STD": 500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 90,
+    "code": "PLC-M221-DI25",
+    "description": "Schneider: Modulo Acquisizione dati Plc Schneider Eletric M221 DI25 UB(12x2/8x3/6x4) 25 digital input 2 analog input Firmware JMES Integrato Costo € 490,00 cad.",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "maintenancePct": 0.0,
+    "onetimePrice": 0.0,
+    "note": "Listino Schneider indicativo - chiedere quotazione puntuale",
+    "prices": {
+     "STD": 800.0
+    },
+    "rules": []
+   },
+   {
+    "id": 91,
+    "code": "PLC-M221-DI41",
+    "description": "Schneider: Modulo Acquisizione dati Plc Schneider Eletric M221 DI41 UB(20x2/13x3/10x4) 41 digital input 2 analog input Firmware JMES Integrato Costo € 665,00 cad.",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "maintenancePct": 0.0,
+    "onetimePrice": 0.0,
+    "note": "Listino Schneider indicativo - chiedere quotazione puntuale",
+    "prices": {
+     "STD": 1050.0
+    },
+    "rules": []
+   },
+   {
+    "id": 92,
+    "code": "PLC-TM251-MASTER",
+    "description": "Schneider: Master per acquisizione dati da Slave TM251 ETH01 UB [**] 2 Indirizzi IP ETHERNET1: switch a 2 porte , rete “Stabilimento” 2 conn. rj45 ETHERNET2: 1 porta Ether",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "maintenancePct": 0.0,
+    "onetimePrice": 0.0,
+    "note": "Listino Schneider indicativo - chiedere quotazione puntuale",
+    "prices": {
+     "STD": 760.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 15,
+  "code": "APS",
+  "name": "APS",
+  "family": "FACTORY",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 15,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIJAPSLIC",
+    "unitLabel": "utenti"
+   },
+   {
+    "id": 16,
+    "code": "VISUALIZZATORI",
+    "label": "Utenti visualizzatori",
+    "licenseCode": "SMIJAPSVIS",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 17,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 15,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 80,
+      "fromQty": 1,
+      "toQty": 1,
+      "label": "fino a 1 utente",
+      "unitByMode": {}
+     },
+     {
+      "id": 81,
+      "fromQty": 2,
+      "toQty": 5,
+      "label": "da 2 a 5 utenti",
+      "pct": 14.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 82,
+      "fromQty": 6,
+      "toQty": 10,
+      "label": "da 6 a 10 utenti",
+      "pct": 12.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 83,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 10.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 84,
+      "fromQty": 21,
+      "label": "oltre i 20 utenti",
+      "pct": 8.0,
+      "unitByMode": {}
+     }
+    ]
+   },
+   {
+    "id": 18,
+    "code": "VIS",
+    "label": "Utenti visualizzatori",
+    "driverId": 16,
+    "baseMode": "LINEAR",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 85,
+      "fromQty": 1,
+      "label": "per utente visualizzatore",
+      "unitByMode": {
+       "STD": 500.0
+      }
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 93,
+    "code": "SMIJAPS",
+    "description": "Standard - Pianificazione capacità",
+    "groupId": 17,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "exclGroup": "EDIZIONE_APS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Consente di pianificazione le risorse produttive a capacità finita mediante sequenzializzazione ASAP Scegliere un solo modulo: APS Standard o Professional o Advanced",
+    "prices": {
+     "STD": 5000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 94,
+    "code": "SMIJAPSP",
+    "description": "Professional - Schedulazione Smart",
+    "groupId": 17,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "exclGroup": "EDIZIONE_APS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Schedula le risorse produttive considerando i vincoli di produzione (attrezzature, personale, stampi, configurazioni) utilizzando algoritmi standard Scegliere un solo modulo: APS Standard o Professional o Advanced",
+    "prices": {
+     "STD": 15000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 95,
+    "code": "SMIJAPSA",
+    "description": "Advanced - Schedulazione avanzata",
+    "groupId": 17,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "exclGroup": "EDIZIONE_APS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Schedula le risorse produttive considerando i vincoli di processo legati ad attributi dei materiali o del processo produttivo, matrici di setup, consente di utilizzare regole avanzate custom. Scegliere un solo modulo: APS Standard o Professional o Advanced",
+    "prices": {
+     "STD": 24000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 96,
+    "code": "SMIJAPSM",
+    "description": "Multisite - Pianifica e schedula multisito",
+    "groupId": 17,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Prerequisito JAPS Abilita la pianifacazione e/o schedulazione multi sito",
+    "prices": {
+     "STD": 10000.0
+    },
+    "rules": [
+     {
+      "id": 33,
+      "type": "REQUIRES_ANY",
+      "targetCodes": "SMIJAPS,SMIJAPSP,SMIJAPSA",
+      "severity": "ERROR",
+      "message": "Prerequisito JAPS (Standard, Professional o Advanced)"
+     }
+    ]
+   },
+   {
+    "id": 97,
+    "code": "SMISDV",
+    "description": "DataViz - Reportistica avanzata",
+    "groupId": 17,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Consente di predisporre analisi e report avanzati",
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 16,
+  "code": "DBM",
+  "name": "DBM",
+  "family": "FACTORY",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 17,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIDBMLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 19,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 17,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 86,
+      "fromQty": 1,
+      "toQty": 5,
+      "label": "fino a 5 utente",
+      "unitByMode": {}
+     },
+     {
+      "id": 87,
+      "fromQty": 6,
+      "toQty": 10,
+      "label": "da 6 a 10 utenti",
+      "pct": 14.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 88,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 12.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 89,
+      "fromQty": 21,
+      "toQty": 30,
+      "label": "da 21 a 30 utenti",
+      "pct": 10.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 90,
+      "fromQty": 31,
+      "label": "oltre i 31 utenti",
+      "pct": 8.0,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 98,
+    "code": "SMIDBM",
+    "description": "Pianificazione Materiali Smart",
+    "groupId": 19,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Consente di pianificazione le risorse produttive a capacità finita mediante sequenzializzazione ASAP Scegliere un solo modulo: APS Standard o Professional o Advanced",
+    "prices": {
+     "STD": 12000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 17,
+  "code": "SCC",
+  "name": "SCC",
+  "family": "FACTORY",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 18,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMISCCLIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 20,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 18,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 91,
+      "fromQty": 1,
+      "toQty": 5,
+      "label": "fino a 5 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 92,
+      "fromQty": 6,
+      "toQty": 10,
+      "label": "da 6 a 10 utenti",
+      "pct": 4.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 93,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 3.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 94,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 2.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 95,
+      "fromQty": 41,
+      "label": "oltre i 41 utenti",
+      "pct": 1.0,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 99,
+    "code": "SMISCBAS",
+    "description": "Acquisti - Ordini, Offerte, Avvisi, Solleciti",
+    "groupId": 20,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 14000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 100,
+    "code": "SMISCLOG",
+    "description": "Logistica - Prebolla, Etichette, Depositi Esterni",
+    "groupId": 20,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 6000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 101,
+    "code": "SMISCPLA",
+    "description": "Planning - Pianificazione",
+    "groupId": 20,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 1500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 102,
+    "code": "SMISDV",
+    "description": "DataViz - Reportistica avanzata",
+    "groupId": 20,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 18,
+  "code": "JPA3",
+  "name": "JPA3 (JPA Synergy V300)",
+  "family": "JPA/JPM",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [
+   {
+    "code": "NEW",
+    "label": "Nuova installazione",
+    "preferred": true
+   },
+   {
+    "code": "MIGR",
+    "label": "Migrazione",
+    "preferred": false
+   },
+   {
+    "code": "ADD",
+    "label": "Funzionalita' o flusso aggiuntivo",
+    "preferred": false
+   }
+  ],
+  "drivers": [
+   {
+    "id": 19,
+    "code": "UTENTI",
+    "label": "Numero utenti nominali",
+    "licenseCode": "SMIJPALIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 21,
+    "code": "ENG",
+    "label": "Engine JPA Synergy V300 + utenti",
+    "driverId": 19,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 96,
+      "fromQty": 1,
+      "toQty": 1,
+      "label": "Fino a 1 utente",
+      "unitByMode": {}
+     },
+     {
+      "id": 97,
+      "fromQty": 2,
+      "toQty": 10,
+      "label": "Fino a 10 utenti",
+      "unitByMode": {
+       "NEW": 500.0,
+       "MIGR": 250.0,
+       "ADD": 250.0
+      }
+     },
+     {
+      "id": 98,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "unitByMode": {
+       "NEW": 400.0,
+       "MIGR": 200.0,
+       "ADD": 200.0
+      }
+     },
+     {
+      "id": 99,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "unitByMode": {
+       "NEW": 300.0,
+       "MIGR": 150.0,
+       "ADD": 150.0
+      }
+     },
+     {
+      "id": 100,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "unitByMode": {
+       "NEW": 200.0,
+       "MIGR": 100.0,
+       "ADD": 100.0
+      }
+     },
+     {
+      "id": 101,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "unitByMode": {
+       "NEW": 100.0,
+       "MIGR": 50.0,
+       "ADD": 50.0
+      }
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 103,
+    "code": "SMIJPA",
+    "description": "Engine - JPA Synergy V300",
+    "groupId": 21,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 6000.0,
+     "MIGR": 3000.0,
+     "ADD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 104,
+    "code": "SMIJPA-ADD",
+    "printCode": "SMIJPA",
+    "description": "Engine - JPA V300 aggiuntivo (motore aggiuntivo)",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": true,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "MODULO ENGINE = motore aggiuntivo e DESIGNER",
+    "prices": {
+     "STD": 4000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 105,
+    "code": "SMIJPAF",
+    "description": "Designer - JPA Synergy V300",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": true,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 5000.0,
+     "MIGR": 2500.0,
+     "ADD": 5000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 106,
+    "code": "SMIECREP",
+    "description": "ECM3 Repository",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento listino ECM3",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 107,
+    "code": "SMIJPA001",
+    "description": "Approvazione Richieste di Acquisto Jgalileo - V300",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 1000.0,
+     "MIGR": 500.0,
+     "ADD": 1000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 108,
+    "code": "SMIJPA003",
+    "description": "Gestione RDA extra ERP - V300",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 3000.0,
+     "MIGR": 1500.0,
+     "ADD": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 109,
+    "code": "SMIJPA005",
+    "description": "Approvazione Pagamento Fatture Fornitori Jgalileo - V300",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 1000.0,
+     "MIGR": 500.0,
+     "ADD": 1000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 110,
+    "code": "SMIJPA006",
+    "description": "Richiesta ed approvazione Ferie - V300",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 2000.0,
+     "MIGR": 1000.0,
+     "ADD": 2000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 111,
+    "code": "SMIJPA007",
+    "description": "Approvazione Ordini di Acquisto Jgalileo - V300",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 1000.0,
+     "MIGR": 500.0,
+     "ADD": 1000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 112,
+    "code": "SMIJPA010",
+    "description": "Gestione Anagrafica Articolo, Distinta Base e Cicli di lavoro - V300",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 3000.0,
+     "MIGR": 1500.0,
+     "ADD": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 113,
+    "code": "SMIJPA012",
+    "description": "Gestione Anagrafica Clienti, Fornitori e Destinatari - V300",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 2000.0,
+     "MIGR": 1000.0,
+     "ADD": 2000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 114,
+    "code": "SMIJPA014",
+    "description": "Gestione e controllo Nota Spese - V300",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 2000.0,
+     "MIGR": 1000.0,
+     "ADD": 2000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 115,
+    "code": "SMIJPA015",
+    "description": "Gestione ed approvazione blocco cliente - V300",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NEW": 1000.0,
+     "MIGR": 500.0,
+     "ADD": 1000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 19,
+  "code": "JPM",
+  "name": "JPM",
+  "family": "JPA/JPM",
+  "maintenancePct": 18.0,
+  "needsReview": true,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 20,
+    "code": "ENTERPRISE",
+    "label": "Utenti Enterprise",
+    "licenseCode": "SMIJPM-ENT",
+    "unitLabel": "utenti"
+   },
+   {
+    "id": 21,
+    "code": "USER",
+    "label": "Utenti User",
+    "licenseCode": "SMIJPM-USR",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 22,
+    "code": "MOD",
+    "label": "Moduli per utente Enterprise",
+    "driverId": 20,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 102,
+      "fromQty": 1,
+      "toQty": 1,
+      "label": "fino a 1 utente",
+      "unitByMode": {}
+     },
+     {
+      "id": 103,
+      "fromQty": 2,
+      "toQty": 5,
+      "label": "da 2 a 5 utenti",
+      "pct": 7.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 104,
+      "fromQty": 6,
+      "toQty": 10,
+      "label": "da 6 a 10 utenti",
+      "pct": 6.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 105,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 5.25,
+      "unitByMode": {}
+     },
+     {
+      "id": 106,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 4.5,
+      "unitByMode": {}
+     },
+     {
+      "id": 107,
+      "fromQty": 41,
+      "label": "oltre i 41 utenti",
+      "pct": 3.75,
+      "unitByMode": {}
+     }
+    ]
+   },
+   {
+    "id": 23,
+    "code": "USR",
+    "label": "Licenze User",
+    "driverId": 21,
+    "baseMode": "TIER1",
+    "fixedBase": {
+     "STD": 400.0
+    },
+    "tiers": [
+     {
+      "id": 108,
+      "fromQty": 0,
+      "toQty": 10,
+      "label": "da 0 a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 109,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 80.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 110,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 70.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 111,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 60.0,
+      "unitByMode": {}
+     },
+     {
+      "id": 112,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 30.0,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 116,
+    "code": "SMIJPM-WEB",
+    "description": "Project and Portfolio Managment",
+    "groupId": 22,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 16000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 117,
+    "code": "SMISDV",
+    "description": "DataViz -  Reportistica avanzata",
+    "groupId": 22,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 118,
+    "code": "SMIJIR",
+    "description": "Integrazione JPM - JIRA",
+    "groupId": 22,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4600.0
+    },
+    "rules": []
+   },
+   {
+    "id": 119,
+    "code": "SMIJPMRD",
+    "description": "Gestione Richieste di Acquisto in JPM",
+    "groupId": 22,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 3200.0
+    },
+    "rules": []
+   },
+   {
+    "id": 120,
+    "code": "SMIJPMSO",
+    "description": "Squadratura ore tra presenza fabbrica e dichiarazione consuntivi",
+    "groupId": 22,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 3200.0
+    },
+    "rules": []
+   },
+   {
+    "id": 121,
+    "code": "SMIEV",
+    "description": "JPM Project monitoring",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Nel listino Excel questo modulo NON e' incluso nei totali (F16=SUM(F10:F14)): verificare",
+    "prices": {
+     "STD": 9000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 122,
+    "code": "SMICAL",
+    "description": "Sinergy - integrazione calendari Exchange",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 1300.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 20,
+  "code": "SMITECH",
+  "name": "SMITECH",
+  "family": "SMITECH",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [
+   {
+    "code": "P05",
+    "label": "Classe software P05",
+    "preferred": true
+   },
+   {
+    "code": "P10",
+    "label": "Classe software P10",
+    "preferred": false
+   }
+  ],
+  "drivers": [],
+  "groups": [],
+  "modules": [
+   {
+    "id": 123,
+    "code": "SMISE",
+    "description": "Galileo Security",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "P05": 1000.0,
+     "P10": 1000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 124,
+    "code": "SMIBKIG",
+    "description": "Power i Lan Backup Interfaccia Grafica V4",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "P05": 2000.0,
+     "P10": 4000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 125,
+    "code": "SMIJC",
+    "description": "Job Control",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "P05": 1500.0,
+     "P10": 2500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 126,
+    "code": "SMIDM",
+    "description": "Galileo Disk Manager",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "P05": 500.0,
+     "P10": 800.0
+    },
+    "rules": []
+   },
+   {
+    "id": 127,
+    "code": "SMIDK",
+    "description": "Galileo Disk Tool",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "P05": 1500.0,
+     "P10": 2500.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 21,
+  "code": "ELEMENT",
+  "name": "ELEMENT",
+  "family": "ELEMENT",
+  "maintenancePct": 18.0,
+  "needsReview": true,
+  "active": true,
+  "modes": [
+   {
+    "code": "NO",
+    "label": "Senza collegamento a JGalileo",
+    "preferred": true
+   },
+   {
+    "code": "SI",
+    "label": "Con collegamento a JGalileo",
+    "preferred": false
+   }
+  ],
+  "drivers": [],
+  "groups": [],
+  "modules": [
+   {
+    "id": 128,
+    "code": "SMIELEST",
+    "description": "Progetto E-store",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NO": 9000.0,
+     "SI": 11000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 129,
+    "code": "SMIELPRI",
+    "description": "Private Sale",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NO": 8000.0,
+     "SI": 10000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 130,
+    "code": "SMIELSIT",
+    "description": "Sito istituzionale (non collegato a JGalileo)",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "NO": 7000.0,
+     "SI": 7000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 131,
+    "code": "SMIELOPE",
+    "description": "Canone annuo servizi (6 gg)",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "PACCHETTO_OPE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4080.0
+    },
+    "rules": []
+   },
+   {
+    "id": 132,
+    "code": "SMIELOPE",
+    "description": "Canone annuo servizi (12 gg)",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "PACCHETTO_OPE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 8040.0
+    },
+    "rules": []
+   },
+   {
+    "id": 133,
+    "code": "SMIELOPE",
+    "description": "Canone annuo servizi (20 gg)",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "PACCHETTO_OPE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 13200.0
+    },
+    "rules": []
+   },
+   {
+    "id": 134,
+    "code": "SMIWSEO",
+    "description": "Manutenzione annuale SEO base",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 2200.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 22,
+  "code": "XC",
+  "name": "XC",
+  "family": "XC/ECM/FIRMAE",
+  "maintenancePct": 18.0,
+  "needsReview": true,
+  "active": true,
+  "notes": "Moduli di servizio con link informativo; moduli XC/Conservazione 'Vedere offerta dedicata nella intranet aziendale'",
+  "modes": [],
+  "drivers": [],
+  "groups": [],
+  "modules": [
+   {
+    "id": 135,
+    "code": "SMIXC",
+    "description": "Discovery XChange - con Galileo",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "https://www.sanmarcoinformatica.com/trasmissione-dati-fatture-conservazione-digitale/",
+    "note": "Listino non presente nel foglio: vedere link / offerta dedicata",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 136,
+    "code": "SMIXCPEC",
+    "description": "Conservazione PEC",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "https://www.sanmarcoinformatica.com/modulo-conservazione-pec/",
+    "note": "Listino non presente nel foglio: vedere link / offerta dedicata",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 137,
+    "code": "SMIXCDC",
+    "description": "Conservazione Documenti Tributari",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "https://www.sanmarcoinformatica.com/fatturazione-elettronica/conservazione-documenti-tributari/",
+    "note": "Listino non presente nel foglio: vedere link / offerta dedicata",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 138,
+    "code": "SMIFTEPP",
+    "description": "Servizio Peppol",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "Vedere offerta dedicata nella intranet aziendale",
+    "note": "Listino non presente nel foglio: vedere link / offerta dedicata",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 139,
+    "code": "SMIXCUPL",
+    "description": "XC upload",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 2000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 140,
+    "code": "SMIXCU",
+    "description": "Modulo pannello amministratore Discovery XChange",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 80.0
+    },
+    "rules": []
+   },
+   {
+    "id": 141,
+    "code": "SMIDESOUUG",
+    "description": "Utente aggiuntivo conservazione",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "maintenancePct": 0.0,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 40.0
+    },
+    "rules": []
+   },
+   {
+    "id": 142,
+    "code": "SMINSO",
+    "description": "Nodo Smistamento Ordini",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 250.0,
+    "prices": {
+     "STD": 1500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 143,
+    "code": "SMIXCDOW",
+    "description": "Funzione per download massivo di fatture in formato XML o PDF (Funzione opzionale)",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "maintenancePct": 0.0,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 150.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 23,
+  "code": "ECM3",
+  "name": "ECM3",
+  "family": "XC/ECM/FIRMAE",
+  "maintenancePct": 18.0,
+  "needsReview": false,
+  "active": true,
+  "modes": [
+   {
+    "code": "NEW",
+    "label": "Nuova installazione",
+    "preferred": true
+   },
+   {
+    "code": "MIGR",
+    "label": "Migrazione",
+    "preferred": false
+   }
+  ],
+  "drivers": [
+   {
+    "id": 22,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "licenseCode": "SMIECM3LIC",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 24,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 22,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 113,
+      "fromQty": 1,
+      "toQty": 10,
+      "label": "fino a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 114,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 6.33,
+      "unitByMode": {}
+     },
+     {
+      "id": 115,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 4.82,
+      "unitByMode": {}
+     },
+     {
+      "id": 116,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 3.55,
+      "unitByMode": {}
+     },
+     {
+      "id": 117,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 1.9,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 144,
+    "code": "SMIECM3",
+    "description": "ECM3 Standard",
+    "groupId": 24,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "exclGroup": "EDIZIONE",
+    "defaultSelected": false,
+    "included": true,
+    "onetimePrice": 0.0,
+    "note": "Sonia Vanfretti: Scegliere un solo modulo ECM3 Standard/Business o Enterprise ECM3 STANDARD: Ha le classi standard dichiarate in sede di vendita - ogni classe ulteriore ha un costo una tantum relativo all'attività - il cliente non ha la possibilità di creare ulteriori classi Max 20 classi Non sono presenti i legami automatici E' possibile allegare documenti Possono essere impostati i permessi Expression matching documenti preimpostati - solo XML fattura",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 145,
+    "code": "SMIECM3B",
+    "description": "ECM3 Business",
+    "groupId": 24,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "exclGroup": "EDIZIONE",
+    "defaultSelected": false,
+    "included": true,
+    "onetimePrice": 0.0,
+    "note": "Sonia Vanfretti: Scegliere un solo modulo ECM3 Standard/Business o Enterprise ECM3 BUSINESS: Tutte le funzioni delle versione Standard più: Posso configurare delle classi in autonomia Numero di classi gestite è max 50 - per maggiori classi occorre passare alla enterprise Non ho i legami automatici Posso configuare i filtri per gli utenti Expression matching documenti configurabili - NON solo XML fattura Dashboard personalizzabile con widget",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 146,
+    "code": "SMIECM3E",
+    "description": "ECM3 Enterprise",
+    "groupId": 24,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "exclGroup": "EDIZIONE",
+    "defaultSelected": false,
+    "included": true,
+    "onetimePrice": 0.0,
+    "note": "Sonia Vanfretti: Scegliere un solo modulo ECM3 Standard/Business o Enterprise ECM3 ENTERPRISE: Tutte le funzioni delle versione Business più: Numero di classi illimitate Posso impostare la funzione dei legami automatici e intelligenti",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 147,
+    "code": "SMIDWBFL",
+    "description": "Barcode Flow - riconoscimento codice a barre - gestione standard",
+    "section": "LINK",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "linkText": "collegamento listino Barcodeflow",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 148,
+    "code": "SMIECM3CON",
+    "description": "ECM3 conservazione digitale a norma",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Sonia Vanfretti: Modulo obbligatorio per effettuare la conservazione digitale a norma dei documenti informatici. Oltre al modulo occorre attivare o avere attivo il modulo SMIDESOU con indicazione di una fascia di pagine annue da mandare in conservazione",
+    "prices": {
+     "STD": 1500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 149,
+    "code": "SMIECM3IMP",
+    "description": "ECM3 Spool importatore",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 2000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 150,
+    "code": "SMIECM3PE",
+    "description": "ECM3 Mail connector",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 1500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 151,
+    "code": "SMIECM3SYNC",
+    "description": "ECM3 DocumentSync sincronia documenti Check in e Check out",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 1000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 152,
+    "code": "SMIECREP",
+    "description": "ECM3 Repository",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 153,
+    "code": "SMIECM3API",
+    "description": "ECM3 API per integrazione software terzi",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 2000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 154,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 25 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 30.0
+    },
+    "rules": []
+   },
+   {
+    "id": 155,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 100 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 110.0
+    },
+    "rules": []
+   },
+   {
+    "id": 156,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 1.000 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 220.0
+    },
+    "rules": []
+   },
+   {
+    "id": 157,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 5.000 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 470.0
+    },
+    "rules": []
+   },
+   {
+    "id": 158,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 10.000 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 770.0
+    },
+    "rules": []
+   },
+   {
+    "id": 159,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 25.000 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 1195.0
+    },
+    "rules": []
+   },
+   {
+    "id": 160,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 50.000 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 1820.0
+    },
+    "rules": []
+   },
+   {
+    "id": 161,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 100.000 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 3030.0
+    },
+    "rules": []
+   },
+   {
+    "id": 162,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 250.000 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 4570.0
+    },
+    "rules": []
+   },
+   {
+    "id": 163,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 1.000.000 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 10000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 164,
+    "code": "SMIDESOU",
+    "description": "Canone annuo fascia fino a 5.000.000 pagine",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FASCIA_PAGINE",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 100.0,
+    "prices": {
+     "STD": 24850.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 24,
+  "code": "BCF",
+  "name": "BarcodeFlow",
+  "family": "XC/ECM/FIRMAE",
+  "maintenancePct": 18.0,
+  "needsReview": true,
+  "active": true,
+  "modes": [],
+  "drivers": [
+   {
+    "id": 23,
+    "code": "UTENTI",
+    "label": "Numero utenti",
+    "unitLabel": "utenti"
+   }
+  ],
+  "groups": [
+   {
+    "id": 25,
+    "code": "MOD",
+    "label": "Moduli per utente",
+    "driverId": 23,
+    "baseMode": "TIER1",
+    "fixedBase": {},
+    "tiers": [
+     {
+      "id": 118,
+      "fromQty": 1,
+      "toQty": 10,
+      "label": "fino a 10 utenti",
+      "unitByMode": {}
+     },
+     {
+      "id": 119,
+      "fromQty": 11,
+      "toQty": 20,
+      "label": "da 11 a 20 utenti",
+      "pct": 6.33,
+      "unitByMode": {}
+     },
+     {
+      "id": 120,
+      "fromQty": 21,
+      "toQty": 40,
+      "label": "da 21 a 40 utenti",
+      "pct": 4.82,
+      "unitByMode": {}
+     },
+     {
+      "id": 121,
+      "fromQty": 41,
+      "toQty": 80,
+      "label": "da 41 a 80 utenti",
+      "pct": 3.55,
+      "unitByMode": {}
+     },
+     {
+      "id": 122,
+      "fromQty": 81,
+      "label": "oltre gli 81 utenti",
+      "pct": 1.9,
+      "unitByMode": {}
+     }
+    ]
+   }
+  ],
+  "modules": [
+   {
+    "id": 165,
+    "code": "SMIDECM",
+    "description": "Modulo Base",
+    "groupId": 25,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": true,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 5000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 166,
+    "code": "SMIECGRP",
+    "description": "Multiazienda",
+    "groupId": 25,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 1000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 167,
+    "code": "SMIECIMP",
+    "description": "Spool importatore",
+    "groupId": 25,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Importazione documenti tramite Job schedulabile con metadati in xls o csv",
+    "prices": {
+     "STD": 1500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 168,
+    "code": "SMIECPE",
+    "description": "Mail connector",
+    "groupId": 25,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "importazione automatica mail - posta elettronica con separazione degli allegati",
+    "prices": {
+     "STD": 900.0
+    },
+    "rules": []
+   },
+   {
+    "id": 169,
+    "code": "SMIECCON",
+    "description": "Conservazione digitale a norma",
+    "groupId": 25,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "indicare sotto numero Giga per conservazione PEC e/o fascia documenti per PDF (fascia numero pagine)",
+    "prices": {
+     "STD": 1000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 170,
+    "code": "SMIECAPI",
+    "description": "API per integrazione software terzi",
+    "groupId": 25,
+    "section": "SCALED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 171,
+    "code": "SMIDWBFL",
+    "description": "Barcode Flow - riconoscimento codice a barre - gestione standard",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Barcode Flow - riconoscimento codice a barre (valorizzare 4 ore di attivita' tecnica)",
+    "prices": {
+     "STD": 1000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 25,
+  "code": "FIRMAE",
+  "name": "FIRMAE",
+  "family": "XC/ECM/FIRMAE",
+  "maintenancePct": 18.0,
+  "needsReview": true,
+  "active": true,
+  "notes": "Le fasce eIDAS/FEQ sono modellate come canone annuo (alternative per tipo di firma). I valori 'extra fascia' sono riportati nelle note",
+  "modes": [],
+  "drivers": [],
+  "groups": [],
+  "modules": [
+   {
+    "id": 172,
+    "code": "SMINHAT",
+    "description": "Attivazione (una tantum, solo nuovo cliente)",
+    "section": "FIXED",
+    "kind": "ONETIME",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 100.0
+    },
+    "rules": []
+   },
+   {
+    "id": 173,
+    "code": "SMINHSIG",
+    "description": "Certificato di firma 'sigillo' SMI (annuale)",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 80.0
+    },
+    "rules": []
+   },
+   {
+    "id": 174,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 250 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.8 euro/firma",
+    "prices": {
+     "STD": 180.0
+    },
+    "rules": []
+   },
+   {
+    "id": 175,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 400 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.8 euro/firma",
+    "prices": {
+     "STD": 260.0
+    },
+    "rules": []
+   },
+   {
+    "id": 176,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 500 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.7 euro/firma",
+    "prices": {
+     "STD": 300.0
+    },
+    "rules": []
+   },
+   {
+    "id": 177,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 800 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.7 euro/firma",
+    "prices": {
+     "STD": 400.0
+    },
+    "rules": []
+   },
+   {
+    "id": 178,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 1.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.7 euro/firma",
+    "prices": {
+     "STD": 500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 179,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 2.500 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.6 euro/firma",
+    "prices": {
+     "STD": 1000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 180,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 5.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.5 euro/firma",
+    "prices": {
+     "STD": 1750.0
+    },
+    "rules": []
+   },
+   {
+    "id": 181,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 7.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.4 euro/firma",
+    "prices": {
+     "STD": 2150.0
+    },
+    "rules": []
+   },
+   {
+    "id": 182,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 10.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.4 euro/firma",
+    "prices": {
+     "STD": 2750.0
+    },
+    "rules": []
+   },
+   {
+    "id": 183,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 15.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.3 euro/firma",
+    "prices": {
+     "STD": 3750.0
+    },
+    "rules": []
+   },
+   {
+    "id": 184,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 20.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.3 euro/firma",
+    "prices": {
+     "STD": 4750.0
+    },
+    "rules": []
+   },
+   {
+    "id": 185,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 50.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.3 euro/firma",
+    "prices": {
+     "STD": 10750.0
+    },
+    "rules": []
+   },
+   {
+    "id": 186,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 100.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.2 euro/firma",
+    "prices": {
+     "STD": 20750.0
+    },
+    "rules": []
+   },
+   {
+    "id": 187,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 250.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.2 euro/firma",
+    "prices": {
+     "STD": 42500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 188,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 500.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.2 euro/firma",
+    "prices": {
+     "STD": 70000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 189,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 1.000.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.15 euro/firma",
+    "prices": {
+     "STD": 120000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 190,
+    "code": "SMINHDAS",
+    "description": "Firma eIDAS avanzata OTP + APP - fascia fino a 2.000.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAS",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.15 euro/firma",
+    "prices": {
+     "STD": 200000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 191,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 250 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 220.0
+    },
+    "rules": []
+   },
+   {
+    "id": 192,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 400 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 310.0
+    },
+    "rules": []
+   },
+   {
+    "id": 193,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 500 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 360.0
+    },
+    "rules": []
+   },
+   {
+    "id": 194,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 800 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 480.0
+    },
+    "rules": []
+   },
+   {
+    "id": 195,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 1.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 600.0
+    },
+    "rules": []
+   },
+   {
+    "id": 196,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 2.500 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 1200.0
+    },
+    "rules": []
+   },
+   {
+    "id": 197,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 5.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 2100.0
+    },
+    "rules": []
+   },
+   {
+    "id": 198,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 7.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 2580.0
+    },
+    "rules": []
+   },
+   {
+    "id": 199,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 10.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 3300.0
+    },
+    "rules": []
+   },
+   {
+    "id": 200,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 15.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 4500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 201,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 20.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 5700.0
+    },
+    "rules": []
+   },
+   {
+    "id": 202,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 50.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 12900.0
+    },
+    "rules": []
+   },
+   {
+    "id": 203,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 100.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 24900.0
+    },
+    "rules": []
+   },
+   {
+    "id": 204,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 250.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 51000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 205,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 500.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 84000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 206,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 1.000.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.3 euro/firma",
+    "prices": {
+     "STD": 144000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 207,
+    "code": "SMINHDAO",
+    "description": "Firma eIDAS OTP + APP + SMS (SMS inclusi) - fascia fino a 2.000.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_DAO",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.3 euro/firma",
+    "prices": {
+     "STD": 240000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 208,
+    "code": "SMINHFEQ",
+    "description": "Firma FEQ one-shot (CIE/SPID) - 50 firme",
+    "section": "FIXED",
+    "kind": "ONETIME",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FEQ",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 150.0
+    },
+    "rules": []
+   },
+   {
+    "id": 209,
+    "code": "SMINHFEQ",
+    "description": "Firma FEQ one-shot (CIE/SPID) - 100 firme",
+    "section": "FIXED",
+    "kind": "ONETIME",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FEQ",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 250.0
+    },
+    "rules": []
+   },
+   {
+    "id": 210,
+    "code": "SMINHFEQ",
+    "description": "Firma FEQ one-shot (CIE/SPID) - 500 firme",
+    "section": "FIXED",
+    "kind": "ONETIME",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FEQ",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 1100.0
+    },
+    "rules": []
+   },
+   {
+    "id": 211,
+    "code": "SMINHFEQ",
+    "description": "Firma FEQ one-shot (CIE/SPID) - 1000 firme",
+    "section": "FIXED",
+    "kind": "ONETIME",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FEQ",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 2000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 212,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 250 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 1.2 euro/firma",
+    "prices": {
+     "STD": 250.0
+    },
+    "rules": []
+   },
+   {
+    "id": 213,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 400 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 1.1 euro/firma",
+    "prices": {
+     "STD": 370.0
+    },
+    "rules": []
+   },
+   {
+    "id": 214,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 500 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 1 euro/firma",
+    "prices": {
+     "STD": 430.0
+    },
+    "rules": []
+   },
+   {
+    "id": 215,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 800 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.9 euro/firma",
+    "prices": {
+     "STD": 580.0
+    },
+    "rules": []
+   },
+   {
+    "id": 216,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 1.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.9 euro/firma",
+    "prices": {
+     "STD": 720.0
+    },
+    "rules": []
+   },
+   {
+    "id": 217,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 2.500 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.7 euro/firma",
+    "prices": {
+     "STD": 1440.0
+    },
+    "rules": []
+   },
+   {
+    "id": 218,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 5.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.6 euro/firma",
+    "prices": {
+     "STD": 2520.0
+    },
+    "rules": []
+   },
+   {
+    "id": 219,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 7.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.5 euro/firma",
+    "prices": {
+     "STD": 3100.0
+    },
+    "rules": []
+   },
+   {
+    "id": 220,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 10.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.5 euro/firma",
+    "prices": {
+     "STD": 3960.0
+    },
+    "rules": []
+   },
+   {
+    "id": 221,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 15.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.4 euro/firma",
+    "prices": {
+     "STD": 5400.0
+    },
+    "rules": []
+   },
+   {
+    "id": 222,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 20.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.4 euro/firma",
+    "prices": {
+     "STD": 6840.0
+    },
+    "rules": []
+   },
+   {
+    "id": 223,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 50.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.4 euro/firma",
+    "prices": {
+     "STD": 15480.0
+    },
+    "rules": []
+   },
+   {
+    "id": 224,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 100.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.4 euro/firma",
+    "prices": {
+     "STD": 29880.0
+    },
+    "rules": []
+   },
+   {
+    "id": 225,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 250.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.3 euro/firma",
+    "prices": {
+     "STD": 61200.0
+    },
+    "rules": []
+   },
+   {
+    "id": 226,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 500.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.2 euro/firma",
+    "prices": {
+     "STD": 100800.0
+    },
+    "rules": []
+   },
+   {
+    "id": 227,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 1.000.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.2 euro/firma",
+    "prices": {
+     "STD": 172800.0
+    },
+    "rules": []
+   },
+   {
+    "id": 228,
+    "code": "SMINHFAU",
+    "description": "Firma FEQ con certificato - fascia fino a 2.000.000 firme/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_FAU",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Valore extra fascia: 0.2 euro/firma",
+    "prices": {
+     "STD": 288000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 229,
+    "code": "SMINHFQA",
+    "description": "Certificato triennale FEQ (fatturazione annuale), per certificato",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": true,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 50.0
+    },
+    "rules": []
+   },
+   {
+    "id": 230,
+    "code": "SMINHFQR",
+    "description": "Riconoscimento tramite operatore (una tantum), per riconoscimento",
+    "section": "FIXED",
+    "kind": "ONETIME",
+    "qtyEnabled": true,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 20.0
+    },
+    "rules": []
+   },
+   {
+    "id": 231,
+    "code": "SMINHEDT",
+    "description": "Modulo documenti editabili (annuale)",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Importo non valorizzato nel listino Excel: da definire",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 232,
+    "code": "SMINHTOT",
+    "description": "Postazioni TOTEM - fino a 1 device (annuale)",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_TOTEM",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Importo non valorizzato nel listino Excel: da definire",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 233,
+    "code": "SMINHTOT",
+    "description": "Postazioni TOTEM - fino a 5 device (annuale)",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_TOTEM",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Importo non valorizzato nel listino Excel: da definire",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 234,
+    "code": "SMINHAPB",
+    "description": "API BASIC",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_API",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 235,
+    "code": "SMINHAPI",
+    "description": "API INTERMEDIATE",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_API",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 5000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 236,
+    "code": "SMINHAPT",
+    "description": "API TAILORED",
+    "section": "FIXED",
+    "kind": "LICENSE",
+    "qtyEnabled": false,
+    "exclGroup": "FIRMAE_API",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 10000.0
+    },
+    "rules": []
+   }
+  ]
+ },
+ {
+  "id": 26,
+  "code": "CRC",
+  "name": "CRC",
+  "family": "CRC",
+  "maintenancePct": 18.0,
+  "needsReview": true,
+  "active": true,
+  "modes": [],
+  "drivers": [],
+  "groups": [],
+  "modules": [
+   {
+    "id": 237,
+    "code": "SMINHCRC/A",
+    "description": "Canone annuo fascia fino a 100 fatture emesse/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Partita extra fascia: 5 euro",
+    "prices": {
+     "STD": 400.0
+    },
+    "rules": []
+   },
+   {
+    "id": 238,
+    "code": "SMINHCRC/B",
+    "description": "Canone annuo fascia fino a 300 fatture emesse/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Partita extra fascia: 4.5 euro",
+    "prices": {
+     "STD": 600.0
+    },
+    "rules": []
+   },
+   {
+    "id": 239,
+    "code": "SMINHCRC/C",
+    "description": "Canone annuo fascia fino a 500 fatture emesse/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Partita extra fascia: 4.3 euro",
+    "prices": {
+     "STD": 800.0
+    },
+    "rules": []
+   },
+   {
+    "id": 240,
+    "code": "SMINHCRC/D",
+    "description": "Canone annuo fascia fino a 1.000 fatture emesse/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Partita extra fascia: 3.75 euro",
+    "prices": {
+     "STD": 1000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 241,
+    "code": "SMINHCRC/E",
+    "description": "Canone annuo fascia fino a 2.000 fatture emesse/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Partita extra fascia: 3 euro",
+    "prices": {
+     "STD": 1300.0
+    },
+    "rules": []
+   },
+   {
+    "id": 242,
+    "code": "SMINHCRC/F",
+    "description": "Canone annuo fascia fino a 5.000 fatture emesse/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Partita extra fascia: 2 euro",
+    "prices": {
+     "STD": 1750.0
+    },
+    "rules": []
+   },
+   {
+    "id": 243,
+    "code": "SMINHCRC/G",
+    "description": "Canone annuo fascia fino a 10.000 fatture emesse/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Partita extra fascia: 1 euro",
+    "prices": {
+     "STD": 2250.0
+    },
+    "rules": []
+   },
+   {
+    "id": 244,
+    "code": "SMINHCRC/H",
+    "description": "Canone annuo fascia fino a 20.000 fatture emesse/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Partita extra fascia: 0.5 euro",
+    "prices": {
+     "STD": 3000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 245,
+    "code": "SMINHCRC/I",
+    "description": "Canone annuo fascia fino a 50.000 fatture emesse/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Partita extra fascia: 0.25 euro",
+    "prices": {
+     "STD": 5000.0
+    },
+    "rules": []
+   },
+   {
+    "id": 246,
+    "code": "SMINHCRC/L",
+    "description": "Canone annuo fascia fino a 100.000 fatture emesse/anno",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Partita extra fascia: 0.25 euro",
+    "prices": {
+     "STD": 6500.0
+    },
+    "rules": []
+   },
+   {
+    "id": 247,
+    "code": "SMINHCRC/Z",
+    "description": "Quotazione ad hoc",
+    "section": "FIXED",
+    "kind": "ANNUAL",
+    "qtyEnabled": false,
+    "exclGroup": "CRC_FASCIA",
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "note": "Quotazione ad hoc: indicare l'importo a mano",
+    "prices": {
+     "STD": 0.0
+    },
+    "rules": []
+   },
+   {
+    "id": 248,
+    "code": "SMINHCRA",
+    "description": "Attivazione servizio una tantum",
+    "section": "FIXED",
+    "kind": "ONETIME",
+    "qtyEnabled": false,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 100.0
+    },
+    "rules": []
+   },
+   {
+    "id": 249,
+    "code": "SMINHCRI",
+    "description": "Importazione partite storiche aperte (per partita)",
+    "section": "FIXED",
+    "kind": "ONETIME",
+    "qtyEnabled": true,
+    "defaultSelected": false,
+    "included": false,
+    "onetimePrice": 0.0,
+    "prices": {
+     "STD": 0.5
+    },
+    "rules": []
+   }
+  ]
+ }
+]

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Applicazione')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('apps')}"></div>
+<main class="content"><div class="inner" style="max-width:860px">
+    <div th:replace="~{fragments/layout :: settingsTabs('apps')}"></div>
+    <div class="pagehead"><h1 th:text="${app == null} ? 'Nuova applicazione' : 'Modifica applicazione'">Applicazione</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <form class="card" th:action="@{/admin/applications/save}" method="post">
+        <input type="hidden" name="id" th:value="${app != null} ? ${app.id}">
+        <div class="grid c4">
+            <div class="field"><input name="code" required maxlength="20" placeholder=" " th:value="${app?.code}"><label>Codice *</label></div>
+            <div class="field span2"><input name="name" required maxlength="150" placeholder=" " th:value="${app?.name}"><label>Nome applicazione *</label></div>
+            <div class="field"><input name="family" maxlength="60" placeholder=" " th:value="${app?.family}"><label>Famiglia</label></div>
+            <div class="field"><input name="maintenancePct" type="number" step="0.01" min="0" placeholder=" " th:value="${app != null} ? ${app.maintenancePct} : 18"><label>Manutenzione annua %</label></div>
+            <div class="field"><input name="sortOrder" type="number" step="1" placeholder=" "><label>Ordine (vuoto = invariato)</label></div>
+            <div class="field span4"><input name="notes" placeholder=" " th:value="${app?.notes}"><label>Note (mostrate nel configuratore)</label></div>
+        </div>
+        <div th:if="${app != null}" style="margin-top:16px">
+            <div class="muted" style="font-size:13px;margin-bottom:6px">Prezzo base (gruppi di prezzo) <span class="hint">– si imposta nella pagina dell'applicazione, sezione «Utenti, gruppi di prezzo e fasce»</span></div>
+            <div th:if="${#lists.isEmpty(basePrices)}" class="hint">Nessun prezzo base impostato.</div>
+            <div th:unless="${#lists.isEmpty(basePrices)}" style="display:flex;flex-wrap:wrap;gap:8px">
+                <span class="chip" th:each="p : ${basePrices}"><b th:text="${p[1]}">€ 0,00</b>&nbsp;<span th:text="${p[0]}">Gruppo</span></span>
+            </div>
+        </div>
+        <div class="switch-row" style="margin-top:16px">
+            <label class="check"><input type="checkbox" name="active" th:checked="${app == null or app.active}"> Attiva nel configuratore</label>
+            <label class="check"><input type="checkbox" name="needsReview" th:checked="${app != null and app.needsReview}"> Logica listino da verificare</label>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+            <a class="btn text" th:href="@{/admin/applications}">Annulla</a>
+            <button class="btn" type="submit"><svg class="ic"><use href="#i-save"/></svg>Salva</button>
+        </div>
+    </form>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+</body>
+</html>

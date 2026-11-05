@@ -1,0 +1,63 @@
+# --- Build Maven
+target/
+*.war
+*.jar
+*.class
+dependency-reduced-pom.xml
+
+# --- macOS / Windows
+.DS_Store
+._*
+.AppleDouble
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+.icloud
+*.icloud
+
+# --- File temporanei di Office (Word/Excel aperti)
+~$*
+.~lock.*#
+
+# --- IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+.sts4/
+nbproject/
+
+# --- Log
+*.log
+logs/
+
+# --- Credenziali e configurazione locale (una per ogni PC: NON versionare)
+*.p8
+*.pem
+*.key
+*.jks
+*.p12
+.env
+.env.*
+config/application*.properties
+config/application*.yml
+application-local*.properties
+application-local*.yml
+# configurazioni dei contesti Tomcat con segreti (il modello deploy/cpqia.properties resta versionato)
+conf/cpqia/*.properties
+
+# --- Python (script in tools/)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# --- Anteprime e file generati dagli script
+prev/
+tools/_mk_dark.py
+tools/*.tmp
+node_modules/

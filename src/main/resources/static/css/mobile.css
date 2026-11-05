@@ -1,0 +1,108 @@
+/* =====================================================================
+   SMARTPHONE E TABLET (caricato dopo m3.css)
+   - fino a 1000px: il menu laterale diventa un pannello che si apre dal pulsante «hamburger»
+   - fino a 700px: tema «telefono» con elementi piu' grandi per il tocco, tabelle scorrevoli, finestre a tutto schermo
+   I temi Giorno / Notte / Sistema valgono anche su telefono (in Notte lo sfondo e' quasi nero, risparmia batteria sugli schermi OLED).
+   ===================================================================== */
+.navtoggle, .nav-scrim { display: none; }
+
+@media (max-width: 1000px) {
+  .navtoggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: -8px; border: 0; border-radius: 50%;
+    background: transparent; color: inherit; cursor: pointer; flex: none; }
+  .navtoggle:active { background: rgba(127, 127, 127, .2); }
+  .appbar { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .drawer { display: block !important; transform: translateX(-105%); transition: transform .22s ease; width: min(300px, 84vw); z-index: 40; top: 0; padding-top: 72px;
+    box-shadow: none; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  body.nav-open .drawer { transform: none; box-shadow: 0 0 32px rgba(0, 0, 0, .35); }
+  .nav-scrim { display: block; position: fixed; inset: 0; z-index: 35; background: rgba(0, 0, 0, .45); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  body.nav-open .nav-scrim { opacity: 1; pointer-events: auto; }
+  body.nav-open { overflow: hidden; }
+  .appbar { z-index: 45; }
+  .drawer a { height: 48px; }
+}
+
+@media (max-width: 700px) {
+  body { font-size: 15px; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 17px; }
+
+  /* barra superiore compatta */
+  .appbar { height: 56px; gap: 6px; }
+  .appbar .brand { font-size: 17px; gap: 8px; min-width: 0; }
+  .appbar .brand > span:not(.logo) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .appbar .brand .muted { display: none; }
+  .usermenu > button > span:not(.avatar) { display: none; }
+  .usermenu > button { padding: 2px; }
+  .thememenu { margin-right: 0; }
+  .thememenu > button { width: 44px; height: 44px; }
+  .drawer { padding-top: 64px; }
+  .content { margin-top: 56px; padding: 12px max(10px, env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); min-height: calc(100vh - 56px); }
+  .pagehead { gap: 8px; margin-bottom: 12px; }
+  .card { padding: 14px; border-radius: 14px; margin-bottom: 12px; }
+
+  /* elementi di tocco: almeno 44px; 16px nei campi evita lo zoom automatico di iOS */
+  .btn { height: 44px; }
+  .btn.sm { height: 40px; }
+  .btn.icon { width: 44px; height: 44px; }
+  .btn.icon.sm { width: 40px; height: 40px; }
+  .field input, .field select, .field textarea, .field .cs-btn { font-size: 16px; }
+  .field.sm input, .field.sm select { height: 44px; font-size: 16px; }
+  input[type=checkbox], input[type=radio] { width: 20px; height: 20px; }
+  .check { min-height: 40px; align-items: center; }
+  .menu a, .menu button, .cg-rowmenu a, .cg-rowmenu button, .thememenu .menu button { min-height: 46px; }
+  .menu { max-width: calc(100vw - 16px); }
+
+  /* tabelle e griglie: scorrimento orizzontale con inerzia */
+  .tablewrap, .cpgrid { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cg-toolbar { gap: 6px; }
+  .cg-table th, .cg-table td { padding-top: 10px; padding-bottom: 10px; }
+
+  /* wizard: passi come puntini (resta visibile solo l'etichetta del passo corrente) */
+  .stepper { overflow-x: auto; margin-bottom: 14px; padding-bottom: 4px; scrollbar-width: none; }
+  .stepper::-webkit-scrollbar { display: none; }
+  .step { flex: none; }
+  .step > span:not(.dot) { display: none; }
+  .step.active > span:not(.dot) { display: inline; }
+  .stepper .bar { margin: 0 6px; min-width: 14px; }
+  .totalbar { left: 0; right: 0; padding: 8px max(10px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); gap: 8px 14px; }
+  .totalbar .kv b { font-size: 16px; }
+  .kv-box b { font-size: 18px; }
+  .svc-t td:first-child { min-width: 190px !important; }
+
+  /* finestre di dialogo a tutto schermo */
+  dialog, dialog.cg-dialog, dialog.cpq-confirm { width: calc(100vw - 16px) !important; max-width: none !important; min-width: 0 !important; max-height: calc(100vh - 16px); margin: 8px auto; border-radius: 18px; }
+  dialog .dlg-head { padding: 18px 16px 6px; }
+  dialog .dlg-body { padding: 8px 16px; max-height: 68vh; }
+  dialog .dlg-foot { padding: 12px 16px 16px; flex-wrap: wrap; }
+  dialog .dlg-foot .btn { flex: 1 1 auto; }
+
+  /* griglie a colonne dei moduli: una colonna */
+  .terms-grid, .pw-pair, .pw-layout { grid-template-columns: minmax(0, 1fr) !important; }
+  .cg-rowmenu { max-width: calc(100vw - 16px); }
+  #snackbar { left: 8px; right: 8px; bottom: calc(76px + env(safe-area-inset-bottom)); max-width: none; }
+
+  /* tema Notte su telefono: nero profondo (OLED) con superfici appena piu' chiare */
+  html[data-theme="dark"] body { background: #0a0b0d; }
+  html[data-theme="dark"] .appbar, html[data-theme="dark"] .drawer { background: #101215; }
+  html[data-theme="dark"] .card { background: #14161a; }
+}
+
+@media (max-width: 380px) {
+  .appbar .brand { font-size: 15px; }
+  .step .dot { width: 26px; height: 26px; }
+}
+
+/* orientamento orizzontale su telefono: barra superiore bassa */
+@media (max-height: 460px) and (max-width: 1000px) {
+  .appbar { height: 48px; }
+  .content { margin-top: 48px; }
+  .drawer { padding-top: 56px; }
+}
+
+
+/* telefono: «Annulla» diventa la sola icona */
+@media (max-width: 700px) {
+  .hd-cancel { width: 44px; padding: 0; border-radius: 50%; justify-content: center; }
+  .hd-cancel .hd-cancel-txt { display: none; }
+  .hd-cancel .hd-cancel-ic { display: inline-block; }
+}

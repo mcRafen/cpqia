@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Comuni')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('geodata')}"></div>
+<main class="content"><div class="inner">
+    <div th:replace="~{fragments/layout :: settingsTabs('geodata')}"></div>
+    <div class="pagehead"><h1>Comuni</h1><span class="grow"></span>
+        <form th:action="@{/admin/geodata/import}" method="post" data-noguard data-confirm="Scaricare da internet l'elenco aggiornato dei comuni (con provincia, regione e CAP)? Può richiedere qualche secondo.">
+            <button class="btn" type="submit"><svg class="ic"><use href="#i-download"/></svg>Aggiorna da internet</button></form></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="cpgrid" data-grid="comuni"></div>
+    <p class="hint">Ogni comune porta con sé sigla, provincia, regione e CAP: l'elenco è usato dalla ricerca di comune e provincia nei dati dell'account. All'avvio, se la tabella dei comuni è vuota, l'applicazione la scarica da sola (<code>cpqia.geodata.url</code>).</p>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script th:src="@{/js/grid-core.js}"></script>
+<script th:src="@{/js/grid.js}"></script>
+</body>
+</html>

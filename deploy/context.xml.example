@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Descrittore di contesto Tomcat (facoltativo) per UN contesto CPQIA:
+    $CATALINA_BASE/conf/Catalina/localhost/cpqia.xml           (stesso nome del WAR)
+  Per piu' istanze creare un file per ciascuna (cpqia-test.xml, cpqia-clienteX.xml, ...).
+-->
+<Context>
+    <!--
+      Necessario per "Sign in with Apple": il ritorno da Apple e' una POST cross-site (response_mode=form_post),
+      quindi il cookie di sessione deve essere SameSite=None (e Secure => HTTPS, anche dietro proxy con RemoteIpValve).
+      Per il solo accesso Google si puo' omettere.
+    -->
+    <CookieProcessor className="org.apache.tomcat.util.http.Rfc6265CookieProcessor" sameSiteCookies="None"/>
+
+    <!-- Alternativa alle proprieta' spring.datasource.*: pool JNDI gestito da Tomcat (driver PostgreSQL in $CATALINA_BASE/lib).
+         Poi in conf/cpqia/<contesto>.properties:  spring.datasource.jndi-name=java:comp/env/jdbc/cpqia -->
+    <!--
+    <Resource name="jdbc/cpqia" auth="Container" type="javax.sql.DataSource"
+              driverClassName="org.postgresql.Driver"
+              url="jdbc:postgresql://localhost:5432/cpqia" username="cpqia" password="CAMBIAMI"
+              maxTotal="20" maxIdle="5" maxWaitMillis="10000"/>
+    -->
+</Context>

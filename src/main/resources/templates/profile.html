@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Profilo')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('')}"></div>
+<main class="content"><div class="inner" style="max-width:720px">
+    <div class="pagehead"><h1>Il mio profilo</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <form class="card" th:action="@{/profile}" method="post" th:if="${me != null}">
+        <p class="muted" style="margin-top:0">Le iniziali di nome e cognome sono accodate al numero dell'offerta (es. <span class="mono">20261022.3<b>ER</b></span>).</p>
+        <div class="grid c2">
+            <div class="field"><input type="text" name="firstName" th:value="${me.firstName}" placeholder=" " maxlength="100"><label>Nome</label></div>
+            <div class="field"><input type="text" name="lastName" th:value="${me.lastName}" placeholder=" " maxlength="100"><label>Cognome</label></div>
+            <div class="field"><input type="text" name="initials" th:value="${me.initials}" placeholder=" " maxlength="6" required style="text-transform:uppercase"><label>Iniziali *</label></div>
+            <div class="field"><input type="text" th:value="${me.email}" disabled placeholder=" "><label>Email</label></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:20px"><button class="btn" type="submit"><svg class="ic"><use href="#i-save"/></svg>Salva</button></div>
+    </form>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+</body>
+</html>

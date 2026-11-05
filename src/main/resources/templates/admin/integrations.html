@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Integrazioni')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('integrations')}"></div>
+<main class="content"><div class="inner">
+    <div th:replace="~{fragments/layout :: settingsTabs('integrations')}"></div>
+    <div class="pagehead"><h1>Integrazioni</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="settings-tabs int-tabs" role="tablist">
+        <a href="#" role="tab" data-top="ibm" class="active">IBM Power System</a>
+        <a href="#" role="tab" data-top="geo">Geo</a>
+    </div>
+
+    <div id="top-ibm">
+    <div class="card">
+        <h2>IBM Power System (IBM i)</h2>
+        <div class="hint" style="margin-bottom:14px">Collegamento JDBC al server IBM i con il driver JTOpen (<code>com.ibm.as400.access.AS400JDBCDriver</code>). Indica il server, le credenziali e la libreria (schema) a cui puntare, poi verifica il collegamento.</div>
+        <div id="ibmi-form" class="grid c4" style="align-items:start" th:data-pwd-set="${ibmi.passwordSet}">
+            <div class="field span2"><input type="text" id="ibmi-host" maxlength="255" placeholder=" " th:value="${ibmi.host}" autocomplete="off"><label for="ibmi-host">Indirizzo IP o nome del server *</label></div>
+            <div class="field"><input type="text" id="ibmi-user" maxlength="50" placeholder=" " th:value="${ibmi.user}" autocomplete="off"><label for="ibmi-user">Utente *</label></div>
+            <div class="field"><input type="password" id="ibmi-pwd" placeholder=" " autocomplete="new-password"><label for="ibmi-pwd">Password</label>
+                <div class="help" th:text="${ibmi.passwordSet} ? 'Impostata: lascia vuoto per non modificarla' : 'Non ancora impostata'">Password</div></div>
+            <div class="field"><input type="text" id="ibmi-lib" maxlength="10" placeholder=" " th:value="${ibmi.library}" style="text-transform:uppercase" autocomplete="off"><label for="ibmi-lib">Libreria (schema)</label></div>
+            <div style="align-self:center"><label class="check"><input type="checkbox" id="ibmi-secure" th:checked="${ibmi.secure}"> Connessione SSL</label></div>
+        </div>
+        <div id="ibmi-result" class="alert" hidden style="margin-top:14px"></div>
+        <div th:if="${ibmi.lastTestAt != null}" class="hint" style="margin-top:12px">
+            Ultimo test: <span th:text="${#temporals.format(ibmi.lastTestAt, 'dd/MM/yyyy HH:mm')}"></span> –
+            <b th:text="${ibmi.lastTestOk} ? 'riuscito' : 'non riuscito'"></b>
+            <span class="muted" th:text="${ibmi.lastTestMsg}"></span>
+        </div>
+        <div class="alert warn" th:if="${!ibmi.customKey}" style="margin-top:12px"><svg class="ic"><use href="#i-warning"/></svg><span>La chiave di cifratura <code>cpqia.crypto-key</code> non è impostata: la password è cifrata con una chiave predefinita. Impostala nella configurazione prima dell'uso in produzione.</span></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+            <button type="button" class="btn tonal" id="ibmi-test"><svg class="ic"><use href="#i-check"/></svg>Verifica connessione</button>
+            <button type="button" class="btn" id="ibmi-save"><svg class="ic"><use href="#i-save"/></svg>Salva</button>
+        </div>
+    </div>
+
+    <div class="settings-tabs sync-tabs" role="tablist" style="margin-top:6px">
+        <a href="#" role="tab" data-tab="clients" class="active">Sync Clienti</a>
+        <a href="#" role="tab" data-tab="agents">Sync Agenti</a>
+    </div>
+    <div id="tab-clients">
+    <div class="card">
+        <h2>Sync Clienti</h2>
+        <div class="hint" style="margin-bottom:14px">Legge da IBM Power System i clienti (record con <code>CLFOCP = 'C'</code>) inseriti o modificati dall'ultima importazione fino a oggi (campi <code>DT01CA</code> e <code>DTMNCA</code>, formato AAAAMMGG) e li importa negli Account come <b>Cliente</b>. Usa la connessione impostata qui sopra. Un prospect con la stessa partita IVA viene promosso a cliente.</div>
+        <div id="sync-form" class="grid c4" style="align-items:start">
+            <div style="align-self:center"><label class="check"><input type="checkbox" id="sync-enabled" th:checked="${sync.enabled}"> Esecuzione automatica attiva</label></div>
+            <div class="field"><select id="sync-mode"><option value="DAILY" th:selected="${sync.mode == 'DAILY'}">Ogni giorno alle…</option><option value="INTERVAL" th:selected="${sync.mode == 'INTERVAL'}">Ogni N minuti</option></select><label for="sync-mode" class="on">Pianificazione</label></div>
+            <div class="field" id="sync-time-box"><input type="time" id="sync-time" th:value="${sync.dailyTime}" placeholder=" "><label for="sync-time" class="on">Orario</label></div>
+            <div class="field" id="sync-int-box"><input type="number" id="sync-int" min="5" max="1440" step="5" th:value="${sync.intervalMin}" placeholder=" "><label for="sync-int" class="on">Intervallo (minuti)</label></div>
+            <div class="field"><input type="text" id="sync-lib" maxlength="10" th:value="${sync.sourceLibrary}" placeholder=" " style="text-transform:uppercase"><label for="sync-lib">Libreria sorgente</label></div>
+            <div class="field"><input type="text" id="sync-file" maxlength="10" th:value="${sync.sourceFile}" placeholder=" " style="text-transform:uppercase"><label for="sync-file">File clienti</label></div>
+            <div class="field"><input type="date" id="sync-last-date" th:value="${sync.lastSyncDate}" placeholder=" "><label for="sync-last-date" class="on">Data ultima importazione</label><div class="help">Svuotala per rifare l'importazione totale</div></div>
+            <div style="align-self:center"><button type="button" class="btn tonal sm" id="sync-last-date-clear" title="Svuota la data: alla prossima esecuzione si rileggono tutti i clienti">Svuota data</button></div>
+        </div>
+        <div class="kv-row" style="display:flex;gap:28px;flex-wrap:wrap;margin-top:14px">
+            
+            <div><div class="muted">Ultima esecuzione</div><b id="sync-last-run" th:text="${sync.lastRunAt != null} ? ${#temporals.format(sync.lastRunAt, 'dd/MM/yyyy HH:mm:ss')} : '—'">—</b></div>
+            <div><div class="muted">Prossima esecuzione</div><b id="sync-next" th:text="${nextRun}">—</b></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+            <button type="button" class="btn tonal" id="sync-run"><svg class="ic"><use href="#i-download"/></svg>Esegui ora</button>
+            <button type="button" class="btn" id="sync-save"><svg class="ic"><use href="#i-save"/></svg>Salva pianificazione</button>
+        </div>
+        <h3 style="margin:22px 0 8px">Ultime esecuzioni</h3>
+        <div class="tablewrap"><table class="t"><thead><tr><th>Avvio</th><th>Tipo</th><th>Esito</th><th class="num">Letti</th><th class="num">Nuovi</th><th class="num">Aggiornati</th><th class="num">Invariati</th><th class="num">Saltati</th><th>Messaggio</th><th></th></tr></thead>
+            <tbody id="sync-runs"><tr><td colspan="10" class="muted">Caricamento…</td></tr></tbody></table></div>
+    </div>
+    </div>
+    <div id="tab-agents" hidden>
+    <div class="card">
+        <h2>Sync Agenti</h2>
+        <div class="hint" style="margin-bottom:14px">Legge da IBM Power System il file <code>SMTAB01L</code> con <code>XTIPTB = '01AG'</code>, scartando i record con <code>**</code> alle posizioni 9 e 10 di <code>XDATTB</code>, e aggiorna la tabella <b>Agenti</b> (Impostazioni &gt; Agenti): <code>XCODTB</code> è il <b>codice</b>, i 20 caratteri di <code>XDATTB</code> a partire dalla posizione 9 sono la <b>descrizione</b>. Si importano solo gli agenti con codice interamente numerico che inizia per 3. Usa la connessione impostata qui sopra. La lettura è completa a ogni esecuzione.</div>
+        <div id="ag-form" class="grid c4" style="align-items:start">
+            <div style="align-self:center"><label class="check"><input type="checkbox" id="ag-enabled" th:checked="${agSync.enabled}"> Esecuzione automatica attiva</label></div>
+            <div class="field"><select id="ag-mode"><option value="DAILY" th:selected="${agSync.mode == 'DAILY'}">Ogni giorno alle…</option><option value="INTERVAL" th:selected="${agSync.mode == 'INTERVAL'}">Ogni N minuti</option></select><label for="ag-mode" class="on">Pianificazione</label></div>
+            <div class="field" id="ag-time-box"><input type="time" id="ag-time" th:value="${agSync.dailyTime}" placeholder=" "><label for="ag-time" class="on">Orario</label></div>
+            <div class="field" id="ag-int-box"><input type="number" id="ag-int" min="5" max="1440" step="5" th:value="${agSync.intervalMin}" placeholder=" "><label for="ag-int" class="on">Intervallo (minuti)</label></div>
+            <div class="field"><input type="text" id="ag-lib" maxlength="10" th:value="${agSync.sourceLibrary}" placeholder=" " style="text-transform:uppercase"><label for="ag-lib">Libreria sorgente</label></div>
+            <div class="field"><input type="text" id="ag-file" maxlength="10" th:value="${agSync.sourceFile}" placeholder=" " style="text-transform:uppercase"><label for="ag-file">File agenti</label></div>
+            <div class="field"><input type="date" id="ag-last-date" th:value="${agSync.lastSyncDate}" placeholder=" " disabled><label for="ag-last-date" class="on">Data ultima importazione</label><div class="help">Informativa: la lettura degli agenti è sempre completa</div></div>
+        </div>
+        <div class="kv-row" style="display:flex;gap:28px;flex-wrap:wrap;margin-top:14px">
+            
+            <div><div class="muted">Ultima esecuzione</div><b id="ag-last-run" th:text="${agSync.lastRunAt != null} ? ${#temporals.format(agSync.lastRunAt, 'dd/MM/yyyy HH:mm:ss')} : '—'">—</b></div>
+            <div><div class="muted">Prossima esecuzione</div><b id="ag-next" th:text="${agNextRun}">—</b></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+            <button type="button" class="btn tonal" id="ag-run"><svg class="ic"><use href="#i-download"/></svg>Esegui ora</button>
+            <button type="button" class="btn" id="ag-save"><svg class="ic"><use href="#i-save"/></svg>Salva pianificazione</button>
+        </div>
+        <h3 style="margin:22px 0 8px">Ultime esecuzioni</h3>
+        <div class="tablewrap"><table class="t"><thead><tr><th>Avvio</th><th>Tipo</th><th>Esito</th><th class="num">Letti</th><th class="num">Nuovi</th><th class="num">Aggiornati</th><th class="num">Invariati</th><th class="num">Scartati</th><th>Messaggio</th><th></th></tr></thead>
+            <tbody id="ag-runs"><tr><td colspan="10" class="muted">Caricamento…</td></tr></tbody></table></div>
+    </div>
+    </div>
+    </div>
+
+    <div id="top-geo" hidden>
+    <div class="card">
+        <h2>Agente Geo (geolocalizzazione)</h2>
+        <div class="hint" style="margin-bottom:14px">Calcola <b>latitudine e longitudine</b> di account e sedi Sanmarco dall'indirizzo (OpenStreetMap / Nominatim). Gli inserimenti e le modifiche dell'indirizzo di un account, comprese le importazioni dei clienti da IBM Power System, vengono geolocalizzati <b>in automatico</b> entro pochi secondi. Qui puoi anche avviare l'agente a mano o pianificarlo: l'esecuzione manuale o pianificata elabora pure gli indirizzi presenti prima dell'agente. Un indirizzo non trovato non viene riprovato finché non lo modifichi. I dati di geolocalizzazione sono in sola lettura; il calcolo della distanza usa le coordinate dell'account e della sede Sanmarco più vicina.</div>
+        <div id="geo-form" class="grid c4" style="align-items:start">
+            <div style="align-self:center"><label class="check"><input type="checkbox" id="geo-enabled" th:checked="${geoCfg.enabled}"> Esecuzione pianificata attiva</label></div>
+            <div class="field"><select id="geo-mode"><option value="DAILY" th:selected="${geoCfg.mode == 'DAILY'}">Ogni giorno alle…</option><option value="INTERVAL" th:selected="${geoCfg.mode == 'INTERVAL'}">Ogni N minuti</option></select><label for="geo-mode" class="on">Pianificazione</label></div>
+            <div class="field" id="geo-time-box"><input type="time" id="geo-time" th:value="${geoCfg.dailyTime}" placeholder=" "><label for="geo-time" class="on">Orario</label></div>
+            <div class="field" id="geo-int-box"><input type="number" id="geo-int" min="5" max="1440" step="5" th:value="${geoCfg.intervalMin}" placeholder=" "><label for="geo-int" class="on">Intervallo (minuti)</label></div>
+        </div>
+        <div class="kv-row" style="display:flex;gap:28px;flex-wrap:wrap;margin-top:14px">
+            <div><div class="muted">Ultima esecuzione pianificata/manuale</div><b id="geo-last-run" th:text="${geoCfg.lastRunAt != null} ? ${#temporals.format(geoCfg.lastRunAt, 'dd/MM/yyyy HH:mm:ss')} : '—'">—</b></div>
+            <div><div class="muted">Prossima esecuzione</div><b id="geo-next" th:text="${geoNextRun}">—</b></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+            <button type="button" class="btn tonal" id="geo-run"><svg class="ic"><use href="#i-download"/></svg>Esegui ora</button>
+            <button type="button" class="btn" id="geo-save"><svg class="ic"><use href="#i-save"/></svg>Salva pianificazione</button>
+        </div>
+        <h3 style="margin:22px 0 8px">Ultime esecuzioni</h3>
+        <div class="tablewrap"><table class="t"><thead><tr><th>Avvio</th><th>Tipo</th><th>Esito</th><th class="num">Elaborati</th><th class="num">Localizzati</th><th class="num">Non trovati</th><th>Messaggio</th><th></th></tr></thead>
+            <tbody id="geo-runs"><tr><td colspan="8" class="muted">Caricamento…</td></tr></tbody></table></div>
+    </div>
+    </div>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const body = () => ({ host: $('#ibmi-host').value.trim(), user: $('#ibmi-user').value.trim(), password: $('#ibmi-pwd').value,
+    library: $('#ibmi-lib').value.trim().toUpperCase(), secure: $('#ibmi-secure').checked });
+  const show = (ok, msg) => { const r = $('#ibmi-result'); r.hidden = false; r.className = 'alert ' + (ok ? 'ok' : 'err'); r.textContent = msg; };
+  $('#ibmi-test').addEventListener('click', async () => {
+    const b = $('#ibmi-test'); b.disabled = true; show(true, 'Verifica in corso…');
+    try { const r = await CPQ.api('POST', '/admin/integrations/ibmi/test', body()); show(r.ok, r.message + (r.millis ? ' (' + r.millis + ' ms)' : '')); }
+    catch (e) { show(false, e.message); }
+    b.disabled = false;
+  });
+  $('#ibmi-save').addEventListener('click', async () => {
+    try { const r = await CPQ.api('POST', '/admin/integrations/ibmi/save', body()); CPQ.clean(); window.toast(r.message); $('#ibmi-pwd').value = ''; }
+    catch (e) { window.toast(e.message, true); }
+  });
+})();
+
+function setupSync(P, BASE, hasDate) {
+  const $ = (s) => document.querySelector(s);
+  const esc = CPQ.esc;
+  const fmt = (v) => { if (!v) return '—'; const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(v); return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] + ':' + (m[6] || '00') : v; };
+  const fmtD = (v) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : 'mai'; };
+  let dateDirty = false;
+  if (hasDate && !$('#'+P+'-last-date').disabled) $('#'+P+'-last-date').addEventListener('input', () => { dateDirty = true; });
+  const clr = $('#'+P+'-last-date-clear');
+  if (clr) clr.addEventListener('click', () => { const ld = $('#'+P+'-last-date'); ld.value = ''; dateDirty = true; ld.dispatchEvent(new Event('input', { bubbles: true })); window.toast('Data svuotata: premi «Salva pianificazione» per confermare'); });
+  const syncBody = () => Object.assign(hasDate && !$('#'+P+'-last-date').disabled ? { lastSyncDate: $('#'+P+'-last-date').value } : {}, { enabled: $('#'+P+'-enabled').checked, mode: $('#'+P+'-mode').value, intervalMin: Number($('#'+P+'-int').value || 60),
+    dailyTime: $('#'+P+'-time').value || '02:00', sourceLibrary: $('#'+P+'-lib').value.trim().toUpperCase(), sourceFile: $('#'+P+'-file').value.trim().toUpperCase() });
+  const toggleMode = () => { const d = $('#'+P+'-mode').value === 'DAILY'; $('#'+P+'-time-box').hidden = !d; $('#'+P+'-int-box').hidden = d; };
+  $('#'+P+'-mode').addEventListener('change', toggleMode); toggleMode();
+
+  async function refresh() {
+    try {
+      const s = await CPQ.api('GET', BASE + '/status');
+      { const ld = $('#'+P+'-last-date'); if (ld && !dateDirty && document.activeElement !== ld) ld.value = s.lastSyncDate ? s.lastSyncDate.slice(0, 10) : ''; } $('#'+P+'-last-run').textContent = fmt(s.lastRunAt); $('#'+P+'-next').textContent = s.nextRun;
+      $('#'+P+'-run').disabled = s.running;
+      $('#'+P+'-runs').innerHTML = (s.runs.length ? s.runs.map((r) =>
+        '<tr><td class="nowrap">' + fmt(r.startedAt) + '</td><td>' + (r.triggerType === 'MANUAL' ? 'manuale' : 'pianificata') + '</td><td>' +
+        (r.ok == null ? '<span class="chip warn">in corso</span>' : r.ok ? '<span class="chip ok">ok</span>' : '<span class="chip err">errore</span>') + '</td>' +
+        '<td class="num">' + r.readCount + '</td><td class="num">' + r.inserted + '</td><td class="num">' + r.updated + '</td><td class="num">' + r.unchanged + '</td><td class="num">' + r.skipped + '</td>' +
+        '<td>' + esc(r.message || '') + '</td><td class="nowrap">' + (r.ok == null ? '<button type="button" class="btn text sm danger" data-stop="' + r.id + '" title="Ferma il job in corso">Ferma</button> ' : '') + (r.skipped > 0 ? '<button type="button" class="btn text sm" data-det="' + r.id + '">Dettagli</button>' : '') + '</td></tr>').join('')
+        : '<tr><td colspan="10" class="muted">Nessuna esecuzione.</td></tr>');
+      return s.running;
+    } catch (e) { return false; }
+  }
+  $('#'+P+'-save').addEventListener('click', async () => {
+    try { const r = await CPQ.api('POST', BASE + '/save', syncBody()); CPQ.clean(); dateDirty = false; window.toast(r.message); $('#'+P+'-next').textContent = r.nextRun; }
+    catch (e) { window.toast(e.message, true); }
+  });
+  $('#'+P+'-run').addEventListener('click', async () => {
+    try { await CPQ.api('POST', BASE + '/run', {}); window.toast('Sincronizzazione avviata'); poll(); }
+    catch (e) { window.toast(e.message, true); }
+  });
+  $('#'+P+'-runs').addEventListener('click', async (e) => {
+    const st = e.target.closest('[data-stop]');
+    if (st) {
+      if (!(await CPQ.confirm('Fermare il job in corso?', { title: 'Ferma job', yes: 'Sì, ferma', no: 'No', danger: true }))) return;
+      try { const r = await CPQ.api('POST', BASE + '/stop', {}); window.toast(r.message); poll(); } catch (er) { window.toast(er.message, true); }
+      return;
+    }
+    const b = e.target.closest('[data-det]'); if (!b) return;
+    const r = await CPQ.api('GET', BASE + '/run/' + b.dataset.det + '/details');
+    const dlg = document.createElement('dialog'); dlg.className = 'cpq-confirm'; dlg.style.width = 'min(640px, 94vw)';
+    dlg.innerHTML = '<h3>Record saltati</h3><textarea readonly style="width:100%;height:260px;font:12px ui-monospace,Menlo,monospace;border:1px solid var(--outline);border-radius:6px;padding:8px;background:var(--surface);color:var(--on-surface)"></textarea><div class="cpq-confirm-btns"><button type="button" class="btn">Chiudi</button></div>';
+    dlg.querySelector('textarea').value = r.details || '';
+    dlg.querySelector('button').addEventListener('click', () => dlg.close()); dlg.addEventListener('close', () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal();
+  });
+  let timer;
+  async function poll() { clearTimeout(timer); const running = await refresh(); if (running) timer = setTimeout(poll, 2500); }
+  poll();
+}
+setupSync('sync', '/admin/integrations/sync', true);
+setupSync('ag', '/admin/integrations/agents', true);
+
+document.querySelectorAll('.sync-tabs a').forEach((a) => a.addEventListener('click', (e) => {
+  e.preventDefault();
+  document.querySelectorAll('.sync-tabs a').forEach((x) => x.classList.toggle('active', x === a));
+  document.getElementById('tab-clients').hidden = a.dataset.tab !== 'clients';
+  document.getElementById('tab-agents').hidden = a.dataset.tab !== 'agents';
+}));
+
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const esc = CPQ.esc;
+  const fmt = (v) => { if (!v) return '—'; const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(v); return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] + ':' + (m[6] || '00') : v; };
+  const BASE = '/admin/integrations/geo';
+  const toggleMode = () => { const d = $('#geo-mode').value === 'DAILY'; $('#geo-time-box').hidden = !d; $('#geo-int-box').hidden = d; };
+  $('#geo-mode').addEventListener('change', toggleMode); toggleMode();
+  const TYPE = { MANUAL: 'manuale', SCHEDULED: 'pianificata', AUTO: 'automatica' };
+  async function refresh() {
+    try {
+      const s = await CPQ.api('GET', BASE + '/status');
+      $('#geo-last-run').textContent = s.lastRunAt ? fmt(s.lastRunAt) : '—'; $('#geo-next').textContent = s.nextRun;
+      $('#geo-run').disabled = s.running;
+      $('#geo-runs').innerHTML = s.runs.length ? s.runs.map((r) =>
+        '<tr><td class="nowrap">' + fmt(r.startedAt) + '</td><td>' + (TYPE[r.triggerType] || r.triggerType) + '</td><td>' +
+        (r.ok == null ? '<span class="chip warn">in corso</span>' : r.ok ? '<span class="chip ok">ok</span>' : '<span class="chip err">errore</span>') + '</td>' +
+        '<td class="num">' + r.readCount + '</td><td class="num">' + r.inserted + '</td><td class="num">' + r.skipped + '</td><td>' + esc(r.message || '') + '</td>' +
+        '<td class="nowrap">' + (r.ok == null ? '<button type="button" class="btn text sm danger" data-stop="' + r.id + '" title="Ferma il job in corso">Ferma</button> ' : '') + (r.skipped > 0 ? '<button type="button" class="btn text sm" data-det="' + r.id + '">Dettagli</button>' : '') + '</td></tr>').join('')
+        : '<tr><td colspan="8" class="muted">Nessuna esecuzione.</td></tr>';
+      return s.running;
+    } catch (e) { return false; }
+  }
+  let timer;
+  async function poll() { clearTimeout(timer); const running = await refresh(); if (running) timer = setTimeout(poll, 2500); }
+  $('#geo-save').addEventListener('click', async () => {
+    try {
+      const r = await CPQ.api('POST', BASE + '/save', { enabled: $('#geo-enabled').checked, mode: $('#geo-mode').value, intervalMin: Number($('#geo-int').value || 60), dailyTime: $('#geo-time').value || '03:00' });
+      CPQ.clean(); window.toast(r.message); $('#geo-next').textContent = r.nextRun;
+    } catch (e) { window.toast(e.message, true); }
+  });
+  $('#geo-run').addEventListener('click', async () => {
+    try { await CPQ.api('POST', BASE + '/run', {}); window.toast('Agente Geo avviato'); poll(); }
+    catch (e) { window.toast(e.message, true); }
+  });
+  $('#geo-runs').addEventListener('click', async (e) => {
+    const st = e.target.closest('[data-stop]');
+    if (st) {
+      if (!(await CPQ.confirm('Fermare l\'agente Geo in esecuzione?', { title: 'Ferma job', yes: 'Sì, ferma', no: 'No', danger: true }))) return;
+      try { const r = await CPQ.api('POST', BASE + '/stop', {}); window.toast(r.message); poll(); } catch (er) { window.toast(er.message, true); }
+      return;
+    }
+    const b = e.target.closest('[data-det]'); if (!b) return;
+    const r = await CPQ.api('GET', BASE + '/run/' + b.dataset.det + '/details');
+    const dlg = document.createElement('dialog'); dlg.className = 'cpq-confirm'; dlg.style.width = 'min(640px, 94vw)';
+    dlg.innerHTML = '<h3>Indirizzi non trovati</h3><textarea readonly style="width:100%;height:260px;font:12px ui-monospace,Menlo,monospace;border:1px solid var(--outline);border-radius:6px;padding:8px;background:var(--surface);color:var(--on-surface)"></textarea><div style="text-align:right;margin-top:10px"><button type="button" class="btn">Chiudi</button></div>';
+    dlg.querySelector('textarea').value = r.details || '';
+    dlg.querySelector('button').addEventListener('click', () => dlg.close()); dlg.addEventListener('close', () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal();
+  });
+  refresh();
+  // schede di primo livello: IBM Power System / Geo
+  document.querySelectorAll('.int-tabs a').forEach((a) => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.int-tabs a').forEach((x) => x.classList.toggle('active', x === a));
+    $('#top-ibm').hidden = a.dataset.top !== 'ibm'; $('#top-geo').hidden = a.dataset.top !== 'geo';
+    if (a.dataset.top === 'geo') poll();
+  }));
+  if (location.hash === '#geo') document.querySelector('.int-tabs a[data-top="geo"]').click();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Tipo azienda e indirizzo')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('lookups')}"></div>
+<main class="content"><div class="inner">
+    <div th:replace="~{fragments/layout :: settingsTabs('lookups')}"></div>
+    <div class="pagehead"><h1>Tipo azienda e tipo indirizzo</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="card-title" style="margin:6px 0 8px;font-weight:500">Tipo Azienda</div>
+    <div class="cpgrid" data-grid="company-types"></div>
+    <div class="card-title" style="margin:22px 0 8px;font-weight:500">Tipo Indirizzo</div>
+    <div class="cpgrid" data-grid="address-types"></div>
+    <p class="hint">Tabelle collegate ai campi «Tipo anagrafica» e «Via» dell'account. I codici dei tipi azienda (PROSPECT, CLIENTE) sono usati dall'applicazione e non si modificano; la descrizione e l'ordine sì. Rinominando un tipo indirizzo si aggiornano anche gli account che lo usano.</p>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+<script th:src="@{/js/grid-core.js}"></script>
+<script th:src="@{/js/grid.js}"></script>
+</body>
+</html>
