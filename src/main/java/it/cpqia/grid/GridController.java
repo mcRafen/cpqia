@@ -93,7 +93,13 @@ public class GridController {
 
     @PostMapping("/{key}/{id}/action/{name}")
     public Map<String, Object> action(@PathVariable String key, @PathVariable String id, @PathVariable String name, Authentication auth) {
-        return Map.of("ok", true, "message", grids.action(key, name, id, current.get(auth)));
+        String res = grids.action(key, name, id, current.get(auth));
+        // «@vai:percorso|messaggio»: dopo l'azione il browser apre la pagina indicata (es. la nuova revisione di un'offerta)
+        if (res != null && res.startsWith("@vai:") && res.contains("|")) {
+            int i = res.indexOf('|');
+            return Map.of("ok", true, "message", res.substring(i + 1), "redirect", res.substring(5, i));
+        }
+        return Map.of("ok", true, "message", res);
     }
 
     public record ExportRequest(List<String> columns, List<String> rows) {

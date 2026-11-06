@@ -111,6 +111,8 @@
             <div><button class="btn tonal" type="submit"><svg class="ic"><use href="#i-add"/></svg>Aggiungi vincolo</button></div>
         </form>
     </div>
+    <!-- SMITECH: utenti, gruppi di prezzo e fasce stanno nel sotto-modulo SMISMP (non in SMISMP-SMIDRI): le fasce per utente definiscono il suo canone annuo -->
+    <th:block th:if="${module != null and app.code == 'SMITECH' and module.code == 'SMISMP'}"><th:block th:replace="~{admin/pricing-box :: box(${app}, ${tierText}, ${module.id})}"></th:block></th:block>
 </div></main>
 <div th:replace="~{fragments/layout :: foot}"></div>
 <script>

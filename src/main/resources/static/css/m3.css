@@ -1094,3 +1094,10 @@ html[data-theme="dark"] #gal-card-tot, html[data-theme="dark"] #dip-card-tot { b
   .mod-page .grid.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mod-page .grid.c4 > .span2, .mod-page .grid.c4 > .span3, .mod-page .grid.c4 > .span4 { grid-column: 1 / -1; }
 }
+
+/* storico revisioni: la revisione aperta ha il colore pieno del tema (alto contrasto rispetto alle altre) */
+.chip.rev-now { background: var(--primary); color: var(--on-primary, #fff); font-weight: 700; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--primary); }
+
+/* partita IVA cliccabile (apre il servizio ATOKA) */
+a.atoka-vat, .atoka-vat { color: var(--primary); text-decoration: underline dotted; cursor: pointer; font-weight: 500; }
+.field .atoka-btn { position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; z-index: 2; }

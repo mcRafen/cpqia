@@ -51,12 +51,17 @@ public class OfferController {
     private final it.cpqia.power.PowerModelRepository powerModelRepo;
     private final it.cpqia.power.IbmiProductRepository ibmiProductRepo;
     private final it.cpqia.rates.AccountRateRepository accountRates;
+    private final it.cpqia.repo.CustomerRepository customers;
+    private final it.cpqia.service.OfferRevisionService revisions;
 
     public OfferController(OfferService offers, CatalogRepository catalog, CurrentUserService current, OfferDocxService docx,
                            it.cpqia.extras.ExtraRepository extraRepo, it.cpqia.terms.TermsConfig termsConfig,
                            it.cpqia.rates.RateRepository rateRepo, it.cpqia.geo.DistanceService distances,
                            it.cpqia.rates.AccountRateRepository accountRates, it.cpqia.power.PowerModelRepository powerModelRepo,
-                           it.cpqia.power.IbmiProductRepository ibmiProductRepo) {
+                           it.cpqia.power.IbmiProductRepository ibmiProductRepo,
+                           it.cpqia.repo.CustomerRepository customers, it.cpqia.service.OfferRevisionService revisions) {
+        this.revisions = revisions;
+        this.customers = customers;
         this.ibmiProductRepo = ibmiProductRepo;
         this.powerModelRepo = powerModelRepo;
         this.accountRates = accountRates;
@@ -83,10 +88,20 @@ public class OfferController {
         AppUser me = current.get(auth);
         LocalDate today = LocalDate.now();
         model.addAttribute("today", today.toString());
-        model.addAttribute("nextProgressive", offers.nextProgressive(today, me.initials()));
+        String ini = offers.initialsFor(customerId, me);
+        model.addAttribute("nextProgressive", offers.nextProgressive(today, ini));
+        model.addAttribute("numberInitials", ini);
         model.addAttribute("offerId", null);
         model.addAttribute("customerId", customerId);   // account di partenza (da Account > Nuova offerta)
         return "offers/wizard";
+    }
+
+    /** dalla griglia: apre sempre la revisione attiva (la piu' recente) dell'offerta, anche se la riga cliccata e' una revisione precedente */
+    @GetMapping("/{id}/open")
+    @PreAuthorize("hasAuthority('P_EDIT_OFFERS')")
+    public String openLatest(@PathVariable long id, Authentication auth) {
+        checkAccess(id, auth);
+        return "redirect:/offers/" + revisions.latestId(id) + "/edit";
     }
 
     @GetMapping("/{id}/edit")
@@ -188,10 +203,38 @@ public class OfferController {
 
     @GetMapping("/api/next-progressive")
     @ResponseBody
-    public Map<String, Object> nextProgressive(@RequestParam String date, Authentication auth) {
+    public Map<String, Object> nextProgressive(@RequestParam String date, @RequestParam(required = false) Long customerId, Authentication auth) {
         AppUser me = current.get(auth);
         LocalDate d = LocalDate.parse(date);
-        return Map.of("progressive", offers.nextProgressive(d, me.initials()), "initials", me.initials() == null ? "" : me.initials());
+        String ini = offers.initialsFor(customerId, me);                  // iniziali dell'agente dell'account (o dell'utente se manca)
+        return Map.of("progressive", offers.nextProgressive(d, ini), "initials", ini);
+    }
+
+    /** storia delle revisioni dell'offerta (dalla piu' recente) e se questa e' superata da una piu' recente */
+    @GetMapping("/api/{id}/revisions")
+    @ResponseBody
+    public Map<String, Object> revisionHistory(@PathVariable long id, Authentication auth) {
+        checkAccess(id, auth);
+        return Map.of("revision", revisions.revisionOf(id), "superseded", revisions.superseded(id), "history", revisions.history(id));
+    }
+
+    /** promuove una revisione precedente ad attuale: ne crea una nuova (copia della revisione indicata) che diventa quella in gestione */
+    @org.springframework.web.bind.annotation.PostMapping("/api/{id}/promote")
+    @ResponseBody
+    @PreAuthorize("hasAuthority('P_CREATE_OFFERS')")
+    public Map<String, Object> promote(@PathVariable long id, Authentication auth) {
+        checkAccess(id, auth);
+        long n = revisions.create(current.get(auth), id);
+        return Map.of("id", n, "revision", revisions.revisionOf(n));
+    }
+
+    /** agente dell'account: codice, nome decodificato dall'anagrafica agenti e iniziali per il numero offerta */
+    @GetMapping("/api/agent")
+    @ResponseBody
+    public Map<String, Object> agent(@RequestParam long customerId, Authentication auth) {
+        AppUser me = current.get(auth);
+        String[] ag = customers.agentInfo(customerId);
+        return Map.of("code", ag[0], "name", ag[1], "initials", offers.initialsFor(customerId, me));
     }
 
     @GetMapping("/api/{id}")

@@ -72,8 +72,9 @@ public final class PricingModel {
     public record Row(String label, BigDecimal amount) {
     }
 
+    /** maintenance = manutenzione % + canoni annui; annual = solo la parte dei servizi a canone annuo (annuali e mensili x 12) */
     public record Result(BigDecimal license, BigDecimal onetime, BigDecimal maintenance, BigDecimal rentMonthly,
-                         List<Row> rows) {
+                         List<Row> rows, BigDecimal annual) {
 
         /** importo "licenze" esposto in offerta: licenze + una tantum */
         public BigDecimal licenseWithOnetime() {

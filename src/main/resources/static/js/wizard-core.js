@@ -240,6 +240,7 @@
       activities: (state.servicesMode === 'NONE' ? [] : activityRows(state.activities || [], state.lines)).map((a) => ({ applicationId: a.appId, description: a.desc.trim(), profileId: Number(a.profileId), hours: parseHours(a.hours), rfqImport: !!a.rfq, rfqGroup: (a.rfq || a.gid) ? (a.group || null) : null, days: a.rfq && a.days != null && a.days !== '' ? Number(a.days) : null })),
       activityDiscountPct: Number(state.actDiscount || 0),
       optActivityDetail: !!state.actDetail,
+      optHoursDetail: !!state.hoursDetail,
       maintOnNet: state.maintOnNet !== false,
       optPowerSystem: !!state.optPower,
       powerModelId: state.optPower ? (state.powerModelId || null) : null,

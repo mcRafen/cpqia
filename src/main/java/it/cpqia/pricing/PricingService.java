@@ -129,7 +129,7 @@ public class PricingService {
 
         BigDecimal totalMaint = maint.add(annual);
         BigDecimal rent = license.add(totalMaint.multiply(FOUR)).divide(FORTY_EIGHT, 2, RoundingMode.HALF_UP);
-        return new Result(round(license), round(onetime), round(totalMaint), rent, rows);
+        return new Result(round(license), round(onetime), round(totalMaint), rent, rows, round(annual));
     }
 
     /** fascia che contiene la quantita' (da <= qta <= a, a vuoto = senza limite) */

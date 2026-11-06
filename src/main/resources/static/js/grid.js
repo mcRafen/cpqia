@@ -328,6 +328,7 @@
         let inner;
         if (c.type === 'bool') inner = ed ? '<input type="checkbox" class="cg-bool" data-k="' + esc(c.key) + '"' + (v ? ' checked' : '') + '>' : (v ? '✓' : '—');
         else if (c.upload) inner = v ? icon('doc') + ' ' + esc(v) : '<span class="muted">—</span>';
+        else if (c.key === 'vatNumber' && v) inner = '<a href="#" class="atoka-vat" data-vat="' + esc(v) + '" title="Apri i dettagli su ATOKA">' + esc(v) + '</a>';
         else if (c.type === 'enum' && c.key === 'status') inner = '<span class="chip ' + (v === 'EMESSA' ? 'ok' : 'blue') + '">' + esc(G.format(v, c)) + '</span>';
         else inner = esc(G.format(v, c));
         h += '<td class="cg-c' + (G.isNumeric(c) ? ' num' : '') + (ed ? ' ed' : '') + (c.type === 'bool' ? ' ctr' : '') + '" data-k="' + esc(c.key) + '"' + (ed && c.type !== 'bool' ? ' title="Doppio clic per modificare"' : '') + '>' + inner + '</td>';
@@ -563,6 +564,7 @@
       if (a && a.confirm && !(await CPQ.confirm(a.confirm, { title: a.label, yes: 'Sì, procedi', danger: a.style === 'danger' }))) return;
       try {
         const res = await CPQ.api('POST', this.base + '/' + encodeURIComponent(id) + '/action/' + encodeURIComponent(name), {});
+        if (res.redirect) { window.location.href = CPQ.url('/' + res.redirect); return; }          // es. nuova revisione: si apre subito quella in gestione
         const d = await CPQ.api('GET', this.base);
         this.meta = d.meta; this.rows = d.rows; this.cols = this.meta.columns;
         this.renderBody(); window.toast(res.message || 'Fatto');

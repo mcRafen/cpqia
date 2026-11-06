@@ -319,6 +319,13 @@ public final class GridSpec {
         return this;
     }
 
+    /** azione di riga eseguita sul server e raccolta nel menu a tre puntini */
+    public GridSpec menuServer(String name, String label, String icon, String confirm, Predicate<AppUser> who, ServerAction run) {
+        actionDefs.add(new Object[]{new Action(name, label, icon, null, true, confirm, null, true), who});
+        serverActions.put(name, run);
+        return this;
+    }
+
     public GridSpec touch(String sql) {
         this.touch = sql;
         return this;

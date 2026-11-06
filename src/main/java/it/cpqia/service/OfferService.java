@@ -77,6 +77,32 @@ public class OfferService {
         return date.format(NUM_DATE) + "." + progressive + (initials == null ? "" : initials.toUpperCase());
     }
 
+    /**
+     * iniziali dell'agente dalla descrizione in anagrafica agenti, scritta «COGNOME NOME»: prima lettera del nome e del cognome
+     * (es. «ROSSI MARIO» → MR; cognomi composti: l'ultima parola e' il nome, la prima il cognome). Una sola parola: la sua iniziale.
+     */
+    public static String agentInitials(String description) {
+        if (description == null || description.isBlank()) {
+            return "";
+        }
+        String[] w = description.trim().split("\\s+");
+        String first = w[0].substring(0, 1);
+        String last = w[w.length - 1].substring(0, 1);
+        return (w.length == 1 ? first : last + first).toUpperCase();
+    }
+
+    /** iniziali per il numero dell'offerta: quelle dell'agente dell'account, in mancanza quelle dell'utente collegato */
+    public String initialsFor(Long customerId, AppUser user) {
+        String ini = "";
+        if (customerId != null) {
+            ini = agentInitials(customers.agentInfo(customerId)[1]);
+        }
+        if (ini.isBlank() && user != null && user.initials() != null) {
+            ini = user.initials().trim().toUpperCase();
+        }
+        return ini;
+    }
+
     // --------------------------------------------------------------------- calcolo
     public CalcResponse calculate(OfferRequest req) {
         List<LineSelection> selections = new ArrayList<>();
@@ -100,7 +126,7 @@ public class OfferService {
                 Result r = pricing.calculate(app, mode, sel, drv);
                 selections.add(new LineSelection(app, mode, sel, drv));
                 BigDecimal licTot = r.licenseWithOnetime();
-                results.add(new LineResult(app.id(), r.license(), r.onetime(), licTot, r.maintenance(), r.rentMonthly(), r.rows()));
+                results.add(new LineResult(app.id(), r.license(), r.onetime(), licTot, r.maintenance(), r.rentMonthly(), r.rows(), r.annual()));
                 totLic = totLic.add(licTot);
                 totMan = totMan.add(r.maintenance());
             }
@@ -146,8 +172,9 @@ public class OfferService {
         if ((req.lines() == null || req.lines().isEmpty()) && !(otherElements && Boolean.FALSE.equals(req.optDepartmental()))) {
             throw new IllegalArgumentException("Aggiungere almeno un'applicazione all'offerta (oppure scegliere altri elementi senza Dipartimentali)");
         }
-        if (user.initials() == null || user.initials().isBlank()) {
-            throw new IllegalArgumentException("Il tuo profilo non ha le iniziali: impostale in Profilo");
+        String numberInitials = initialsFor(req.customerId(), user);
+        if (numberInitials.isBlank()) {
+            throw new IllegalArgumentException("Mancano le iniziali per il numero offerta: l'account non ha un agente con nome e cognome e il tuo profilo non ha le iniziali (impostale in Profilo)");
         }
         CalcResponse calc = calculate(req);
         for (Violation v : calc.violations()) {
@@ -167,7 +194,7 @@ public class OfferService {
         if (!termErrors.isEmpty()) {
             throw new IllegalArgumentException(String.join("; ", termErrors));
         }
-        String number = buildNumber(req.offerDate(), req.progressive(), user.initials());
+        String number = buildNumber(req.offerDate(), req.progressive(), numberInitials);
         long offerId;
         try {
             if (req.id() == null) {
@@ -181,7 +208,7 @@ public class OfferService {
                             power_list_price, power_net_price, power_disk_count, opt_use_rfq, opt_services_days, app_totals_mode, rfq_sheet_total, services_mode)
                         values (:num, :dt, :prog, :ini, :cust, :by, :title, :ref, :disc, :tl, :tm, :o1, :o2, :o3, :dk, :ns, :tr, :ad, :adt, :mon, :pw, :gal, :sm, :dep, :pm, :pram, :pdisk, :plto, :peth, :pusr, :punl, :pcab, :ptr, :ptref, :ped, :pos, :pmm, :plp, :pnp, :pdc, :rfq, :sdy, :apt, :rst, :svm) returning id""")
                         .param("num", number).param("dt", req.offerDate()).param("prog", req.progressive())
-                        .param("ini", user.initials().toUpperCase()).param("cust", req.customerId()).param("by", user.id())
+                        .param("ini", numberInitials).param("cust", req.customerId()).param("by", user.id())
                         .param("title", req.projectTitle()).param("ref", blankToNull(req.contactRef()))
                         .param("disc", calc.discountPct()).param("tl", calc.totalLicense()).param("tm", calc.totalMaintenance())
                         .param("o1", flag(req.optMaintenanceAdditional())).param("o2", flag(req.optExtraServices()))
@@ -204,7 +231,14 @@ public class OfferService {
             } else {
                 offerId = req.id();
                 OfferHeader existing = header(offerId);
-                // il numero conserva le iniziali di chi ha creato l'offerta
+                if (jdbc.sql("""
+                        select count(*) from offer n where n.deleted_at is null
+                          and n.revision > (select revision from offer where id = :id)
+                          and coalesce(n.revision_of, n.id) = (select coalesce(revision_of, id) from offer where id = :id)""")
+                        .param("id", offerId).query(Long.class).single() > 0) {
+                    throw new IllegalArgumentException("Questa revisione è stata superata da una più recente: modifica l'ultima revisione");
+                }
+                // il numero conserva le iniziali assegnate alla creazione dell'offerta (agente dell'account)
                 number = buildNumber(req.offerDate(), req.progressive(), existing.initials());
                 jdbc.sql("""
                         update offer set number = :num, offer_date = :dt, progressive = :prog, customer_id = :cust,
@@ -245,6 +279,7 @@ public class OfferService {
             throw new IllegalArgumentException("Esiste gia' un'offerta con numero " + number
                     + ": scegliere un altro progressivo");
         }
+        jdbc.sql("update offer set opt_hours_detail = :f where id = :id").param("f", flag(req.optHoursDetail())).param("id", offerId).update();
         checkGalileo(req.galileoApplicationId());
         checkPower(req);
         termsRepo.save(offerId, terms);
@@ -365,6 +400,27 @@ public class OfferService {
                 throw new IllegalArgumentException("Power System: importi duplicati per la manutenzione " + m.months() + " mesi");
             }
             periods.add(m.months());
+        }
+        // il prezzo (listino e netto scontato) di un periodo piu' breve non puo' superare quello di un periodo piu' lungo (per Power e per LTO8)
+        for (String kind : List.of("POWER", "LTO8")) {
+            for (boolean list : new boolean[]{true, false}) {
+                java.util.TreeMap<Integer, java.math.BigDecimal> byMonths = new java.util.TreeMap<>();
+                for (OfferDtos.PowerMaintReq m : ls) {
+                    if (kind.equals(m.kind())) {
+                        byMonths.put(m.months(), list ? m.listPrice() : m.netPrice());
+                    }
+                }
+                Integer prevM = null;
+                java.math.BigDecimal prevP = null;
+                for (var e : byMonths.entrySet()) {
+                    if (prevP != null && prevP.compareTo(e.getValue()) > 0) {
+                        throw new IllegalArgumentException("Power System: manutenzione " + ("LTO8".equals(kind) ? "LTO8" : "Power") + ": il prezzo " + (list ? "di listino" : "netto scontato")
+                                + " a " + prevM + " mesi non può essere maggiore di quello a " + e.getKey() + " mesi");
+                    }
+                    prevM = e.getKey();
+                    prevP = e.getValue();
+                }
+            }
         }
         for (Integer p : periods) {
             if (!seen.contains(p + "POWER") || (lto && !seen.contains(p + "LTO8"))) {
@@ -658,7 +714,7 @@ public class OfferService {
                 h.distanceKm(), h.nearestSede(), h.travelRateId(), loadActivities(id), h.activityDiscountPct(), h.optActivityDetail(), h.maintOnNet(),
                 h.optPowerSystem(), h.galileoApplicationId(), h.optSmitechServices(), h.optDepartmental(),
                 h.powerModelId(), h.powerRamGb(), h.powerDisk(), h.powerLto8(), h.powerEth10(), h.powerIbmiUsers(), h.powerIbmiUnlimited(),
-                h.powerCable(), h.powerTransfer(), h.powerTransferRef(), h.powerEdition(), h.powerOs(), h.powerMaintMonths(), h.powerListPrice(), h.powerNetPrice(), loadPowerProducts(id), h.powerDiskCount(), h.optUseRfq(), h.optServicesDays(), h.appTotalsMode(), h.rfqSheetTotal(), galileo.load(id), h.servicesMode(), loadProfileRates(id), loadPowerMaint(id));
+                h.powerCable(), h.powerTransfer(), h.powerTransferRef(), h.powerEdition(), h.powerOs(), h.powerMaintMonths(), h.powerListPrice(), h.powerNetPrice(), loadPowerProducts(id), h.powerDiskCount(), h.optUseRfq(), h.optServicesDays(), h.appTotalsMode(), h.rfqSheetTotal(), galileo.load(id), h.servicesMode(), loadProfileRates(id), loadPowerMaint(id), jdbc.sql("select opt_hours_detail from offer where id = :id").param("id", id).query(Boolean.class).optional().orElse(false));
     }
 
     private List<OfferDtos.ActivityReq> loadActivities(long offerId) {

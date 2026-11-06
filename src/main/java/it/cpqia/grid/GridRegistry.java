@@ -27,8 +27,11 @@ public class GridRegistry {
     private final TrashService trash;
     private final it.cpqia.repo.CatalogRepository catalog;
     private final it.cpqia.lookup.LookupRepository lookups;
+    private final it.cpqia.service.OfferRevisionService revisions;
 
-    public GridRegistry(JdbcClient jdbc, TrashService trash, it.cpqia.repo.CatalogRepository catalog, it.cpqia.lookup.LookupRepository lookups) {
+    public GridRegistry(JdbcClient jdbc, TrashService trash, it.cpqia.repo.CatalogRepository catalog, it.cpqia.lookup.LookupRepository lookups,
+                        it.cpqia.service.OfferRevisionService revisions) {
+        this.revisions = revisions;
         this.catalog = catalog;
         this.lookups = lookups;
         this.jdbc = jdbc;
@@ -76,8 +79,12 @@ public class GridRegistry {
     // ------------------------------------------------------------------ offerte
     private void offers() {
         GridSpec s = new GridSpec("offers", "Offerte", "offer", "o.id",
-                "offer o join account cu on cu.id = o.customer_id join app_user ou on ou.id = o.created_by", "o.deleted_at is null")
+                "offer o join account cu on cu.id = o.customer_id join app_user ou on ou.id = o.created_by",
+                // solo la revisione attiva (la piu' recente) di ogni offerta: le precedenti si consultano dallo storico revisioni
+                "o.deleted_at is null and not exists (select 1 from offer n where n.deleted_at is null and n.revision > o.revision "
+                        + "and coalesce(n.revision_of, n.id) = coalesce(o.revision_of, o.id))")
                 .col(c("number", "Numero", "o.number").width(130))
+                .col(c("revision", "Rev.", "o.revision").type("int").width(70))
                 .col(c("offerDate", "Data", "o.offer_date").type("date").width(110))
                 .col(c("customer", "Cliente", "cu.company_name").width(220))
                 .col(c("customerCode", "Cod. cliente", "cu.code").width(100))
@@ -104,7 +111,12 @@ public class GridRegistry {
                     return null;
                 })
                 .menuLink("docx", "Scarica Word", "download", "offers/{id}/docx", u -> u.administrator() || u.canExportDocx())
-                .link("edit", "Apri e modifica nel configuratore", "edit", "offers/{id}/edit", u -> u.administrator() || u.canEditOffers());
+                .menuServer("revision", "Nuova revisione", "copy", "Creare una nuova revisione di questa offerta? Sarà una copia collegata, con lo stesso numero e la revisione successiva.",
+                        u -> u.administrator() || u.canCreateOffers(), (u, id) -> {
+                            long n = revisions.create(u, Long.parseLong(id));
+                            return "@vai:offers/" + n + "/edit|Creata la revisione " + revisions.revisionOf(n) + ": è ora quella in gestione";
+                        })
+                .link("edit", "Apri e modifica nel configuratore", "edit", "offers/{id}/open", u -> u.administrator() || u.canEditOffers());
         add(s);
     }
 

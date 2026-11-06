@@ -13,20 +13,48 @@
     <meta name="ctx" th:content="@{/}">
     <title th:text="${title} + ' · CPQIA'">CPQIA</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e7f77'/%3E%3Ctext x='16' y='21' font-size='14' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EQ%3C/text%3E%3C/svg%3E">
+    <meta name="ui-logged" th:content="${uiPrefs != null} ? '1' : ''">
+    <meta name="ui-theme" th:content="${uiPrefs != null and uiPrefs.theme != null} ? ${uiPrefs.theme} : ''">
+    <meta name="ui-palette" th:content="${uiPrefs != null and uiPrefs.palette != null} ? ${uiPrefs.palette} : ''">
     <script>
-    /* tema: giorno | notte | sistema (scelta salvata nel browser); applicato subito per evitare il lampo di tema sbagliato */
+    /* aspetto: modalita' giorno | notte | sistema e palette di colori (predefinita «teal» o «viola»). Le scelte dell'utente collegato sono salvate sul server
+       (e seguono l'utente su ogni browser), una copia nel browser serve ad applicarle subito evitando il lampo del tema sbagliato */
     (function () {
         var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-        function pref() { try { return localStorage.getItem('cpqia.theme') || 'system'; } catch (e) { return 'system'; } }
-        function apply() { var p = pref(), dark = p === 'dark' || (p === 'system' && mq && mq.matches); document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-            var tc = document.querySelector('meta[name=theme-color]'); if (tc) tc.setAttribute('content', dark ? '#101215' : '#ffffff'); }
+        function meta(n) { var m = document.querySelector('meta[name="' + n + '"]'); return m && m.content ? m.content : ''; }
+        function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+        var logged = meta('ui-logged') === '1';
+        if (meta('ui-theme')) ls('cpqia.theme', meta('ui-theme'));
+        if (meta('ui-palette')) ls('cpqia.palette', meta('ui-palette'));
+        function pref() { return ls('cpqia.theme') || 'system'; }
+        function palette() { var v = ls('cpqia.palette'); return v === 'viola' || v === 'foresta' || v === 'terra' ? v : 'teal'; }
+        function apply() {
+            var p = pref(), dark = p === 'dark' || (p === 'system' && mq && mq.matches), pal = palette(), el = document.documentElement;
+            el.setAttribute('data-theme', dark ? 'dark' : 'light');
+            if (pal !== 'teal') el.setAttribute('data-palette', pal); else el.removeAttribute('data-palette');
+            var tc = document.querySelector('meta[name=theme-color]');
+            if (tc) tc.setAttribute('content', ({ viola: ['#f2e9ff', '#0b0720'], foresta: ['#e9ebdf', '#0f1f17'], terra: ['#efe6da', '#1a120e'] }[pal] || ['#ffffff', '#101215'])[dark ? 1 : 0]);
+        }
+        function save(body) {
+            if (!logged) return;
+            try {
+                var h = { 'Content-Type': 'application/json' }, t = meta('_csrf');
+                if (t) h[meta('_csrf_header') || 'X-CSRF-TOKEN'] = t;
+                fetch(meta('ctx') + 'api/ui-prefs', { method: 'POST', headers: h, body: JSON.stringify(body), credentials: 'same-origin' });
+            } catch (e) { /* preferenza non salvata sul server: resta quella del browser */ }
+        }
         apply();
         if (mq && mq.addEventListener) mq.addEventListener('change', apply);
-        window.CPQTheme = { get: pref, set: function (v) { try { localStorage.setItem('cpqia.theme', v); } catch (e) {} apply(); } };
+        window.CPQTheme = {
+            get: pref, getPalette: palette,
+            set: function (v) { ls('cpqia.theme', v); apply(); save({ theme: v }); },
+            setPalette: function (v) { v = v === 'viola' || v === 'foresta' || v === 'terra' ? v : 'teal'; ls('cpqia.palette', v); apply(); save({ palette: v }); }
+        };
     })();
     </script>
     <link rel="stylesheet" th:href="@{/css/m3.css}">
     <link rel="stylesheet" th:href="@{/css/mobile.css}">
+    <link rel="stylesheet" th:href="@{/css/palettes.css}">
 </head>
 <body>
 
@@ -54,6 +82,12 @@
             </button>
             <div class="menu" id="usermenu" hidden>
                 <a th:href="@{/profile}"><svg class="ic"><use href="#i-person"/></svg>Profilo e iniziali</a>
+                <hr>
+                <div class="palette-sec">Palette colori</div>
+                <button type="button" data-palette-set="teal" title="Laguna – verde acqua e carbone (predefinita)"><span class="sw"><i style="background:#0d3b39"></i><i style="background:#0e7f77"></i><i style="background:#3fbfb4"></i><i style="background:#d9f2ee"></i></span>Laguna<svg class="ic tick"><use href="#i-check"/></svg></button>
+                <button type="button" data-palette-set="viola" title="Ametista – viola profondo e lavanda"><span class="sw"><i style="background:#0B0720"></i><i style="background:#25134D"></i><i style="background:#6A2FC8"></i><i style="background:#9D71E8"></i><i style="background:#D1B8FF"></i><i style="background:#F2E9FF"></i></span>Ametista<svg class="ic tick"><use href="#i-check"/></svg></button>
+                <button type="button" data-palette-set="foresta" title="Foresta – verde bosco e salvia"><span class="sw"><i style="background:#0F1F17"></i><i style="background:#1E3A2E"></i><i style="background:#3E5A3F"></i><i style="background:#6B7F67"></i><i style="background:#C7CBB8"></i><i style="background:#3D4337"></i></span>Foresta<svg class="ic tick"><use href="#i-check"/></svg></button>
+                <button type="button" data-palette-set="terra" title="Terra – marrone caffè e sabbia"><span class="sw"><i style="background:#1A120E"></i><i style="background:#3A2418"></i><i style="background:#6B4A2E"></i><i style="background:#A88462"></i><i style="background:#D5C4AE"></i><i style="background:#4A4A46"></i></span>Terra<svg class="ic tick"><use href="#i-check"/></svg></button>
                 <hr>
                 <form th:action="@{/logout}" method="post"><button type="submit"><svg class="ic"><use href="#i-logout"/></svg>Esci</button></form>
             </div>

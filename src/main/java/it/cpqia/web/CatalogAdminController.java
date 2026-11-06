@@ -120,39 +120,39 @@ public class CatalogAdminController {
     @PostMapping("/{id}/drivers/add")
     public String addDriver(@PathVariable long id, @RequestParam String code, @RequestParam String label,
                             @RequestParam(required = false) String licenseCode, @RequestParam(required = false) String unitLabel,
-                            RedirectAttributes ra) {
-        return run(id, ra, () -> admin.addDriver(id, code, label, licenseCode, unitLabel));
+                            @RequestParam(required = false) Long returnModule, RedirectAttributes ra) {
+        return run(id, ra, returnModule, () -> admin.addDriver(id, code, label, licenseCode, unitLabel));
     }
 
     @PostMapping("/{id}/drivers/{did}/delete")
-    public String deleteDriver(@PathVariable long id, @PathVariable long did, RedirectAttributes ra) {
-        return run(id, ra, () -> admin.deleteDriver(did, me()));
+    public String deleteDriver(@PathVariable long id, @PathVariable long did, @RequestParam(required = false) Long returnModule, RedirectAttributes ra) {
+        return run(id, ra, returnModule, () -> admin.deleteDriver(did, me()));
     }
 
     @PostMapping("/{id}/groups/add")
     public String addGroup(@PathVariable long id, @RequestParam long driverId, @RequestParam String code,
                            @RequestParam String label, @RequestParam(defaultValue = "TIER1") String baseMode,
-                           @RequestParam(required = false) String fixedBase, RedirectAttributes ra) {
-        return run(id, ra, () -> admin.addGroup(id, driverId, code, label, baseMode, fixedBase));
+                           @RequestParam(required = false) String fixedBase, @RequestParam(required = false) Long returnModule, RedirectAttributes ra) {
+        return run(id, ra, returnModule, () -> admin.addGroup(id, driverId, code, label, baseMode, fixedBase));
     }
 
     @PostMapping("/{id}/groups/{gid}/delete")
-    public String deleteGroup(@PathVariable long id, @PathVariable long gid, RedirectAttributes ra) {
-        return run(id, ra, () -> admin.deleteGroup(gid, me()));
+    public String deleteGroup(@PathVariable long id, @PathVariable long gid, @RequestParam(required = false) Long returnModule, RedirectAttributes ra) {
+        return run(id, ra, returnModule, () -> admin.deleteGroup(gid, me()));
     }
 
     @PostMapping("/{id}/tiers/save")
     public String saveTier(@PathVariable long id, @RequestParam(required = false) Long tierId, @RequestParam long groupId,
                            @RequestParam long fromQty, @RequestParam(required = false) Long toQty, @RequestParam String label,
                            @RequestParam(required = false) String pct, @RequestParam(required = false) String unitPrices,
-                           RedirectAttributes ra) {
+                           @RequestParam(required = false) Long returnModule, RedirectAttributes ra) {
         BigDecimal p = pct == null || pct.isBlank() ? null : new BigDecimal(pct.trim().replace(',', '.'));
-        return run(id, ra, () -> admin.saveTier(tierId, groupId, fromQty, toQty, label, p, unitPrices));
+        return run(id, ra, returnModule, () -> admin.saveTier(tierId, groupId, fromQty, toQty, label, p, unitPrices));
     }
 
     @PostMapping("/{id}/tiers/{tid}/delete")
-    public String deleteTier(@PathVariable long id, @PathVariable long tid, RedirectAttributes ra) {
-        return run(id, ra, () -> admin.deleteTier(tid, me()));
+    public String deleteTier(@PathVariable long id, @PathVariable long tid, @RequestParam(required = false) Long returnModule, RedirectAttributes ra) {
+        return run(id, ra, returnModule, () -> admin.deleteTier(tid, me()));
     }
 
     // ------------------------------------------------------------------ moduli
@@ -176,6 +176,13 @@ public class CatalogAdminController {
         model.addAttribute("priceText", CatalogAdminRepository.formatPrices(m.prices()));
         model.addAttribute("moduleArea", admin.moduleAreas(id).get(mid));
         model.addAttribute("moduleDoc", moduleDocs.currentFile(mid));
+        Map<Long, String> tierText = new LinkedHashMap<>();
+        for (it.cpqia.pricing.PricingModel.Group g : app.groups()) {
+            for (it.cpqia.pricing.PricingModel.Tier t : g.tiers()) {
+                tierText.put(t.id(), CatalogAdminRepository.formatPrices(t.unitByMode()));
+            }
+        }
+        model.addAttribute("tierText", tierText);
         return "admin/module-form";
     }
 
@@ -247,13 +254,18 @@ public class CatalogAdminController {
 
     // ------------------------------------------------------------------ helper
     private String run(long appId, RedirectAttributes ra, Runnable action) {
+        return run(appId, ra, null, action);
+    }
+
+    /** returnModule: se indicato si torna alla scheda di quel modulo (es. fasce di SMISMP) invece che alla pagina dell'applicazione */
+    private String run(long appId, RedirectAttributes ra, Long returnModule, Runnable action) {
         try {
             action.run();
             ra.addFlashAttribute("msg", "Modifica salvata");
         } catch (RuntimeException e) {
             ra.addFlashAttribute("err", message(e));
         }
-        return "redirect:/admin/applications/" + appId;
+        return "redirect:/admin/applications/" + appId + (returnModule == null ? "" : "/modules/" + returnModule);
     }
 
     private static String message(RuntimeException e) {

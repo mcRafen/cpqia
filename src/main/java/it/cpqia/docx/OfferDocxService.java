@@ -206,7 +206,7 @@ public class OfferDocxService {
                         rs.getString("label"), rs.getString("market"))).optional().orElse(null);
         if (gal != null && gal.list() != null) {
             BigDecimal gm = gal.maint() == null ? BigDecimal.ZERO : gal.maint();
-            tableLines.add(0, new TableLine(List.of("GALILEO"), List.of(gal.market() + " – " + gal.label()), eur(gal.list()), eur(gm), gal.users() + " utenti"));
+            tableLines.add(0, new TableLine(List.of("GALILEO"), List.of(gal.market()), eur(gal.list()), eur(gm), gal.users() > 0 ? "Licenze Posti di Lavoro n. " + gal.users() : ""));
             lineFamilies.add(0, "JGALILEO");
             totLic = totLic.add(gal.list());
             totMan = totMan.add(gm);
@@ -235,6 +235,7 @@ public class OfferDocxService {
         tokens.put("{{RIF}}", h.contactRef() == null ? "" : h.contactRef());
         tokens.put("{{DATA}}", h.offerDate().format(LONG_DATE));
         tokens.put("{{NUMERO}}", h.number());
+        tokens.put("{{REVISIONE}}", String.valueOf(jdbc.sql("select revision from offer where id = :id").param("id", h.id()).query(Integer.class).optional().orElse(0)));
         if (power != null) {                                // segnaposto utilizzabili nei documenti Word della sezione Power System
             tokens.put("{{PW_MODELLO}}", power.model());
             tokens.put("{{PW_TIPO}}", power.type());
@@ -325,9 +326,12 @@ public class OfferDocxService {
                             replaceEverywhere(part, tokens);
                             elems = trimToOwnPart(part.getBodyElements(), idx);
                             elems = withModuleList(doc, elems, moduleFamilies);      // elenco dei moduli appena prima della tabella degli importi
+                            if (!h.optFinalSummary()) {                               // «Modello offerta Light» spento: titolo «Importi licenze software» + riga vuota prima della tabella
+                                elems = withLicenceHeading(part, elems);
+                            }
                         }
                         case "attivita" -> {
-                            activitiesTotal = fillActivityTables(part, activityRows, h.activityDiscountPct(), h.optActivityDetail(), h.optServicesDays(), h.appTotalsMode(), tokens);
+                            activitiesTotal = fillActivityTables(part, activityRows, h.activityDiscountPct(), h.optActivityDetail(), jdbc.sql("select opt_hours_detail from offer where id = :id").param("id", h.id()).query(Boolean.class).optional().orElse(false), h.optServicesDays(), h.appTotalsMode(), tokens);
                             replaceEverywhere(part, tokens);
                             elems = trimToOwnPart(part.getBodyElements(), idx);
                         }
@@ -691,6 +695,29 @@ public class OfferDocxService {
         return out;
     }
 
+    /** due righe vuote, titolo «Importi licenze software» (Arial 11 grassetto) e una riga vuota, subito prima della prima tabella della parte «licenze» */
+    private static List<IBodyElement> withLicenceHeading(XWPFDocument part, List<IBodyElement> elems) {
+        XWPFParagraph pre1 = part.createParagraph();
+        XWPFParagraph pre2 = part.createParagraph();
+        XWPFParagraph title = part.createParagraph();
+        XWPFRun r = title.createRun();
+        r.setFontFamily("Arial");
+        r.setFontSize(11);
+        r.setBold(true);
+        r.setText("Importi licenze software");
+        XWPFParagraph blank = part.createParagraph();
+        List<IBodyElement> out = new ArrayList<>(elems);
+        int at = 0;
+        while (at < out.size() && !(out.get(at) instanceof XWPFTable)) {
+            at++;
+        }
+        out.add(at, blank);
+        out.add(at, title);
+        out.add(at, pre2);
+        out.add(at, pre1);
+        return out;
+    }
+
     /** inserisce l'elenco famiglie / aree / moduli (modello moduli.docx) subito prima della prima tabella della parte «licenze» */
     private List<IBodyElement> withModuleList(XWPFDocument main, List<IBodyElement> elems, Map<String, Map<String, List<String[]>>> families) throws IOException {
         if (families.isEmpty()) {
@@ -1048,8 +1075,19 @@ public class OfferDocxService {
             for (int i = Math.max(listIdx, netIdx); i >= Math.min(listIdx, netIdx); i--) {
                 tTot.removeRow(i);
             }
+            boolean firstPeriod = true;
             for (Integer m : periods) {
                 String suffix = multi ? " – " + m + " MESI" : "";
+                if (!firstPeriod) {                                  // una riga vuota tra le durate (36, 48, 60)
+                    for (int k = 0; k < 1; k++) {
+                        CTRow blank = tTot.getCTTbl().addNewTr();
+                        blank.set(protoList.copy());
+                        for (CTTc tc : blank.getTcArray()) {
+                            setCellText(tc, "");
+                        }
+                    }
+                }
+                firstPeriod = false;
                 for (MaintAmt a : ls) {
                     if (a.months() != m) {
                         continue;
@@ -1277,7 +1315,7 @@ public class OfferDocxService {
         addSubtotal(table, sub, "Totale " + appName, qty, total, !"AMOUNT".equals(m), !"HOURS".equals(m));
     }
 
-    private BigDecimal fillActivityTables(XWPFDocument part, List<ActRow> acts, BigDecimal discountPct, boolean detail, boolean daysMode, String appTotalsMode, Map<String, String> tokens) {
+    private BigDecimal fillActivityTables(XWPFDocument part, List<ActRow> acts, BigDecimal discountPct, boolean detail, boolean hoursDetail, boolean daysMode, String appTotalsMode, Map<String, String> tokens) {
         BigDecimal factor = BigDecimal.ONE.subtract((discountPct == null ? BigDecimal.ZERO : discountPct).divide(HUNDRED));
         XWPFTable table = null;
         int bandIdx = -1;
@@ -1388,12 +1426,12 @@ public class OfferDocxService {
             r.set(line.copy());
             if (figLayout) {
                 fillCellLines(r.getTcArray(0), List.of(a.description()));             // la figura professionale ha la sua colonna, non va nella descrizione
-                setCellText(r.getTcArray(1), hoursText(daysMode ? a.days() : a.hours()));
+                setCellText(r.getTcArray(1), hoursDetail ? hoursText(daysMode ? a.days() : a.hours()) : "");      // ore / giorni di ogni attività solo con «Dettaglio ore»
                 setCellText(r.getTcArray(2), a.profile() == null ? "" : a.profile());
             } else {
                 boolean withProfile = detail && a.profile() != null && !a.profile().isBlank();
                 fillCellLines(r.getTcArray(0), withProfile ? List.of(a.description(), a.profile()) : List.of(a.description()));
-                setCellText(r.getTcArray(1), detail ? hoursText(daysMode ? a.days() : a.hours()) : "");
+                setCellText(r.getTcArray(1), detail || hoursDetail ? hoursText(daysMode ? a.days() : a.hours()) : "");
                 setCellText(r.getTcArray(2), detail ? eur(netRate) : "");
                 setCellText(r.getTcArray(3), detail ? eur(value) : "");
             }

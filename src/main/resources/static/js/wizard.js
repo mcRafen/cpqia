@@ -21,7 +21,7 @@
     gal: { profileId: null, release: '', users: '0', addUsers: '', source: 0, aggiunta: false, sel: {}, calc: null },
     customer: null, title: '', contactRef: '', discountPct: 0, optMaint: false, optServices: false, optSummary: false,
     xSel: { services: new Set(), options: {} },
-    accountTravelRateId: null, activities: [], actDiscount: 0, actDetail: false, maintOnNet: true, profiles: [],
+    accountTravelRateId: null, activities: [], actDiscount: 0, actDetail: false, hoursDetail: false, maintOnNet: true, profiles: [],
     distanceKm: null, nearestSede: '', distMethod: '', distFor: null, travelRateId: null, travelRates: [],
     terms: null, payTouched: { lic: false, fee: false, act: false },
     lines: [], step: 1, saved: null,
@@ -88,7 +88,7 @@
           const g = rq.galileo; S.gal = { profileId: g.profileId, release: g.release || 'V9', users: g.users || '', addUsers: g.addUsers || '', source: g.source || 0, aggiunta: !!g.aggiunta, sel: {}, calc: null };
           (g.selections || []).forEach((x) => { S.gal.sel[x.moduleId] = x.state; });
         }
-        S.actDiscount = rq.activityDiscountPct || 0; S.actDetail = !!rq.optActivityDetail; S.maintOnNet = rq.maintOnNet !== false;
+        S.actDiscount = rq.activityDiscountPct || 0; S.actDetail = !!rq.optActivityDetail; S.hoursDetail = !!rq.optHoursDetail; S.maintOnNet = rq.maintOnNet !== false;
         S.activities = (rq.activities || []).map((a) => ({ appId: a.applicationId, desc: a.description, profileId: a.profileId, profileName: a.profileName, hours: a.hours, rate: a.rate, rfq: !!a.rfqImport, group: a.rfqGroup || '', days: a.days }));
         S.profileEdits = {}; (rq.profileRates || []).forEach((r) => { S.profileEdits[r.profileId] = Number(r.amount); });
         if (S.servicesMode !== 'RFQ') buildGroupsFromRows();
@@ -126,10 +126,77 @@
     $('#opt-maint').checked = S.optMaint; $('#opt-services').checked = S.optServices; $('#opt-summary').checked = S.optSummary;
     $('#opt-galileo').checked = S.optGalileo; $('#galileo-box').hidden = !S.optGalileo;
     renderPower();
-    syncServicesUi(); $('#opt-days').checked = S.optDays; $('#opt-apptot').value = S.appTotalsMode; $('#svc-detail').checked = S.actDetail; $('#opt-power').checked = S.optPower; $('#opt-smitech').checked = S.optSmitech; $('#opt-dept').checked = S.optDept;
+    syncServicesUi(); $('#opt-days').checked = S.optDays; $('#opt-apptot').value = S.appTotalsMode; $('#svc-detail').checked = S.actDetail; $('#opt-hours-detail').checked = S.hoursDetail; $('#opt-power').checked = S.optPower; $('#opt-smitech').checked = S.optSmitech; $('#opt-dept').checked = S.optDept;
     renderGalileo();
+    loadRevisions();
     $('#opt-maint-hint').hidden = S.optSummary || !S.optMaint; $('#row-apptot').hidden = !S.optSummary; $('#row-detail').hidden = !S.optSummary;
     updateNumber();
+  }
+
+  /** revisione corrente (sola lettura) e storia delle revisioni dell'offerta, con i collegamenti alle altre revisioni */
+  async function loadRevisions() {
+    if (!S.offerId) return;
+    try {
+      const r = await CPQ.api('GET', '/offers/api/' + S.offerId + '/revisions');
+      $('#rev-superseded').hidden = !r.superseded;
+      const box = $('#rev-history');
+      box.hidden = !r.history.length;
+      box.classList.add('keep');
+      const latest = r.history.length ? r.history[0].id : null;
+      const chipStyle = 'border:0;cursor:pointer;font:inherit;height:auto;padding:4px 12px';          // stessa dimensione del carattere e stesso colore per tutte le revisioni
+      const when = (x) => { const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(x.createdAt || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] : ''; };
+      box.innerHTML = '<div style="font-weight:500;margin-bottom:6px">Storico revisioni <span class="muted" style="font-weight:400">(dalla più recente)</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + r.history.map((x) => {
+        const label = 'Rev. ' + x.revision + (x.id === latest ? ' · attuale' : '') + ' · ' + when(x) + (x.author ? ' - ' + x.author : '');
+        const tip = esc((x.author || '') + (x.createdAt ? ' – ' + when(x) : ''));
+        // l'ultima revisione e' un collegamento; sulle precedenti il clic apre il menu (Visualizza revisione / Promuovi ad attuale)
+        if (x.current) return '<span class="chip rev-now" title="' + tip + '" aria-current="true" style="' + chipStyle.replace('cursor:pointer', 'cursor:default') + '">' + esc(label) + '</span>';          // revisione aperta: non cliccabile
+        return x.id === latest
+          ? '<a class="chip blue" href="' + esc(CPQ.url('/offers/' + x.id + '/edit')) + '" title="' + tip + '" style="' + chipStyle + '">' + esc(label) + '</a>'
+          : '<button type="button" class="chip blue keep rev-chip" data-id="' + x.id + '" data-rev="' + x.revision + '" title="' + tip + '" aria-haspopup="menu" style="' + chipStyle + '">' + esc(label) + ' ▾</button>';
+      }).join('') + '</div>';
+      let menu = null;
+      const closeMenu = () => { if (menu) { menu.remove(); menu = null; document.removeEventListener('click', onDoc, true); document.removeEventListener('keydown', onKey); } };
+      const onDoc = (e) => { if (menu && !menu.contains(e.target)) closeMenu(); };
+      const onKey = (e) => { if (e.key === 'Escape') closeMenu(); };
+      box.querySelectorAll('.rev-chip').forEach((b) => b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const same = menu && menu.dataset.for === b.dataset.id; closeMenu(); if (same) return;
+        menu = document.createElement('div'); menu.className = 'cg-rowmenu'; menu.setAttribute('role', 'menu'); menu.dataset.for = b.dataset.id;
+        menu.innerHTML = '<button type="button" role="menuitem" data-m="view"><svg class="ic"><use href="#i-view"/></svg>Visualizza revisione</button>' +
+          '<button type="button" role="menuitem" data-m="promote"><svg class="ic"><use href="#i-restore"/></svg>Promuovi ad attuale</button>';
+        document.body.appendChild(menu);
+        const rc = b.getBoundingClientRect();
+        menu.style.left = Math.max(8, Math.min(window.innerWidth - menu.offsetWidth - 8, rc.left)) + 'px'; menu.style.top = (rc.bottom + 4) + 'px';
+        menu.addEventListener('click', async (ev) => {
+          const m = ev.target.closest('[data-m]'); if (!m) return;
+          closeMenu();
+          if (m.dataset.m === 'view') { window.location.href = CPQ.url('/offers/' + b.dataset.id + '/edit'); return; }
+          if (!(await CPQ.confirm('Promuovere la revisione ' + b.dataset.rev + ' ad attuale? Verrà creata una nuova revisione, copia della ' + b.dataset.rev + ', che diventa quella in gestione.', { title: 'Promuovi revisione', yes: 'Sì, promuovi' }))) return;
+          try { const res = await CPQ.api('POST', '/offers/api/' + b.dataset.id + '/promote', {}); CPQ.clean(); window.location.href = CPQ.url('/offers/' + res.id + '/edit'); }
+          catch (er) { toast(er.message, true); }
+        });
+        setTimeout(() => { document.addEventListener('click', onDoc, true); document.addEventListener('keydown', onKey); }, 0);
+      }));
+      if (r.superseded) setReadOnly();
+    } catch (_) { /* storico non critico */ }
+  }
+
+  /** revisione superata: l'offerta e' di sola consultazione (campi e pulsanti di modifica disabilitati, resta la navigazione tra le pagine) */
+  function setReadOnly() {
+    if (S.readOnly) return;
+    S.readOnly = true;
+    const nav = /^btn-(next|back|to)\d*$/;
+    const lock = () => {
+      root.querySelectorAll('[data-step] input, [data-step] select, [data-step] textarea, [data-step] button, #btn-save').forEach((el) => {
+        if (el.closest('.keep') || el.classList.contains('keep') || nav.test(el.id) || el.id === 'btn-save-docx') return;
+        if (!el.disabled) el.disabled = true;
+      });
+    };
+    lock();
+    let t = null;
+    new MutationObserver(() => { clearTimeout(t); t = setTimeout(lock, 30); }).observe(root, { childList: true, subtree: true });
+    document.body.classList.add('wiz-ro');
+    refreshSaveState();
   }
 
   function updateNumber() {
@@ -141,7 +208,7 @@
       S.date = e.target.value; updateNumber();
       if (!S.offerId && S.date) {
         try {
-          const r = await CPQ.api('GET', '/offers/api/next-progressive?date=' + encodeURIComponent(S.date));
+          const r = await CPQ.api('GET', '/offers/api/next-progressive?date=' + encodeURIComponent(S.date) + (S.customer ? '&customerId=' + encodeURIComponent(S.customer.id) : ''));
           S.progressive = r.progressive; $('#f-prog').value = S.progressive; updateNumber();
         } catch (_) { /* suggerimento non critico */ }
       }
@@ -255,9 +322,31 @@
     if (S.step === 5) renderServices(); else updateAmounts();
   }
 
+  /** agente dell'account (sola lettura): nome decodificato dall'anagrafica; in una nuova offerta le sue iniziali compongono il numero */
+  async function loadAgent() {
+    const c = S.customer;
+    const show = (t) => { S.agentText = t; const dd = $('#cust-agent'); if (dd) dd.textContent = t; };
+    if (!c) { show(''); return; }
+    show('…');
+    try {
+      const r = await CPQ.api('GET', '/offers/api/agent?customerId=' + encodeURIComponent(c.id));
+      if (!S.customer || S.customer.id !== c.id) return;
+      show(r.name ? r.name + (r.code ? ' (' + r.code + ')' : '') : (r.code || '— nessun agente —'));
+      if (!S.offerId) {
+        S.initials = r.initials || S.initials;
+        if (S.date) {
+          const n = await CPQ.api('GET', '/offers/api/next-progressive?date=' + encodeURIComponent(S.date) + '&customerId=' + encodeURIComponent(c.id));
+          S.progressive = n.progressive; $('#f-prog').value = S.progressive; S.initials = n.initials || S.initials;
+        }
+        updateNumber();
+      }
+    } catch (_) { show(''); }
+  }
+
   function renderCustomer() {
     refreshRates();
     applyDefaultPay();
+    loadAgent();
     const box = $('#custbox'); const c = S.customer;
     if (!c) { box.hidden = true; return; }
     box.hidden = false;
@@ -265,7 +354,8 @@
       '<dt>Codice</dt><dd><b>' + esc(c.code) + '</b> <span class="chip ' + (c.type === 'CLIENTE' ? 'ok' : 'blue') + '">' + (c.type === 'CLIENTE' ? 'Cliente' : 'Prospect') + '</span></dd>' +
       '<dt>Ragione sociale</dt><dd>' + esc(c.companyName) + '</dd>' +
       '<dt>Indirizzo</dt><dd>' + esc(c.streetType + ' ' + c.streetName + ', ' + c.streetNumber) + ' – ' + esc(c.postalCode + ' ' + c.city + (c.province ? ' (' + c.province.toUpperCase() + ')' : '')) + '</dd>' +
-      '<dt>P.IVA / C.F.</dt><dd>' + esc(c.vatNumber) + (c.taxCode ? ' / ' + esc(c.taxCode) : '') + '</dd>';
+      '<dt>P.IVA / C.F.</dt><dd><a href="#" class="atoka-vat" data-vat="' + esc(c.vatNumber) + '" title="Apri i dettagli su ATOKA">' + esc(c.vatNumber) + '</a>' + (c.taxCode ? ' / ' + esc(c.taxCode) : '') + '</dd>' +
+      '<dt>Agente</dt><dd id="cust-agent">' + esc(S.agentText || '') + '</dd>';
   }
 
   // nuova anagrafica dal wizard
@@ -518,6 +608,20 @@
         CPQ.fieldError(bad, 'Manutenzione ' + m + ' mesi – ' + (kind === 'LTO8' ? 'LTO8' : 'Power') + ': indica il ' + (bad.dataset.f === 'list' ? 'prezzo di listino' : 'prezzo netto scontato'));
         return;
       }
+      // il prezzo (di listino e netto scontato) di un periodo piu' breve non puo' superare quello di un periodo piu' lungo (Power e LTO8): 36 <= 48 <= 60 mesi
+      const months = S.powerMaintList.slice().sort((a, b) => a - b);
+      for (const kind of (S.powerLto8 ? ['POWER', 'LTO8'] : ['POWER'])) {
+        for (const f of ['list', 'net']) {
+          for (let i = 0; i + 1 < months.length; i++) {
+            const a = C.parseMoney((amtDraft[amtKey(months[i], kind)] || {})[f]), b = C.parseMoney((amtDraft[amtKey(months[i + 1], kind)] || {})[f]);
+            if (a != null && b != null && a > b) {
+              const el = body.querySelector('input[data-k="' + months[i] + '|' + kind + '"][data-f="' + f + '"]');
+              CPQ.fieldError(el, 'Manutenzione ' + (kind === 'LTO8' ? 'LTO8' : 'Power') + ': il prezzo ' + (f === 'list' ? 'di listino' : 'netto scontato') + ' a ' + months[i] + ' mesi (' + CPQ.eur(a) + ') non può essere maggiore di quello a ' + months[i + 1] + ' mesi (' + CPQ.eur(b) + ')');
+              return;
+            }
+          }
+        }
+      }
       S.powerMaintAmt = amtDraft; amtDraft = null;
       $('#pw-amt-dialog').close(); renderAmtSummary(); CPQ.markDirty('page', root); refreshSaveState();
     });
@@ -562,6 +666,7 @@
     if (h) h.hidden = !linked;
     refreshPowerModelList(!!userChange);
     updatePowerLock();
+    smitechUsersChanged();
   }
 
   function powerText() {
@@ -636,7 +741,9 @@
       const ap = appOf(l.applicationId); if (!ap) return;
       ap.drivers.forEach((d) => {
         const needed = ap.family !== 'SMITECH' || ap.groups.filter((g) => g.driverId === d.id).some((g) => ap.modules.some((m) => m.groupId === g.id && l.modules[m.id] > 0));
-        if (needed && !C.driverIsFree(ap, d) && !((l.drivers[d.id] || 0) >= 1)) {
+        if (needed && ap.family === 'SMITECH' && !((l.drivers[d.id] || 0) >= 1)) {
+          if (!(S.optPower && S.powerUnlimited)) add(9, 'users', '#sm-body', 'Servizi SMITECH: indica gli utenti nella configurazione Power System o Galileo (' + (d.unitLabel || 'utenti') + ' del servizio SMISMP)');
+        } else if (needed && !C.driverIsFree(ap, d) && !((l.drivers[d.id] || 0) >= 1)) {
           add(2, 'users', '#apps-body .drv-in[data-drv="' + d.id + '"]', ap.name + ': indica il numero di ' + (d.unitLabel || d.label || 'utenti').toLowerCase(), () => { expanded.add(ap.id); });
         }
       });
@@ -885,6 +992,7 @@
   // ---------------------------------------------------------------- calcolo (server)
   let calcTimer; let calcSeq = 0;
   function scheduleCalc() {
+    syncSmitechUsers();
     clearTimeout(calcTimer);
     calcTimer = setTimeout(async () => {
       const seq = ++calcSeq;
@@ -1165,17 +1273,25 @@
     $('#sum-title').value = S.title || C.suggestTitle(catalog, S.lines);
     if (document.activeElement !== $('#svc-disc')) $('#svc-disc').value = S.actDiscount || '';
     if (document.activeElement !== $('#sum-disc')) $('#sum-disc').value = S.discountPct || '';
-    const rows = S.lines.map((l, i) => {
+    // le applicazioni si dividono in due tabelle: licenze una tantum con manutenzione (%) e servizi a canone annuo (moduli ANNUAL / MONTHLY)
+    const isFee = (m) => m && (m.kind === 'ANNUAL' || m.kind === 'MONTHLY');
+    const rows = []; const feeRows = [];
+    S.lines.forEach((l, i) => {
       const a = appOf(l.applicationId); const lc = calc ? calc.lines[i] : null;
-      const mods = Object.keys(l.modules).map((id) => { const m = a.modules.find((x) => x.id === Number(id)); return m ? '<div><span class="mono">' + esc(m.code) + '</span> ' + esc(m.description) + (l.modules[id] > 1 ? ' <b>× ' + l.modules[id] + '</b>' : '') + '</div>' : ''; }).join('');
+      const modHtml = (pred) => Object.keys(l.modules).map((id) => { const m = a.modules.find((x) => x.id === Number(id)); return m && l.modules[id] > 0 && pred(m) ? '<div><span class="mono">' + esc(m.code) + '</span> ' + esc(m.description) + (l.modules[id] > 1 ? ' <b>× ' + l.modules[id] + '</b>' : '') + '</div>' : ''; }).join('');
       const seats = a.drivers.filter((d) => l.drivers[d.id] > 0).map((d) => esc(d.label) + ': <b>' + CPQ.num(l.drivers[d.id], 0) + '</b>').join(' · ');
       const mode = a.modes.length ? '<div class="hint">' + esc((a.modes.find((m) => m.code === l.modeCode) || {}).label || '') + '</div>' : '';
-      return '<tr><td><b>' + esc(a.name) + '</b>' + mode + '</td><td>' + mods + '</td><td>' + seats + '</td><td class="num pr">' + (lc ? CPQ.eur(lc.licenseTotal) : '') + '</td><td class="num pr">' + (lc ? CPQ.eur(lc.maintenance) : '') + '</td></tr>';
-    }).join('');
+      const fee = lc ? Number(lc.annual) || 0 : 0;
+      const licMods = modHtml((m) => !isFee(m)), feeMods = modHtml(isFee);
+      if (licMods || !feeMods) rows.push('<tr><td><b>' + esc(a.name) + '</b>' + mode + '</td><td>' + licMods + '</td><td>' + seats + '</td><td class="num pr">' + (lc ? CPQ.eur(lc.licenseTotal) : '') + '</td><td class="num pr">' + (lc ? CPQ.eur(r2(lc.maintenance - fee)) : '') + '</td></tr>');
+      if (feeMods || fee > 0) feeRows.push('<tr><td><b>' + esc(a.name) + '</b>' + mode + '</td><td>' + feeMods + '</td><td>' + seats + '</td><td class="num pr">' + (lc ? CPQ.eur(fee) : '') + '</td></tr>');
+    });
     const gt = galileoTotals();
     const galRow = stepVisible(8) && S.gal.calc && S.gal.calc.result && S.gal.calc.result.valid
       ? '<tr><td><b>Galileo</b><div class="hint">' + esc(galProfileLabel()) + '</div></td><td>' + esc(galSelectedText()) + '</td><td>Utenti: <b>' + CPQ.num(Number(S.gal.users) || 0, 0) + '</b></td><td class="num pr">' + CPQ.eur(gt.list) + '</td><td class="num pr">' + CPQ.eur(gt.maint) + '</td></tr>' : '';
-    $('#sum-body').innerHTML = galRow + rows;                                // Galileo, se presente, e' sempre la prima riga
+    $('#sum-body').innerHTML = galRow + rows.join('');                       // Galileo, se presente, e' sempre la prima riga
+    $('#sum-annual-wrap').hidden = !feeRows.length;
+    $('#sum-annual-body').innerHTML = feeRows.join('');
     renderSummaryExtras();
     updateSummaryTotals();
     renderViolations('#sum-violations');
@@ -1640,6 +1756,7 @@
     $('#opt-services-on').addEventListener('change', (e) => applyServicesMode(e.target.checked ? (lastServicesMode || 'MANUAL') : 'NONE'));
     $('#sel-svc-mode').addEventListener('change', (e) => applyServicesMode(e.target.value));
     $('#opt-days').addEventListener('change', (e) => { S.optDays = e.target.checked; });
+    $('#opt-hours-detail').addEventListener('change', (e) => { S.hoursDetail = e.target.checked; });
     $('#opt-apptot').addEventListener('change', (e) => { S.appTotalsMode = e.target.value; });
     $('#btn-rfq-import').addEventListener('click', openRfqDialog);
     $('#rfq-cancel').addEventListener('click', () => $('#rfq-dialog').close());
@@ -2092,6 +2209,24 @@
     if (S.step === 9) renderSmitech();
   }
   const smMode = (app, line) => smitechPowerClass(app) || (line && line.modeCode) || S.smitechMode || (app.modes.find((m) => m.preferred) || app.modes[0] || {}).code || null;
+  /** utenti dei servizi SMITECH: quelli impostati su Power System e/o Galileo (se ci sono entrambi, il maggiore) */
+  function smitechUsers() {
+    const c = [];
+    if (S.optPower && S.powerModelId && !S.powerUnlimited && Number(S.powerUsers) > 0) c.push({ n: Number(S.powerUsers), src: 'Power System' });
+    if (S.optGalileo && Number(S.gal.users) > 0) c.push({ n: Number(S.gal.users), src: 'Galileo' });
+    if (!c.length) return { n: 0, src: S.optPower && S.powerUnlimited ? 'Power System (utenti illimitati)' : '' };
+    const max = Math.max.apply(null, c.map((x) => x.n));
+    const srcs = c.filter((x) => x.n === max).map((x) => x.src);
+    return { n: max, src: srcs.join(' e ') };
+  }
+  /** riporta gli utenti di Power / Galileo nelle grandezze (utenti) della riga SMITECH; vero se qualcosa e' cambiato */
+  function syncSmitechUsers() {
+    const app = smitechApp(), line = app && lineOf(app.id); if (!line) return false;
+    const u = smitechUsers().n; let changed = false;
+    app.drivers.forEach((d) => { if ((line.drivers[d.id] || 0) !== u) { line.drivers[d.id] = u; changed = true; } });
+    return changed;
+  }
+  function smitechUsersChanged() { if (syncSmitechUsers()) scheduleCalc(); if (S.step === 9) renderSmitech(); }
   function smModules(app) { return app.modules.filter((m) => m.area === 'SMITECH' && m.section !== 'LINK'); }
   /** testo del prezzo: importo del modulo per la classe scelta, oppure «da …» per i moduli a fasce di utenti */
   function smPriceText(app, m, mode) {
@@ -2105,6 +2240,7 @@
   }
   function renderSmitech() {
     const app = smitechApp(), body = $('#sm-body'); if (!app || !body) { if (body) body.innerHTML = '<tr><td colspan="5" class="muted">Applicazione SMITECH non presente nell\'anagrafica.</td></tr>'; return; }
+    syncSmitechUsers();
     const line = lineOf(app.id), mode = smMode(app, line);
     $('#sm-mode-box').hidden = !app.modes.length;
     const forced = smitechPowerClass(app);
@@ -2116,7 +2252,9 @@
       const on = !!(line && line.modules[m.id] > 0);
       const grp = m.groupId ? app.groups.find((x) => x.id === m.groupId) : null;
       const drv = grp ? app.drivers.find((d) => d.id === grp.driverId) : null;
-      const users = on && drv ? '<div class="mini" style="margin-top:4px"><input type="number" min="0" step="1" class="sm-drv" data-drv="' + drv.id + '" value="' + (line.drivers[drv.id] || 0) + '" aria-label="' + esc(drv.label) + '" style="width:90px"><label>' + esc(drv.unitLabel) + '</label></div>' : '';
+      const su = smitechUsers();
+      const users = on && drv ? '<div class="hint" style="margin-top:4px">' + esc(drv.label) + ': <b>' + (su.n > 0 ? CPQ.num(su.n, 0) + ' ' + esc(drv.unitLabel) : (su.src ? esc(su.src) + ': fascia da valutare ad hoc' : 'da impostare'))
+        + '</b>' + (su.n > 0 ? ' · da ' + esc(su.src) : (su.src ? '' : ' in Power System o Galileo')) + '</div>' : '';
       return '<tr class="' + (on ? 'sel' : '') + '"><td><input type="checkbox" class="sm-chk" data-mod="' + m.id + '"' + (on ? ' checked' : '') + (m.included ? ' disabled' : '') + ' aria-label="Seleziona ' + esc(m.code) + '"></td>' +
         '<td class="mono"><b>' + esc(m.code) + '</b></td><td>' + esc(m.description) + (m.note ? '<div class="hint">' + esc(m.note) + '</div>' : '') + users + '</td>' +
         '<td><span class="chip ' + (m.kind === 'LICENSE' ? '' : 'blue') + '">' + esc(SM_KIND[m.kind] || m.kind) + '</span></td>' +
@@ -2141,14 +2279,10 @@
         r.ambiguous.forEach((a) => msgs.push('Prerequisito ' + a.code + ': aggiungi una di queste applicazioni (' + a.apps.join(', ') + ')'));
         if (msgs.length) toast(msgs.join(' · '), r.ambiguous.length > 0);
         line = lineOf(app.id);
+        syncSmitechUsers();
         if (line && !Object.keys(line.modules).some((k) => line.modules[k] > 0)) S.lines = S.lines.filter((l) => l !== line);          // nessun servizio: l'applicazione esce dall'offerta
         renderSmitech(); scheduleCalc(); CPQ.markDirty('page', root); refreshStepper(); refreshSaveState();
       }
-    });
-    body.addEventListener('input', (e) => {
-      const d = e.target.closest('.sm-drv'); if (!d) return;
-      const app = smitechApp(), line = app && lineOf(app.id); if (!line) return;
-      line.drivers[Number(d.dataset.drv)] = Math.max(0, parseInt(d.value || '0', 10) || 0); scheduleCalc(); CPQ.markDirty('page', root);
     });
     $('#sm-mode').addEventListener('change', (e) => {
       const app = smitechApp(), line = app && lineOf(app.id);
@@ -2204,16 +2338,18 @@
     const miss = validateStep1();
     const terr = termsCfg ? C.termsErrors(termsCfg, S.terms, custType()) : [];
     const aerr = C.activityErrors(S.activities, S.lines);
-    $('#btn-save').disabled = false;                // gli errori si segnalano sul campo, con un popup, al click
+    $('#btn-save').disabled = !!S.readOnly;         // gli errori si segnalano sul campo, con un popup, al click; revisione superata: sola lettura
     $('#btn-save-docx').disabled = root.dataset.docx === 'false';
+    const sd = $('#btn-save-docx'); if (sd && sd.lastChild) sd.lastChild.textContent = S.readOnly ? 'Genera Word' : 'Salva e genera Word';
     $('#sum-blockers').textContent = errs.length ? 'Risolvi i vincoli in rosso prima di salvare.' : aerr.concat(powerErrors(), galileoErrors(), terr).join(' · ');
   }
 
   /** tabella totali, netto e margine del riepilogo: si aggiornano mentre si digita lo sconto */
   function updateSummaryTotals() {
     const n = nets();
-    let foot = '<tr><td colspan="3" class="right"><b>Totale</b></td><td class="num pr"><b>' + CPQ.eur(n.tl) + '</b></td><td class="num pr"><b>' + CPQ.eur(n.tm) + '</b></td></tr>';
-    if (n.d > 0) foot += '<tr><td colspan="3" class="right"><b>Netto a voi riservato</b> (sconto ' + n.d + '%)</td><td class="num pr"><b>' + CPQ.eur(n.nl) + '</b></td><td class="num pr"><b>' + CPQ.eur(n.nm) + '</b></td></tr>';
+    const feeTot = r2((calc ? calc.lines : []).reduce((t, x) => t + (Number(x.annual) || 0), 0));
+    let foot = '<tr><td colspan="3" class="right"><b>Totale</b></td><td class="num pr"><b>' + CPQ.eur(n.tl) + '</b></td><td class="num pr"><b>' + CPQ.eur(r2(n.tm - feeTot)) + '</b></td></tr>';
+    $('#sum-annual-foot').innerHTML = '<tr><td colspan="3" class="right"><b>Totale canoni annui</b></td><td class="num pr"><b>' + CPQ.eur(feeTot) + '</b></td></tr>';
     $('#sum-foot').innerHTML = foot;
     $('#n-lic').textContent = CPQ.eur(n.nl); $('#n-man').textContent = CPQ.eur(n.nm);
     $('#n-lic-was').textContent = n.d > 0 ? CPQ.eur(n.tl) : ''; $('#n-man-was').textContent = n.d > 0 ? CPQ.eur(n.tm) : '';
@@ -2271,8 +2407,8 @@
   $('#pw-ram').addEventListener('change', (e) => { S.powerRam = e.target.value; updatePowerLock(); });
   $('#pw-disks').addEventListener('input', (e) => { S.powerDisks = e.target.value.replace(/\D/g, ''); updatePowerLock(); });
   $('#pw-disk').addEventListener('change', (e) => { S.powerDisk = e.target.value; updatePowerLock(); });
-  $('#pw-users').addEventListener('input', (e) => { const v = e.target.value.replace(/\D/g, ''); S.powerUsers = v; refreshPowerModelList(true); updatePowerLock(); });
-  $('#pw-unlimited').addEventListener('change', (e) => { S.powerUnlimited = e.target.checked; setTimeout(updatePowerLock, 0); $('#pw-users').disabled = S.powerUnlimited; if (S.powerUnlimited) { S.powerUsers = ''; $('#pw-users').value = ''; } refreshPowerModelList(true); });
+  $('#pw-users').addEventListener('input', (e) => { const v = e.target.value.replace(/\D/g, ''); S.powerUsers = v; refreshPowerModelList(true); updatePowerLock(); smitechUsersChanged(); });
+  $('#pw-unlimited').addEventListener('change', (e) => { S.powerUnlimited = e.target.checked; setTimeout(updatePowerLock, 0); $('#pw-users').disabled = S.powerUnlimited; if (S.powerUnlimited) { S.powerUsers = ''; $('#pw-users').value = ''; } refreshPowerModelList(true); smitechUsersChanged(); });
   // LTO8 e cavo di collegamento (LTO6/LTO7) sono alternativi: scegliendone uno l'altro si disattiva
   $('#pw-cable').addEventListener('change', (e) => { S.powerCable = e.target.value; if (S.powerCable) { S.powerLto8 = false; $('#pw-lto8').checked = false; renderAmtSummary(); } });
   bindAmtDialog();
@@ -2335,7 +2471,7 @@
   $('#btn-next3').addEventListener('click', () => go(4));
   $('#btn-back2').addEventListener('click', () => go(prevStep(4)));
   $('#btn-save').addEventListener('click', () => save(false));
-  $('#btn-save-docx').addEventListener('click', () => save(true));
+  $('#btn-save-docx').addEventListener('click', () => { if (S.readOnly && S.offerId) window.location = CPQ.url('/offers/' + S.offerId + '/docx'); else save(true); });          // revisione superata: genera il Word senza salvare
   $('#travel-rate').addEventListener('change', (e) => { S.travelRateId = e.target.value ? Number(e.target.value) : null; });
   $('#dist-refresh').addEventListener('click', () => loadDistance(true));
   $('#sum-title').addEventListener('input', (e) => { S.title = e.target.value; });

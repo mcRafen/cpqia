@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Utenti, gruppi di prezzo e fasce: usato nella pagina dell'applicazione e, per SMITECH, nella scheda del modulo SMISMP (ret = id del modulo a cui tornare) -->
+<th:block th:fragment="box(app, tierText, ret)">
+    <!-- ============ DRIVER / GRUPPI / FASCE ============ -->
+    <div class="card">
+        <h2>Utenti, gruppi di prezzo e fasce <span class="hint">(moltiplicatore licenze moduli × utenti)</span></h2>
+        <h3 style="margin:8px 0">Grandezze (utenti, macchine, …)</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <form th:each="d : ${app.drivers}" th:action="@{/admin/applications/{id}/drivers/{d}/delete(id=${app.id},d=${d.id})}" method="post" style="display:inline"><input type="hidden" name="returnModule" th:if="${ret != null}" th:value="${ret}">
+                <span class="chip blue"><b th:text="${d.code}"></b>&nbsp;<span th:text="${d.label}"></span>&nbsp;<span class="muted" th:text="${d.licenseCode}"></span>
+                    <button class="btn icon sm" style="width:20px;height:20px" type="submit" title="Rimuovi"><svg class="ic" style="width:14px;height:14px"><use href="#i-close"/></svg></button></span></form>
+            <span class="muted" th:if="${#lists.isEmpty(app.drivers)}">Nessuna: l'applicazione non è a utenti.</span>
+        </div>
+        <form th:action="@{/admin/applications/{id}/drivers/add(id=${app.id})}" method="post" class="grid c4" style="align-items:center"><input type="hidden" name="returnModule" th:if="${ret != null}" th:value="${ret}">
+            <div class="field"><input name="code" required maxlength="30" placeholder=" "><label>Codice (es. UTENTI)</label></div>
+            <div class="field"><input name="label" required maxlength="100" placeholder=" "><label>Etichetta</label></div>
+            <div class="field"><input name="licenseCode" maxlength="40" placeholder=" "><label>Codice licenza (SMI…LIC)</label></div>
+            <div style="display:flex;gap:8px;align-items:center"><div class="field" style="flex:1"><input name="unitLabel" maxlength="30" placeholder=" " value="utenti"><label>Unità</label></div><button class="btn tonal sm" type="submit">Aggiungi</button></div>
+        </form>
+
+        <div th:each="g : ${app.groups}" style="margin-top:22px;border-top:1px solid var(--outline-var);padding-top:14px">
+            <div class="cardhead"><h3 class="grow"><span th:text="${g.label}"></span> <span class="mono muted" th:text="${g.code}"></span>
+                <span class="chip" th:text="${g.baseMode == 'LINEAR'} ? 'lineare' : (${g.baseMode == 'STEP'} ? 'importo per fascia' : 'prima fascia = valore moduli')"></span>
+                <span class="chip blue" th:each="b : ${g.fixedBase}" th:text="'base ' + ${b.key} + ' = ' + ${b.value}"></span></h3>
+                <form th:action="@{/admin/applications/{id}/groups/{g}/delete(id=${app.id},g=${g.id})}" method="post" th:data-confirm="|Eliminare il gruppo ${g.label}?|"><input type="hidden" name="returnModule" th:if="${ret != null}" th:value="${ret}">
+                    <button class="btn icon sm" type="submit" title="Elimina gruppo"><svg class="ic"><use href="#i-delete"/></svg></button></form></div>
+            <table class="t" style="margin-top:6px">
+                <thead><tr><th>Da</th><th>A</th><th>Etichetta</th><th>% del valore moduli</th><th>Prezzi unitari espliciti (es. NEW=500;MIGR=250)</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="t : ${g.tiers}">
+                    <td colspan="6" style="padding:4px 12px">
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <form th:action="@{/admin/applications/{id}/tiers/save(id=${app.id})}" method="post" style="display:flex;gap:8px;align-items:center;flex:1"><input type="hidden" name="returnModule" th:if="${ret != null}" th:value="${ret}">
+                                <input type="hidden" name="tierId" th:value="${t.id}"><input type="hidden" name="groupId" th:value="${g.id}">
+                                <input class="mono" name="fromQty" type="number" required th:value="${t.fromQty}" style="width:90px;height:34px">
+                                <input class="mono" name="toQty" type="number" th:value="${t.toQty}" placeholder="∞" style="width:110px;height:34px">
+                                <input name="label" required th:value="${t.label}" style="flex:1;height:34px">
+                                <input class="mono" name="pct" th:value="${t.pct}" style="width:90px;height:34px">
+                                <input class="mono" name="unitPrices" th:value="${tierText.get(t.id)}" style="width:210px;height:34px">
+                                <button class="btn icon sm" type="submit" title="Salva fascia"><svg class="ic"><use href="#i-save"/></svg></button>
+                            </form>
+                            <form th:action="@{/admin/applications/{id}/tiers/{t}/delete(id=${app.id},t=${t.id})}" method="post" th:data-confirm="|Eliminare la fascia ${t.label}?|"><input type="hidden" name="returnModule" th:if="${ret != null}" th:value="${ret}">
+                                <button class="btn icon sm" type="submit" title="Elimina fascia"><svg class="ic"><use href="#i-delete"/></svg></button></form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <form th:action="@{/admin/applications/{id}/tiers/save(id=${app.id})}" method="post" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="hidden" name="returnModule" th:if="${ret != null}" th:value="${ret}">
+                <input type="hidden" name="groupId" th:value="${g.id}">
+                <span class="muted">Nuova fascia:</span>
+                <input name="fromQty" type="number" required placeholder="da" style="width:90px;height:34px">
+                <input name="toQty" type="number" placeholder="a (vuoto = ∞)" style="width:130px;height:34px">
+                <input name="label" required placeholder="es. da 11 a 20 utenti" style="flex:1;height:34px">
+                <input name="pct" placeholder="%" style="width:80px;height:34px">
+                <input name="unitPrices" placeholder="prezzi espliciti" style="width:160px;height:34px">
+                <button class="btn tonal sm" type="submit">Aggiungi</button>
+            </form>
+        </div>
+
+        <h3 style="margin:22px 0 8px" th:if="${!#lists.isEmpty(app.drivers)}">Nuovo gruppo di prezzo</h3>
+        <form th:if="${!#lists.isEmpty(app.drivers)}" th:action="@{/admin/applications/{id}/groups/add(id=${app.id})}" method="post" class="grid c4" style="align-items:center"><input type="hidden" name="returnModule" th:if="${ret != null}" th:value="${ret}">
+            <div class="field"><input name="code" required maxlength="30" placeholder=" "><label>Codice (es. MOD)</label></div>
+            <div class="field"><input name="label" required placeholder=" "><label>Etichetta</label></div>
+            <div class="field"><select name="driverId"><option th:each="d : ${app.drivers}" th:value="${d.id}" th:text="${d.label}"></option></select><label>Grandezza</label></div>
+            <div class="field"><select name="baseMode"><option value="TIER1">Prima fascia = valore moduli</option><option value="LINEAR">Lineare (qtà × unitario)</option><option value="STEP">Importo per fascia (canone della fascia di utenti)</option></select><label>Calcolo</label></div>
+            <div class="field span2"><input name="fixedBase" placeholder=" "><label>Base fissa (vuoto = somma moduli del gruppo; es. 5000 oppure NEW=400;MIGR=200)</label></div>
+            <div><button class="btn tonal sm" type="submit">Aggiungi gruppo</button></div>
+        </form>
+    </div>
+</th:block>
+</body>
+</html>

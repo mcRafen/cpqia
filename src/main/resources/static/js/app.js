@@ -95,6 +95,18 @@
     document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.classList.toggle('on', b.dataset.themeSet === cur); });
   }
   markTheme();
+  // palette di colori (voci nel menu utente)
+  function markPalette() {
+    const cur = window.CPQTheme && window.CPQTheme.getPalette ? window.CPQTheme.getPalette() : 'teal';
+    document.querySelectorAll('[data-palette-set]').forEach(function (b) { b.classList.toggle('on', b.dataset.paletteSet === cur); });
+  }
+  markPalette();
+  document.addEventListener('click', function (e) {
+    const p = e.target.closest ? e.target.closest('[data-palette-set]') : null;
+    if (!p) return;
+    window.CPQTheme.setPalette(p.dataset.paletteSet); markPalette();
+    const um = document.getElementById('usermenu'); if (um) um.hidden = true;
+  });
   document.addEventListener('click', function (e) {
     const btn = document.getElementById('theme-btn'), menu = document.getElementById('theme-menu');
     if (!btn || !menu) return;
@@ -530,4 +542,115 @@
     timer = setTimeout(dismiss, 9000);
   };
   window.CPQ.clearFieldError = dismiss;
+})();
+
+/* ---------- ATOKA: dettagli azienda dalla partita IVA (clic su una P.IVA con classe «atoka-vat» o su un pulsante .atoka-btn) ---------- */
+(function () {
+  'use strict';
+  const esc = (s) => window.CPQ.esc(s);
+
+  /** valore di un percorso «a.b.c» dentro l'oggetto (stringa vuota se manca) */
+  const pick = (o, path) => path.split('.').reduce((x, k) => (x == null ? x : x[k]), o);
+  const first = (o, paths) => { for (const p of paths) { const v = pick(o, p); if (v != null && v !== '' && typeof v !== 'object') return v; } return ''; };
+
+  /** righe «etichetta / valore» principali dalla risposta ATOKA (pacchetto base); i campi mancanti si saltano */
+  function mainRows(c) {
+    const b = c.base || {};
+    const addr = b.registeredAddress || {};
+    const addrText = first(addr, ['fullAddress']) || [first(addr, ['street', 'streetName']), first(addr, ['streetNumber']), first(addr, ['zip', 'postalCode']), first(addr, ['municipality', 'city']), first(addr, ['province'])].filter(Boolean).join(' ');
+    const ateco = Array.isArray(b.ateco) && b.ateco.length ? (b.ateco.find((a) => a.primary) || b.ateco[0]) : null;
+    const forms = Array.isArray(b.legalForms) && b.legalForms.length ? b.legalForms[b.legalForms.length - 1].name : '';
+    const rows = [
+      ['Ragione sociale', first(b, ['legalName']) || c.name || ''],
+      ['Partita IVA', first(b, ['vat'])],
+      ['Codice fiscale', first(b, ['taxId'])],
+      ['Forma giuridica', forms],
+      ['Sede legale', addrText],
+      ['Attività (ATECO)', ateco ? [ateco.code, ateco.description].filter(Boolean).join(' – ') : ''],
+      ['Stato', first(b, ['status.name', 'status'])],
+      ['Costituzione', first(b, ['founded'])],
+      ['Sito web', first(b, ['website', 'web'])],
+    ];
+    return rows.filter((r) => r[1] !== '');
+  }
+
+  /** tutti gli altri valori semplici del pacchetto (profondita' limitata), in una sezione «Altri dati» */
+  function flat(o, prefix, out, depth) {
+    if (o == null || depth > 3) return;
+    if (Array.isArray(o)) { o.forEach((x, i) => (typeof x === 'object' ? flat(x, prefix + '[' + (i + 1) + ']', out, depth + 1) : out.push([prefix, x]))); return; }
+    if (typeof o === 'object') { Object.keys(o).forEach((k) => flat(o[k], prefix ? prefix + ' › ' + k : k, out, depth + 1)); return; }
+    out.push([prefix, o]);
+  }
+
+  function open(vat) {
+    const dlg = document.createElement('dialog');
+    dlg.innerHTML = '<div class="dlg-head"><h3 style="margin:0">ATOKA</h3><div class="muted" id="atoka-sub"></div></div><div class="dlg-body" id="atoka-body">Caricamento…</div>' +
+      '<div class="dlg-foot"><button type="button" class="btn text" id="atoka-key" hidden>Cambia chiave</button><span class="grow"></span><button type="button" class="btn" id="atoka-close">Chiudi</button></div>';
+    document.body.appendChild(dlg);
+    dlg.querySelector('#atoka-close').addEventListener('click', () => dlg.close());
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.showModal();
+    const body = dlg.querySelector('#atoka-body'), sub = dlg.querySelector('#atoka-sub'), keyBtn = dlg.querySelector('#atoka-key');
+    sub.textContent = 'Partita IVA ' + vat;
+
+    const showCompany = async () => {
+      body.textContent = 'Ricerca su ATOKA…';
+      try {
+        const r = await window.CPQ.api('GET', '/api/atoka/company?vat=' + encodeURIComponent(vat));
+        if (!r.ok) { body.innerHTML = '<div class="alert warn"><span>' + esc(r.message || 'Ricerca non riuscita') + '</span></div>'; return; }
+        const c = r.company, rows = mainRows(c), more = [];
+        flat(c.base || {}, '', more, 0);
+        const shown = new Set(rows.map((x) => String(x[1])));
+        const extra = more.filter((x) => x[1] !== '' && !shown.has(String(x[1])));
+        body.innerHTML = '<table class="t"><tbody>' + rows.map((x) => '<tr><td class="muted" style="width:34%">' + esc(x[0]) + '</td><td><b>' + esc(x[1]) + '</b></td></tr>').join('') + '</tbody></table>' +
+          (extra.length ? '<details style="margin-top:14px"><summary>Altri dati (' + extra.length + ')</summary><table class="t"><tbody>' +
+            extra.map((x) => '<tr><td class="muted" style="width:34%">' + esc(x[0]) + '</td><td>' + esc(x[1]) + '</td></tr>').join('') + '</tbody></table></details>' : '') +
+          '<div class="hint" style="margin-top:12px">Fonte: ATOKA' + (c.id ? ' · id ' + esc(c.id) : '') + '</div>';
+      } catch (e) { body.innerHTML = '<div class="alert err"><span>' + esc(e.message) + '</span></div>'; }
+    };
+
+    /** prima connessione (solo amministratore): chiave API del proprio account ATOKA, convalidata con una ricerca reale e salvata cifrata */
+    const showConnect = (note) => {
+      body.innerHTML = (note ? '<div class="alert info" style="margin-bottom:12px"><span>' + esc(note) + '</span></div>' : '') +
+        '<p>Per consultare ATOKA serve la <b>chiave API (token)</b> del tuo account ATOKA, che trovi nell\'area sviluppatori / API del tuo profilo su atoka.io. ' +
+        'Viene verificata con una ricerca e poi salvata cifrata: da quel momento tutti gli utenti possono aprire i dettagli azienda.</p>' +
+        '<div class="field"><input type="password" id="atoka-token" autocomplete="off" placeholder=" " maxlength="400"><label for="atoka-token">Chiave API ATOKA</label></div>' +
+        '<div id="atoka-err" style="margin-top:10px"></div><div style="margin-top:12px"><button type="button" class="btn" id="atoka-go">Collega e verifica</button></div>';
+      const go = body.querySelector('#atoka-go'), tok = body.querySelector('#atoka-token'), err = body.querySelector('#atoka-err');
+      tok.focus();
+      tok.addEventListener('keydown', (e) => { if (e.key === 'Enter') go.click(); });
+      go.addEventListener('click', async () => {
+        err.innerHTML = ''; go.disabled = true;
+        try {
+          const r = await window.CPQ.api('POST', '/api/atoka/connect', { token: tok.value, vat: vat });
+          if (!r.ok && r.message) { err.innerHTML = '<div class="alert err"><span>' + esc(r.message) + '</span></div>'; go.disabled = false; return; }
+          keyBtn.hidden = false; window.toast && window.toast('ATOKA collegato');
+          showCompany();
+        } catch (e) { err.innerHTML = '<div class="alert err"><span>' + esc(e.message) + '</span></div>'; go.disabled = false; }
+      });
+    };
+
+    (async () => {
+      try {
+        const st = await window.CPQ.api('GET', '/api/atoka/status');
+        keyBtn.hidden = !(st.configured && st.canConfigure);
+        keyBtn.addEventListener('click', () => showConnect('Inserisci la nuova chiave API: sostituirà quella salvata.'));
+        if (st.configured) showCompany();
+        else if (st.canConfigure) showConnect('ATOKA non è ancora collegato: esegui la connessione (una sola volta).');
+        else body.innerHTML = '<div class="alert warn"><span>ATOKA non è ancora collegato. Chiedi a un amministratore di eseguire la connessione.</span></div>';
+      } catch (e) { body.innerHTML = '<div class="alert err"><span>' + esc(e.message) + '</span></div>'; }
+    })();
+  }
+
+  window.CPQ.atoka = open;
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest ? e.target.closest('.atoka-vat, .atoka-btn') : null;
+    if (!t) return;
+    e.preventDefault(); e.stopPropagation();
+    let vat = t.dataset.vat || '';
+    if (!vat && t.dataset.input) { const el = document.querySelector(t.dataset.input); vat = el ? el.value : ''; }
+    vat = String(vat).replace(/[^0-9A-Za-z]/g, '').replace(/^IT/i, '');
+    if (!/^\d{11}$/.test(vat)) { window.toast && window.toast('Partita IVA non valida: servono 11 cifre', true); return; }
+    open(vat);
+  }, true);
 })();

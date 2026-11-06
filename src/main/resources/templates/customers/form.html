@@ -9,7 +9,7 @@
     <form class="card" id="custform" th:action="@{/customers/save}" th:object="${form}" method="post">
         <input type="hidden" th:field="*{id}">
         <div class="grid c6">
-            <div class="field span4" th:classappend="${#fields.hasErrors('vatNumber')} ? 'invalid'"><input type="text" th:field="*{vatNumber}" placeholder=" " maxlength="20" autofocus><label>Partita IVA * (inseriscila per prima)</label><div class="err" th:errors="*{vatNumber}"></div></div>
+            <div class="field span4" th:classappend="${#fields.hasErrors('vatNumber')} ? 'invalid'"><input type="text" th:field="*{vatNumber}" placeholder=" " maxlength="20" autofocus><label>Partita IVA * (inseriscila per prima)</label><button type="button" class="btn icon atoka-btn" data-input="#vatNumber" title="Apri i dettagli su ATOKA" aria-label="Dettagli su ATOKA"><svg class="ic"><use href="#i-search"/></svg></button><div class="err" th:errors="*{vatNumber}"></div></div>
             <div style="display:flex;align-items:flex-start;grid-column:span 2" th:if="${form.id == null}"><button type="button" class="btn tonal" id="vat-btn" style="height:52px;width:100%"><svg class="ic"><use href="#i-search"/></svg>Recupera dati online</button></div>
             <div class="span6" id="vat-msg" hidden></div>
                         <div class="field span2"><input type="text" th:value="${code != null} ? ${code} : 'Assegnato al salvataggio'" disabled placeholder=" " id="code"><label for="code">Codice cliente</label><div class="help">Automatico, non modificabile</div></div>

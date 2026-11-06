@@ -6,7 +6,7 @@
 
 <main class="content"><div class="inner">
     <div id="wizard"
-         th:attr="data-today=${today},data-next-progressive=${nextProgressive},data-offer-id=${offerId},data-customer-id=${customerId},data-initials=${me != null ? me.initials : ''},data-prices=${#authorization.expression('hasAuthority(''P_VIEW_PRICES'')')},data-docx=${#authorization.expression('hasAuthority(''P_EXPORT_DOCX'')')}">
+         th:attr="data-today=${today},data-next-progressive=${nextProgressive},data-offer-id=${offerId},data-customer-id=${customerId},data-initials=${numberInitials != null ? numberInitials : (me != null ? me.initials : '')},data-prices=${#authorization.expression('hasAuthority(''P_VIEW_PRICES'')')},data-docx=${#authorization.expression('hasAuthority(''P_EXPORT_DOCX'')')}">
 
         <div class="pagehead">
             <a class="btn icon" th:href="@{/offers}" title="Torna indietro" aria-label="Torna indietro"><svg class="ic"><use href="#i-back"/></svg></a>
@@ -47,12 +47,14 @@
                     <div class="field"><input type="number" id="f-prog" min="1" step="1" placeholder=" " required><label for="f-prog">N. progressivo</label>
                         <div class="help">Proposto in base alle offerte del giorno</div></div>
                     <div class="field span2"><input type="text" id="f-number" readonly placeholder=" "><label for="f-number">Numero offerta</label>
-                        <div class="help">Data (AAAAMMGG) . progressivo + tue iniziali</div></div>
+                        <div class="help">Data (AAAAMMGG) . progressivo + iniziali dell'agente</div></div>
                 </div>
+                <div class="alert warn" id="rev-superseded" hidden style="margin-top:12px"><svg class="ic"><use href="#i-warning"/></svg><span>Questa revisione è stata superata da una più recente: è di sola consultazione. Per lavorarci usa «Promuovi ad attuale» nello storico (crea una nuova revisione) oppure apri l'ultima.</span></div>
+                <div id="rev-history" style="margin-top:12px" hidden></div>
             </div>
 
             <div class="card">
-                <div class="cardhead"><h2 class="grow" style="margin:0">Cliente / prospect</h2>
+                <div class="cardhead"><h2 class="grow" style="margin:0">Dati di intestazione</h2>
                     <button type="button" class="btn tonal sm" id="btn-newcust"><svg class="ic"><use href="#i-add"/></svg>Nuovo account</button></div>
                 <div class="combo" style="margin-top:14px">
                     <div class="field"><input type="text" id="f-cust" data-noguard autocomplete="off" placeholder=" "><label for="f-cust">Cerca per ragione sociale, codice, P.IVA o città</label></div>
@@ -314,12 +316,23 @@
                     <div><div class="muted">Cliente</div><b id="sum-customer"></b><div class="muted" style="margin-top:6px">Contenuti</div><b id="sum-elements"></b></div>
                     <div class="field"><input type="text" id="sum-title" maxlength="250" placeholder=" "><label for="sum-title">Titolo del progetto (copertina)</label></div>
                 </div>
+                <h3 style="margin:4px 0 8px">Licenze una tantum con manutenzione</h3>
                 <div class="tablewrap">
                     <table class="t">
                         <thead><tr><th>Applicazione</th><th>Moduli</th><th>Utenti</th><th class="num pr">Licenze</th><th class="num pr">Manutenzione annua</th></tr></thead>
                         <tbody id="sum-body"></tbody>
                         <tfoot id="sum-foot"></tfoot>
                     </table>
+                </div>
+                <div id="sum-annual-wrap" hidden>
+                    <h3 style="margin:22px 0 8px">Servizi a canone annuo</h3>
+                    <div class="tablewrap">
+                        <table class="t">
+                            <thead><tr><th>Applicazione</th><th>Servizi</th><th>Utenti</th><th class="num pr">Canone annuo</th></tr></thead>
+                            <tbody id="sum-annual-body"></tbody>
+                            <tfoot id="sum-annual-foot"></tfoot>
+                        </table>
+                    </div>
                 </div>
             </div>
             <div class="card" id="sum-extras-card" hidden>
@@ -377,6 +390,7 @@
                     <div style="display:flex;flex-direction:column;gap:10px">
                         <label class="check"><input type="checkbox" id="opt-summary"> Modello offerta Light <span class="hint">(aggiunge al documento il riepilogo finale)</span></label>
                         <label class="check"><input type="checkbox" id="opt-days" checked> Servizi espressi in gg <span class="hint">(nel documento la colonna «STIMA» riporta i giorni invece delle ore)</span></label>
+                        <label class="check"><input type="checkbox" id="opt-hours-detail"> Dettaglio ore per singola attività <span class="hint">(nella tabella dei servizi compaiono ore o giorni di ogni attività; altrimenti solo i totali)</span></label>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:10px">
                         <div id="row-detail" hidden><label class="check"><input type="checkbox" id="svc-detail"> Dettaglio importi attività <span class="hint">(nel documento compaiono ore, tariffa e valore di ogni riga di attività; altrimenti per ogni applicazione solo le attività e il totale)</span></label></div>

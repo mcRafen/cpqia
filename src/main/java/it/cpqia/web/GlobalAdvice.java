@@ -22,13 +22,15 @@ import java.util.NoSuchElementException;
 public class GlobalAdvice {
 
     private final CurrentUserService current;
+    private final UiPrefsController uiPrefs;
 
     private final String version;
     private final String build;
 
-    public GlobalAdvice(CurrentUserService current, @org.springframework.beans.factory.annotation.Value("${cpqia.version:}") String version,
+    public GlobalAdvice(CurrentUserService current, UiPrefsController uiPrefs, @org.springframework.beans.factory.annotation.Value("${cpqia.version:}") String version,
                         @org.springframework.beans.factory.annotation.Value("${cpqia.build:}") String build) {
         this.current = current;
+        this.uiPrefs = uiPrefs;
         this.build = build == null || build.isBlank() || build.startsWith("@") ? "sviluppo" : build.replace('T', ' ').replace("Z", " UTC");
         // versione del pom (filtrata in application.properties); fuori dal build Maven resta il segnaposto
         this.version = version == null || version.isBlank() || version.startsWith("@") ? "dev" : version;
@@ -57,6 +59,13 @@ public class GlobalAdvice {
         } catch (IllegalStateException e) {
             return null;
         }
+    }
+
+    /** preferenze di aspetto salvate dell'utente (tema e palette), per applicarle subito al caricamento della pagina; null senza utente */
+    @ModelAttribute("uiPrefs")
+    public UiPrefsController.Prefs uiPrefs(Authentication auth) {
+        AppUser u = me(auth);
+        return u == null ? null : uiPrefs.load(u.id());
     }
 
     /** chiamate JSON del wizard (/api/) o richieste che accettano JSON: risposta {message}; altrimenti pagina di errore */
