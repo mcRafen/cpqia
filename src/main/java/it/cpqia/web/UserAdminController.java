@@ -25,8 +25,16 @@ public class UserAdminController {
     private final UserRepository users;
     private final CurrentUserService current;
     private final it.cpqia.trash.TrashService trash;
+    private final it.cpqia.grid.GridRegistry gridRegistry;
+    private final it.cpqia.grid.GridExportPermissionService exportPerm;
 
-    public UserAdminController(UserRepository users, CurrentUserService current, it.cpqia.trash.TrashService trash) {
+    public record GridItem(String key, String title) {
+    }
+
+    public UserAdminController(UserRepository users, CurrentUserService current, it.cpqia.trash.TrashService trash,
+                               it.cpqia.grid.GridRegistry gridRegistry, it.cpqia.grid.GridExportPermissionService exportPerm) {
+        this.gridRegistry = gridRegistry;
+        this.exportPerm = exportPerm;
         this.users = users;
         this.current = current;
         this.trash = trash;
@@ -38,10 +46,18 @@ public class UserAdminController {
         return "admin/users";
     }
 
+    /** griglie dell'applicazione (per l'abilitazione all'esportazione), in ordine di titolo */
+    private java.util.List<GridItem> gridItems() {
+        return gridRegistry.all().stream().map(s -> new GridItem(s.key(), s.title()))
+                .sorted(java.util.Comparator.comparing(GridItem::title, String.CASE_INSENSITIVE_ORDER)).toList();
+    }
+
     @GetMapping("/new")
     public String create(Model model) {
         model.addAttribute("u", null);
         model.addAttribute("agents", users.agents());
+        model.addAttribute("grids", gridItems());
+        model.addAttribute("exportKeys", java.util.Set.of());
         return "admin/user-form";
     }
 
@@ -49,6 +65,8 @@ public class UserAdminController {
     public String edit(@PathVariable long id, Model model) {
         model.addAttribute("u", users.findById(id).orElseThrow());
         model.addAttribute("agents", users.agents());
+        model.addAttribute("grids", gridItems());
+        model.addAttribute("exportKeys", exportPerm.keys(id));
         return "admin/user-form";
     }
 
@@ -89,6 +107,18 @@ public class UserAdminController {
                     flag(p, "canEditOffers"), flag(p, "canViewAllOffers"), flag(p, "canDeleteOffers"), flag(p, "canExportDocx"),
                     flag(p, "canManageCustomers"), flag(p, "canManageCatalog"), flag(p, "canViewPrices"), old.createdAt(), old.lastLoginAt(), agent);
             users.updateAdmin(u);
+            // griglie su cui l'utente puo' esportare i dati: «tutte» oppure le singole griglie spuntate
+            java.util.List<String> exp = new java.util.ArrayList<>();
+            if (flag(p, "exportAll")) {
+                exp.add(it.cpqia.grid.GridExportPermissionService.ALL);
+            } else {
+                for (GridItem g : gridItems()) {
+                    if (flag(p, "exp_" + g.key())) {
+                        exp.add(g.key());
+                    }
+                }
+            }
+            exportPerm.save(id, exp);
             ra.addFlashAttribute("msg", "Utente salvato (le modifiche ai permessi valgono dal prossimo accesso)");
             return "redirect:/admin/users";
         } catch (DataIntegrityViolationException e) {

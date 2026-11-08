@@ -33,7 +33,8 @@
   const expanded = new Set();
   const filter = { text: '', family: '', onlySel: false };
 
-  const famClass = (f) => { let h = 0; String(f || '').split('').forEach((c) => { h = (h * 31 + c.charCodeAt(0)) % 6; }); return 'f' + h; };
+  // BU: nessun colore proprio per famiglia, i chip seguono i colori del tema / palette selezionati
+  const famClass = () => 'bu';
   const appOf = (id) => catalog.find((a) => a.id === id);
   const lineOf = (id) => S.lines.find((l) => l.applicationId === id);
 
@@ -113,6 +114,8 @@
     renderApps();
     refreshStepper();
     showStep(1);
+    // nuova offerta: il cursore parte dalla ricerca dell'account per ragione sociale
+    if (!S.offerId && !S.customer) setTimeout(() => { const f = $('#f-cust'); if (f) { f.focus({ preventScroll: true }); } }, 0);
     if (S.lines.length) scheduleCalc();
     if (S.gal.profileId && S.optGalileo && S.galileoId) galLoadProfile(S.gal.profileId, true);
   }
@@ -146,14 +149,16 @@
       const chipStyle = 'border:0;cursor:pointer;font:inherit;height:auto;padding:4px 12px';          // stessa dimensione del carattere e stesso colore per tutte le revisioni
       const when = (x) => { const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(x.createdAt || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] : ''; };
       box.innerHTML = '<div style="font-weight:500;margin-bottom:6px">Storico revisioni <span class="muted" style="font-weight:400">(dalla più recente)</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + r.history.map((x) => {
-        const label = 'Rev. ' + x.revision + (x.id === latest ? ' · attuale' : '') + ' · ' + when(x) + (x.author ? ' - ' + x.author : '');
+        const label = 'Rev. ' + x.revision + (x.id === latest ? ' · attuale' : '') + ' · ' + when(x) + (x.author ? ' - ' + x.author : '') + (x.changes ? ' · ' + x.changes + (x.changes === 1 ? ' modifica' : ' modifiche') : '');
         const tip = esc((x.author || '') + (x.createdAt ? ' – ' + when(x) : ''));
         // l'ultima revisione e' un collegamento; sulle precedenti il clic apre il menu (Visualizza revisione / Promuovi ad attuale)
         if (x.current) return '<span class="chip rev-now" title="' + tip + '" aria-current="true" style="' + chipStyle.replace('cursor:pointer', 'cursor:default') + '">' + esc(label) + '</span>';          // revisione aperta: non cliccabile
         return x.id === latest
           ? '<a class="chip blue" href="' + esc(CPQ.url('/offers/' + x.id + '/edit')) + '" title="' + tip + '" style="' + chipStyle + '">' + esc(label) + '</a>'
           : '<button type="button" class="chip blue keep rev-chip" data-id="' + x.id + '" data-rev="' + x.revision + '" title="' + tip + '" aria-haspopup="menu" style="' + chipStyle + '">' + esc(label) + ' ▾</button>';
-      }).join('') + '</div>';
+      }).join('') + (r.history.length > 1 ? '<button type="button" class="btn tonal sm keep rev-compare">Confronta revisioni</button>' : '') + '</div>';
+      const cmpBtn = box.querySelector('.rev-compare');
+      if (cmpBtn) cmpBtn.addEventListener('click', () => openRevCompare(r.history));
       let menu = null;
       const closeMenu = () => { if (menu) { menu.remove(); menu = null; document.removeEventListener('click', onDoc, true); document.removeEventListener('keydown', onKey); } };
       const onDoc = (e) => { if (menu && !menu.contains(e.target)) closeMenu(); };
@@ -179,6 +184,63 @@
       }));
       if (r.superseded) setReadOnly();
     } catch (_) { /* storico non critico */ }
+  }
+
+  /** finestra modale: scelta di N revisioni (almeno 2), tabella di confronto (colonne = revisioni, righe = campi) e modifiche memorizzate di ogni revisione */
+  function openRevCompare(history) {
+    const dlg = document.createElement('dialog');
+    dlg.className = 'rev-dlg keep';
+    const when = (x) => { const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(x.createdAt || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] : ''; };
+    dlg.innerHTML = '<div class="dlg-head"><h3 style="margin:0">Confronto revisioni</h3><div class="muted">Scegli due o più revisioni da confrontare</div></div>' +
+      '<div class="dlg-body"><div class="rev-pick">' + history.slice().reverse().map((x) =>
+        '<label class="check"><input type="checkbox" class="rev-sel" value="' + x.id + '"' + (history.length <= 3 || x.id === history[0].id || x.id === (history[1] || {}).id ? ' checked' : '') + '> Rev. ' + x.revision + ' <span class="muted">' + esc(when(x)) + (x.author ? ' - ' + esc(x.author) : '') + '</span></label>').join('') + '</div>' +
+      '<div class="rev-bar"><label class="check"><input type="checkbox" id="rev-only" checked> Mostra solo le differenze</label>' +
+      '<span class="grow"></span><button type="button" class="btn text sm" id="rev-tab-cmp">Confronto</button><button type="button" class="btn text sm" id="rev-tab-chg">Modifiche per revisione</button></div>' +
+      '<div id="rev-out" class="tablewrap"></div></div>' +
+      '<div class="dlg-foot"><button type="button" class="btn" id="rev-close">Chiudi</button></div>';
+    document.body.appendChild(dlg);
+    const out = dlg.querySelector('#rev-out');
+    let tab = 'cmp';
+    const val = (v) => (v == null || v === '' ? '<span class="muted">—</span>' : esc(v));
+    async function run() {
+      const ids = Array.from(dlg.querySelectorAll('.rev-sel:checked')).map((i) => i.value);
+      if (tab === 'chg') {
+        out.innerHTML = 'Caricamento…';
+        const parts = [];
+        for (const x of history.slice().sort((a, b) => b.revision - a.revision)) {
+          if (!ids.includes(String(x.id))) continue;
+          const ch = await CPQ.api('GET', '/offers/api/' + x.id + '/changes');
+          parts.push('<h4 style="margin:14px 0 6px">Rev. ' + x.revision + ' rispetto alla precedente</h4>' + (ch.length
+            ? '<table class="t"><thead><tr><th>Sezione</th><th>Campo</th><th>Prima</th><th>Dopo</th></tr></thead><tbody>' + ch.map((c) => '<tr><td>' + esc(c.section) + '</td><td>' + esc(c.field) + '</td><td>' + val(c.oldValue) + '</td><td><b>' + val(c.newValue) + '</b></td></tr>').join('') + '</tbody></table>'
+            : '<div class="muted">' + (x.revision === 0 || x === history[history.length - 1] ? 'Revisione iniziale: nessun confronto.' : 'Nessuna modifica rispetto alla revisione precedente.') + '</div>'));
+        }
+        out.innerHTML = parts.join('') || '<div class="muted">Seleziona almeno una revisione.</div>';
+        return;
+      }
+      if (ids.length < 2) { out.innerHTML = '<div class="muted">Seleziona almeno due revisioni.</div>'; return; }
+      out.innerHTML = 'Caricamento…';
+      try {
+        const c = await CPQ.api('GET', '/offers/api/' + S.offerId + '/compare?ids=' + ids.join(','));
+        const only = dlg.querySelector('#rev-only').checked;
+        let h = '<table class="t rev-cmp"><thead><tr><th>Campo</th>' + c.columns.map((x) => '<th>' + esc(x.label) + '</th>').join('') + '</tr></thead><tbody>';
+        let any = false;
+        c.sections.forEach((sec) => {
+          const rows = sec.rows.filter((r) => !only || r.changed);
+          if (!rows.length) return;
+          any = true;
+          h += '<tr class="rev-sec"><td colspan="' + (c.columns.length + 1) + '"><b>' + esc(sec.name) + '</b></td></tr>' +
+            rows.map((r) => '<tr class="' + (r.changed ? 'rev-diff' : '') + '"><td>' + esc(r.field) + '</td>' + r.values.map((v) => '<td>' + val(v) + '</td>').join('') + '</tr>').join('');
+        });
+        out.innerHTML = any ? h + '</tbody></table>' : '<div class="muted">Nessuna differenza tra le revisioni scelte.</div>';
+      } catch (e) { out.innerHTML = '<div class="alert err"><span>' + esc(e.message) + '</span></div>'; }
+    }
+    dlg.addEventListener('change', (e) => { if (e.target.matches('.rev-sel, #rev-only')) run(); });
+    dlg.querySelector('#rev-tab-cmp').addEventListener('click', () => { tab = 'cmp'; run(); });
+    dlg.querySelector('#rev-tab-chg').addEventListener('click', () => { tab = 'chg'; run(); });
+    dlg.querySelector('#rev-close').addEventListener('click', () => dlg.close());
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.showModal();
+    run();
   }
 
   /** revisione superata: l'offerta e' di sola consultazione (campi e pulsanti di modifica disabilitati, resta la navigazione tra le pagine) */
@@ -743,10 +805,15 @@
         const needed = ap.family !== 'SMITECH' || ap.groups.filter((g) => g.driverId === d.id).some((g) => ap.modules.some((m) => m.groupId === g.id && l.modules[m.id] > 0));
         if (needed && ap.family === 'SMITECH' && !((l.drivers[d.id] || 0) >= 1)) {
           if (!(S.optPower && S.powerUnlimited)) add(9, 'users', '#sm-body', 'Servizi SMITECH: indica gli utenti nella configurazione Power System o Galileo (' + (d.unitLabel || 'utenti') + ' del servizio SMISMP)');
-        } else if (needed && !C.driverIsFree(ap, d) && !((l.drivers[d.id] || 0) >= 1)) {
-          add(2, 'users', '#apps-body .drv-in[data-drv="' + d.id + '"]', ap.name + ': indica il numero di ' + (d.unitLabel || d.label || 'utenti').toLowerCase(), () => { expanded.add(ap.id); });
         }
       });
+      // Dipartimentali: utenti partono da 0; con un solo tipo va indicato, con piu' tipi (es. utenti e macchine) basta almeno uno dei due
+      if (ap.family !== 'SMITECH' && ap.drivers.length && perUserSelected(ap, l) && !ap.drivers.some((d) => (l.drivers[d.id] || 0) >= 1)) {
+        const d0 = ap.drivers[0];
+        const what = ap.drivers.length === 1 ? 'il numero di ' + (d0.unitLabel || d0.label || 'utenti').toLowerCase()
+          : 'almeno uno tra ' + ap.drivers.map((d) => (d.label || d.unitLabel || '').toLowerCase()).join(' e ');
+        add(2, 'users', '#apps-body .drv-in[data-app="' + ap.id + '"][data-drv="' + d0.id + '"]', ap.name + ': indica ' + what, () => { expanded.add(ap.id); });
+      }
     });
     if (!hasContent()) {
       if (S.optDept) add(2, 'content', '#app-search', 'Seleziona almeno un\'applicazione');
@@ -789,8 +856,36 @@
     });
   }
 
+  /** vero se nella riga e' selezionato almeno un modulo con gruppo di prezzo (moduli per utente): solo allora si mostrano e si chiedono gli utenti */
+  function perUserSelected(a, line) {
+    return !!line && a.modules.some((m) => m.groupId != null && m.section !== 'LINK' && !m.included && line.modules[m.id] > 0);
+  }
+
+  /** applicazioni Dipartimentali (non SMITECH) senza utenti: un solo tipo da indicare, con piu' tipi almeno uno */
+  function usersMissing() {
+    return S.lines.filter((l) => { const ap = appOf(l.applicationId); return ap && ap.family !== 'SMITECH' && ap.drivers.length && perUserSelected(ap, l) && !ap.drivers.some((d) => (l.drivers[d.id] || 0) >= 1); })
+      .map((l) => l.applicationId);
+  }
+  /** evidenzia (o toglie l'evidenza a) i campi utenti delle applicazioni ancora da compilare */
+  function markUsers() {
+    const miss = new Set(S.usersMark ? usersMissing() : []);
+    $$('#apps-body .drv-in').forEach((i) => i.classList.toggle('drv-miss', miss.has(Number(i.dataset.app))));
+    if (S.usersMark && !miss.size) S.usersMark = false;
+  }
+
   function go(n) {
     const order = orderAll(), idx = (k) => order.indexOf(k);
+    // dalla pagina Dipartimentali non si esce finche' gli utenti di ogni applicazione non sono compilati: si evidenziano tutti i campi mancanti
+    if (S.step === 2 && n !== 2) {
+      const miss = usersMissing();
+      if (miss.length) {
+        S.usersMark = true; markUsers();
+        const err = collectErrors().find((e) => e.kind === 'users' && e.step === 2);
+        if (err) revealError(err);
+        if (miss.length > 1) toast('Indica gli utenti di ' + miss.length + ' applicazioni (campi evidenziati in rosso)', true);
+        return;
+      }
+    }
     const first = collectErrors().find((e) => (e.kind === 'base' && n > 1) || (e.kind === 'type' && idx(n) > idx(6))
       || (e.kind === 'power' && idx(n) > idx(7)) || (e.kind === 'gal' && idx(n) > idx(8)));
     if (first) { revealError(first); return; }
@@ -813,7 +908,8 @@
 
   /** selettore delle BU: tutte quelle del catalogo, con numero di applicazioni e di moduli scelti; filtro «solo BU con moduli selezionati» */
   function renderFamilies() {
-    const fams = Array.from(new Set(catalog.map((a) => a.family).filter((f) => f && f !== GALILEO)));
+    const fams = Array.from(new Set(catalog.map((a) => a.family).filter((f) => f && f !== GALILEO)))
+      .sort((x, y) => x.localeCompare(y, 'it', { sensitivity: 'base', numeric: true }));          // BU in ordine alfabetico
     const withSel = famsWithModules();
     const shown = filter.onlySel ? fams.filter((f) => withSel.has(f)) : fams;
     const modCount = (f) => S.lines.reduce((n, l) => { const a = appOf(l.applicationId); return n + (a && a.family === f ? Object.keys(l.modules).length : 0); }, 0);
@@ -846,6 +942,7 @@
     });
     tb.innerHTML = rows.join('') || '<tr><td colspan="7" class="muted" style="padding:24px">Nessuna applicazione corrisponde alla ricerca.</td></tr>';
     updateAmounts();
+    if (S.usersMark) markUsers();
   }
 
   function appRow(a, line) {
@@ -854,22 +951,24 @@
         a.modes.map((m) => '<option value="' + esc(m.code) + '"' + (line && line.modeCode === m.code ? ' selected' : (!line && m.preferred ? ' selected' : '')) + '>' + esc(m.label) + '</option>').join('') +
         '</select></div>'
       : '<span class="muted">—</span>';
-    const drv = a.drivers.length
-      ? a.drivers.map((d) => {
+    // campo utenti solo con moduli per utente selezionati; con soli moduli a prezzo fisso vale il prezzo del modulo
+    const drv = !a.drivers.length ? '<span class="muted">non a utenti</span>'
+      : (line && !perUserSelected(a, line)) ? '<span class="muted" title="Sono selezionati solo moduli a prezzo fisso">prezzo fisso</span>'
+      : !line ? '<span class="muted">—</span>'
+      : a.drivers.map((d) => {
         const v = line ? (line.drivers[d.id] || 0) : '';
         return '<div class="mini" style="margin-bottom:' + (a.drivers.length > 1 ? '4px' : '0') + '"><input type="number" min="0" step="1" class="drv-in" data-app="' + a.id + '" data-drv="' + d.id + '" value="' + v +
           '"' + (line ? '' : ' disabled') + ' title="' + esc(d.label) + '" aria-label="' + esc(d.label) + '"><label>' + esc(a.drivers.length > 1 ? d.label : d.unitLabel) + '</label></div>';
-      }).join('')
-      : '<span class="muted">non a utenti</span>';
+      }).join('');
     return '<tr class="app-row' + (line ? ' sel' : '') + '" data-app="' + a.id + '">' +
-      '<td style="width:44px"><label class="check"><input type="checkbox" class="app-check" data-app="' + a.id + '"' + (line ? ' checked' : '') + ' aria-label="Seleziona ' + esc(a.name) + '"></label></td>' +
-      '<td class="name"><div class="appname">' + esc(a.name) + '</div><div style="margin-top:3px"><span class="chip ' + famClass(a.family) + '">' + esc(a.family || '') + '</span>' +
+      '<td><label class="check"><input type="checkbox" class="app-check" data-app="' + a.id + '"' + (line ? ' checked' : '') + ' aria-label="Seleziona ' + esc(a.name) + '"></label></td>' +
+      '<td class="name"><div class="appname" title="' + esc(a.name) + '">' + esc(a.name) + '</div><div style="margin-top:3px"><span class="chip ' + famClass(a.family) + '">' + esc(a.family || '') + '</span>' +
       (a.needsReview ? ' <span class="chip warn" title="Logica del listino da verificare">da verificare</span>' : '') +
       ' <span class="muted">' + a.modules.filter((m) => m.section !== 'LINK').length + ' moduli</span></div></td>' +
       '<td>' + modeSel + '</td><td>' + drv + '</td>' +
       '<td class="num pr" data-amt="lic:' + a.id + '">' + (line ? '…' : '') + '</td>' +
       '<td class="num pr" data-amt="man:' + a.id + '">' + (line ? '…' : '') + '</td>' +
-      '<td style="width:52px"><button type="button" class="btn icon sm toggle" data-app="' + a.id + '" aria-label="Dettaglio moduli"><svg class="ic" style="transform:rotate(' + (expanded.has(a.id) ? 180 : 0) + 'deg)"><use href="#i-expand"/></svg></button></td></tr>';
+      '<td><button type="button" class="btn icon sm toggle" data-app="' + a.id + '" aria-label="Dettaglio moduli"><svg class="ic" style="transform:rotate(' + (expanded.has(a.id) ? 180 : 0) + 'deg)"><use href="#i-expand"/></svg></button></td></tr>';
   }
 
   function isCodeSelected(code) {
@@ -930,16 +1029,19 @@
     if (!line) h += '<div class="alert info" style="margin-bottom:10px"><svg class="ic"><use href="#i-info"/></svg><span>Spuntando un modulo l\'applicazione viene aggiunta automaticamente all\'offerta.</span></div>';
     if (a.notes) h += '<div class="hint" style="margin-bottom:8px">' + esc(a.notes) + '</div>';
     const byGroup = [];
+    // Dipartimentali: niente titolo e niente riga delle fasce per il gruppo «Moduli per utente» (i moduli restano)
+    const hideGroup = (g) => /^moduli per utente$/i.test(String(g.label || '').trim());
     a.groups.forEach((g) => {
       const mods = a.modules.filter((m) => m.groupId === g.id && m.section !== 'LINK');
-      if (mods.length) byGroup.push({ label: g.label + ' – il prezzo è moltiplicato dal numero di ' + ((a.drivers.find((d) => d.id === g.driverId) || {}).unitLabel || 'utenti'), mods: mods });
+      if (mods.length) byGroup.push({ label: hideGroup(g) ? '' : g.label + ' – il prezzo è moltiplicato dal numero di ' + ((a.drivers.find((d) => d.id === g.driverId) || {}).unitLabel || 'utenti'), mods: mods });
     });
-    byGroup.forEach((bg) => { h += '<h4>' + esc(bg.label) + '</h4><table class="mods"><tbody>' + bg.mods.map((m) => modRow(a, line, m)).join('') + '</tbody></table>'; });
+    byGroup.forEach((bg) => { h += (bg.label ? '<h4>' + esc(bg.label) + '</h4>' : '') + '<table class="mods"><tbody>' + bg.mods.map((m) => modRow(a, line, m)).join('') + '</tbody></table>'; });
     const fixed = a.modules.filter((m) => m.groupId == null && m.section !== 'LINK');
     if (fixed.length) h += '<h4>Moduli a prezzo fisso</h4><table class="mods"><tbody>' + fixed.map((m) => modRow(a, line, m)).join('') + '</tbody></table>';
     const links = a.modules.filter((m) => m.section === 'LINK');
     if (links.length) h += '<h4>Moduli presenti in altri listini</h4><div class="hint">' + links.map((m) => '<b>' + esc(m.code) + '</b> ' + esc(m.description) + (m.linkText ? ' (' + esc(m.linkText) + ')' : '')).join(' · ') + '. Aggiungere l\'applicazione corrispondente all\'offerta.</div>';
-    if (a.groups.length) h += '<div class="tiers">' + a.groups.map((g) => tiersText(a, g, mode)).join('<br>') + '</div>';
+    const tg = a.groups.filter((g) => !hideGroup(g));
+    if (tg.length) h += '<div class="tiers">' + tg.map((g) => tiersText(a, g, mode)).join('<br>') + '</div>';
     return h + '</div>';
   }
 
@@ -972,7 +1074,7 @@
     });
     body.addEventListener('input', (e) => {
       const t = e.target; const id = Number(t.dataset.app);
-      if (t.classList.contains('drv-in')) { lineOf(id).drivers[Number(t.dataset.drv)] = Math.max(0, parseInt(t.value || '0', 10) || 0); scheduleCalc(); }
+      if (t.classList.contains('drv-in')) { lineOf(id).drivers[Number(t.dataset.drv)] = Math.max(0, parseInt(t.value || '0', 10) || 0); scheduleCalc(); if (S.usersMark) markUsers(); }
       else if (t.classList.contains('mod-qty')) { lineOf(id).modules[Number(t.dataset.mod)] = Math.max(1, parseInt(t.value || '1', 10) || 1); scheduleCalc(); }
     });
     body.addEventListener('click', (e) => {
@@ -1279,7 +1381,7 @@
     S.lines.forEach((l, i) => {
       const a = appOf(l.applicationId); const lc = calc ? calc.lines[i] : null;
       const modHtml = (pred) => Object.keys(l.modules).map((id) => { const m = a.modules.find((x) => x.id === Number(id)); return m && l.modules[id] > 0 && pred(m) ? '<div><span class="mono">' + esc(m.code) + '</span> ' + esc(m.description) + (l.modules[id] > 1 ? ' <b>× ' + l.modules[id] + '</b>' : '') + '</div>' : ''; }).join('');
-      const seats = a.drivers.filter((d) => l.drivers[d.id] > 0).map((d) => esc(d.label) + ': <b>' + CPQ.num(l.drivers[d.id], 0) + '</b>').join(' · ');
+      const seats = perUserSelected(a, l) ? a.drivers.filter((d) => l.drivers[d.id] > 0).map((d) => esc(d.label) + ': <b>' + CPQ.num(l.drivers[d.id], 0) + '</b>').join(' · ') : '';
       const mode = a.modes.length ? '<div class="hint">' + esc((a.modes.find((m) => m.code === l.modeCode) || {}).label || '') + '</div>' : '';
       const fee = lc ? Number(lc.annual) || 0 : 0;
       const licMods = modHtml((m) => !isFee(m)), feeMods = modHtml(isFee);

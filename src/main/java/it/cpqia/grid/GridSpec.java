@@ -340,6 +340,10 @@ public final class GridSpec {
         return key;
     }
 
+    public String title() {
+        return title;
+    }
+
     public ColDef colDef(String k) {
         for (ColDef c : cols) {
             if (c.key.equals(k)) {
@@ -368,6 +372,6 @@ public final class GridSpec {
             as.add(new Action("history", "Storico modifiche", "restore", "audit/" + table + "/{id}", false, null, null, true));
         }
         boolean del = trashKind != null && canDelete.test(u);
-        return new Meta(key, title, cs, as, canCreate.test(u), newHref, newLabel, del, GridModels.Behavior.ALL, bulkDeleter != null && canBulkDelete.test(u));
+        return new Meta(key, title, cs, as, canCreate.test(u), newHref, newLabel, del, GridModels.Behavior.ALL, bulkDeleter != null && canBulkDelete.test(u), false);
     }
 }

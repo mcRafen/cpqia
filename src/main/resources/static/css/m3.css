@@ -1101,3 +1101,37 @@ html[data-theme="dark"] #gal-card-tot, html[data-theme="dark"] #dip-card-tot { b
 /* partita IVA cliccabile (apre il servizio ATOKA) */
 a.atoka-vat, .atoka-vat { color: var(--primary); text-decoration: underline dotted; cursor: pointer; font-weight: 500; }
 .field .atoka-btn { position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; z-index: 2; }
+
+/* Dipartimentali: campi utenti da compilare (evidenziati quando si prova a lasciare la pagina) */
+.mini input.drv-miss { border-color: var(--error); box-shadow: 0 0 0 1px var(--error); background: var(--error-container); }
+
+/* Dipartimentali: tabella delle applicazioni con colonne a larghezza fissa (non cambiano con i valori o con il dettaglio aperto).
+   La colonna Applicazione prende lo spazio restante; sotto la larghezza minima la tabella scorre in orizzontale (responsiva). */
+table.apps { table-layout: fixed; width: 100%; min-width: 820px; }
+table.apps col.c-chk { width: 48px; }
+table.apps col.c-mode { width: 200px; }
+table.apps col.c-users { width: 190px; }
+table.apps col.c-lic { width: 140px; }
+table.apps col.c-man { width: 170px; }
+table.apps col.c-tog { width: 56px; }
+table.apps td.name { min-width: 0; }
+table.apps td.name .appname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+table.apps td { overflow: hidden; text-overflow: ellipsis; }
+table.apps tr.detail > td { overflow: visible; white-space: normal; }
+table.apps .mini select, table.apps .mini input { max-width: 100%; }
+@media (max-width: 1000px) {
+  table.apps col.c-mode { width: 160px; } table.apps col.c-users { width: 150px; }
+  table.apps col.c-lic { width: 120px; } table.apps col.c-man { width: 140px; }
+}
+
+/* confronto revisioni offerta (finestra modale) */
+dialog.rev-dlg { width: min(1180px, 96vw); }
+.rev-pick { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 12px; }
+.rev-bar { display: flex; align-items: center; gap: 10px; margin: 8px 0 10px; }
+.rev-bar .grow { flex: 1; }
+.rev-dlg .tablewrap { max-height: 56vh; overflow: auto; }
+table.rev-cmp { table-layout: fixed; width: 100%; min-width: 640px; }
+table.rev-cmp th:first-child, table.rev-cmp td:first-child { width: 260px; position: sticky; left: 0; background: var(--surface); z-index: 1; }
+table.rev-cmp td { word-break: break-word; vertical-align: top; }
+table.rev-cmp tr.rev-sec td { background: var(--surface-2); padding: 6px 12px; }
+table.rev-cmp tr.rev-diff td:not(:first-child) { background: var(--warn-container); }

@@ -35,9 +35,14 @@ public final class GridModels {
     }
 
     public record Meta(String key, String title, List<Col> columns, List<Action> actions, boolean canCreate,
-                       String newHref, String newLabel, boolean canDelete, Behavior behavior, boolean bulkDelete) {
+                       String newHref, String newLabel, boolean canDelete, Behavior behavior, boolean bulkDelete, boolean canExport) {
         public Meta withBehavior(Behavior b) {
-            return new Meta(key, title, columns, actions, canCreate, newHref, newLabel, canDelete, b, bulkDelete);
+            return new Meta(key, title, columns, actions, canCreate, newHref, newLabel, canDelete, b, bulkDelete, canExport);
+        }
+
+        /** esportazione dei dati (Excel, CSV, Google Sheets) consentita all'utente su questa griglia */
+        public Meta withExport(boolean e) {
+            return new Meta(key, title, columns, actions, canCreate, newHref, newLabel, canDelete, behavior, bulkDelete, e);
         }
     }
 

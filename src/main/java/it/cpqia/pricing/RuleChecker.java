@@ -76,7 +76,10 @@ public class RuleChecker {
                             "Selezionare un solo modulo tra le alternative: " + joinCodes(e.getValue())));
                 }
             }
-            // moduli a utente senza numero utenti
+            // moduli a utente senza numero utenti; con piu' tipi di utenti (es. JPM Enterprise / User) basta indicarne uno: un solo messaggio con tutti i tipi
+            boolean multiDriver = app.drivers().size() > 1;
+            boolean anyDriver = l.driverQty().values().stream().anyMatch(q -> q != null && q > 0);
+            boolean multiReported = false;
             for (Group g : app.groups()) {
                 int qty = l.driverQty().getOrDefault(g.driverId(), 0);
                 boolean groupHasSelection = false;
@@ -88,9 +91,16 @@ public class RuleChecker {
                 }
                 boolean fixedBase = g.fixedBase() != null && !g.fixedBase().isEmpty();
                 if ((groupHasSelection || (fixedBase && qty > 0)) && qty < 1 && !fixedBase) {
-                    out.add(new Violation(app.id(), null, "ERROR",
-                            "Indicare il numero di " + app.driver(g.driverId()).unitLabel() + " ("
-                                    + app.driver(g.driverId()).label() + ")"));
+                    if (multiDriver) {
+                        if (!anyDriver && !multiReported) {
+                            out.add(new Violation(app.id(), null, "ERROR", "Indicare il numero di " + app.driver(g.driverId()).unitLabel() + " (" + driverKinds(app) + ")"));
+                            multiReported = true;
+                        }
+                    } else {
+                        out.add(new Violation(app.id(), null, "ERROR",
+                                "Indicare il numero di " + app.driver(g.driverId()).unitLabel() + " ("
+                                        + app.driver(g.driverId()).label() + ")"));
+                    }
                 }
             }
             if (!anyScaledSelected && allFixedEmpty(l)) {
@@ -98,6 +108,21 @@ public class RuleChecker {
             }
         }
         return out;
+    }
+
+    /** tipi di utenti dell'applicazione senza la parola comune iniziale: «Utenti Enterprise», «Utenti User» → «Enterprise/User» */
+    static String driverKinds(App app) {
+        List<String> labels = new ArrayList<>();
+        for (PricingModel.Driver d : app.drivers()) {
+            labels.add(d.label() == null ? "" : d.label().trim());
+        }
+        String first = labels.isEmpty() ? "" : labels.get(0).split("\\s+")[0];
+        boolean common = !first.isEmpty() && labels.stream().allMatch(x -> x.split("\\s+").length > 1 && x.split("\\s+")[0].equalsIgnoreCase(first));
+        List<String> out = new ArrayList<>();
+        for (String x : labels) {
+            out.add(common ? x.substring(x.indexOf(' ') + 1).trim() : x);
+        }
+        return String.join("/", out);
     }
 
     private static boolean allFixedEmpty(LineSelection l) {

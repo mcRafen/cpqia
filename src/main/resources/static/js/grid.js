@@ -55,8 +55,8 @@
         '<button type="button" class="btn tonal sm cg-clear" title="Azzera filtri, ordinamenti e raggruppamenti">Azzera</button>' +
         (this.bh.configurable ? '<span class="cg-pop-wrap"><button type="button" class="btn tonal sm cg-colsbtn">' + icon('view') + 'Colonne</button><div class="cg-pop cg-cols" hidden></div></span>' +
         '<span class="cg-pop-wrap"><button type="button" class="btn tonal sm cg-viewsbtn">' + icon('sort') + 'Viste</button><div class="cg-pop cg-views" hidden></div></span>' : '') +
-        '<span class="cg-pop-wrap"><button type="button" class="btn tonal sm cg-expbtn" title="Esporta le righe visualizzate">' + icon('download') + 'Esporta</button>' +
-        '<div class="cg-pop cg-exp-menu" hidden><button type="button" data-ex="xlsx">Excel (.xlsx)</button><button type="button" data-ex="gsheet">Google Sheets</button><button type="button" data-ex="csv">CSV (.csv)</button></div></span>' +
+        (m.canExport !== false ? '<span class="cg-pop-wrap"><button type="button" class="btn tonal sm cg-expbtn" title="Esporta le righe visualizzate">' + icon('download') + 'Esporta</button>' +
+        '<div class="cg-pop cg-exp-menu" hidden><button type="button" data-ex="xlsx">Excel (.xlsx)</button><button type="button" data-ex="gsheet">Google Sheets</button><button type="button" data-ex="csv">CSV (.csv)</button></div></span>' : '') +
         (m.actions.some((a) => a.name === 'purge') ? '<button type="button" class="btn sm danger cg-empty-trash">' + icon('delete') + 'Svuota cestino</button>' : '') +
         (m.newHref ? '<a class="btn sm" href="' + CPQ.url('/' + m.newHref) + '">' + icon('add') + esc(m.newLabel || 'Nuovo') + '</a>'
           : (m.canCreate ? '<button type="button" class="btn sm cg-new">' + icon('add') + 'Aggiungi</button>' : '')) +

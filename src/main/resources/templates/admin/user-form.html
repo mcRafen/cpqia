@@ -34,7 +34,20 @@
             <label class="check"><input type="checkbox" name="canManageCatalog" th:checked="${u != null and u.canManageCatalog}"> Gestire applicazioni, moduli e prezzi</label>
             <label class="check"><input type="checkbox" name="canViewPrices" th:checked="${u == null or u.canViewPrices}"> Vedere i prezzi di listino</label>
         </div>
-        <p class="hint">Le modifiche ai permessi hanno effetto dal prossimo accesso dell'utente.</p>
+        <h3 style="margin:22px 0 6px">Esportazione dati</h3>
+        <div class="hint" style="margin-bottom:10px">Griglie su cui l'utente può esportare i dati (Excel, CSV, Google Sheets). L'administrator può esportare sempre su tutte.</div>
+        <label class="check" style="margin-bottom:10px"><input type="checkbox" name="exportAll" id="export-all" th:checked="${exportKeys.contains('*')}"> <b>Tutte le griglie</b> (anche quelle aggiunte in futuro)</label>
+        <div class="grid c3" style="gap:8px 24px" id="export-grids">
+            <label class="check" th:each="g : ${grids}"><input type="checkbox" th:name="'exp_' + ${g.key}" th:checked="${exportKeys.contains('*') or exportKeys.contains(g.key)}"> <span th:text="${g.title}">Griglia</span></label>
+        </div>
+        <p class="hint">Le modifiche ai permessi hanno effetto dal prossimo accesso dell'utente; l'esportazione si aggiorna già al prossimo caricamento della griglia.</p>
+        <script>
+            (function () {
+                var all = document.getElementById('export-all'), box = document.getElementById('export-grids');
+                function sync() { box.querySelectorAll('input').forEach(function (i) { i.disabled = all.checked; if (all.checked) i.checked = true; }); }
+                all.addEventListener('change', sync); sync();
+            })();
+        </script>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
             <a class="btn text" th:href="@{/admin/users}">Annulla</a>
             <button class="btn" type="submit"><svg class="ic"><use href="#i-save"/></svg>Salva</button>

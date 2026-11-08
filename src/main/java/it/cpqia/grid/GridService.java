@@ -28,8 +28,10 @@ public class GridService {
     private final GridRegistry registry;
     private final TrashService trash;
     private final GridBehaviorService behaviors;
+    private final GridExportPermissionService exportPerm;
 
-    public GridService(JdbcClient jdbc, GridRegistry registry, TrashService trash, GridBehaviorService behaviors) {
+    public GridService(JdbcClient jdbc, GridRegistry registry, TrashService trash, GridBehaviorService behaviors, GridExportPermissionService exportPerm) {
+        this.exportPerm = exportPerm;
         this.behaviors = behaviors;
         this.jdbc = jdbc;
         this.registry = registry;
@@ -107,7 +109,7 @@ public class GridService {
         } else {
             rows = query(s, u, null, Map.of());
         }
-        return new Data(s.meta(u).withBehavior(behaviors.get(key)), rows);
+        return new Data(s.meta(u).withBehavior(behaviors.get(key)).withExport(exportPerm.allowed(u, key)), rows);
     }
 
     private Map<String, Object> row(GridSpec s, AppUser u, String id) {
@@ -263,6 +265,9 @@ public class GridService {
     /** Excel delle righe indicate (ordine e colonne come in griglia); le righe non visibili all'utente sono ignorate */
     public byte[] exportXlsx(String key, List<String> columns, List<String> rowIds, AppUser u) {
         Data d = data(key, u);
+        if (!d.meta().canExport()) {
+            throw new AccessDeniedException("Esportazione dei dati non abilitata su questa griglia");
+        }
         try {
             return GridExport.xlsx(d, columns == null ? List.of() : columns, rowIds);
         } catch (java.io.IOException e) {

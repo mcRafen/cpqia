@@ -6,6 +6,7 @@ import it.cpqia.extras.ExtraCalculator;
 import it.cpqia.extras.ExtraModel;
 import it.cpqia.extras.ExtraRepository;
 import it.cpqia.pricing.PricingModel.App;
+import it.cpqia.pricing.PricingModel.Driver;
 import it.cpqia.pricing.PricingModel.Module;
 import it.cpqia.pricing.PricingModel.Result;
 import it.cpqia.pricing.PricingService;
@@ -54,11 +55,13 @@ public class OfferService {
     private final CustomerRepository customers;
     private final TrashService trash;
     private final it.cpqia.galileo.GalileoService galileo;
+    private final OfferRevisionService revisions;
 
     public OfferService(JdbcClient jdbc, CatalogRepository catalog, PricingService pricing, RuleChecker rules,
                         ExtraCalculator extraCalc, ExtraRepository extraRepo, TermsConfig termsConfig,
                         TermsRepository termsRepo, CustomerRepository customers, TrashService trash,
-                        it.cpqia.galileo.GalileoService galileo) {
+                        it.cpqia.galileo.GalileoService galileo, OfferRevisionService revisions) {
+        this.revisions = revisions;
         this.galileo = galileo;
         this.trash = trash;
         this.termsConfig = termsConfig;
@@ -70,6 +73,23 @@ public class OfferService {
         this.rules = rules;
         this.extraCalc = extraCalc;
         this.extraRepo = extraRepo;
+    }
+
+    /** vero se nella riga e' selezionato almeno un modulo con gruppo di prezzo (moltiplicato dagli utenti): solo allora si chiedono gli utenti */
+    public static boolean perUserSelected(App app, LineRequest l) {
+        if (l.modules() == null) {
+            return false;
+        }
+        for (ModuleQty mq : l.modules()) {
+            if (mq.moduleId() == null || mq.qty() == null || mq.qty() <= 0) {
+                continue;
+            }
+            Module m = app.module(mq.moduleId());
+            if (m != null && m.groupId() != null && !"LINK".equals(m.section()) && !m.included()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** numero offerta: YYYYMMDD + "." + progressivo + iniziali (es. 20261022.3ER) */
@@ -122,7 +142,8 @@ public class OfferService {
                         }
                     }
                 }
-                Map<Long, Integer> drv = l.drivers() == null ? Map.of() : l.drivers();
+                // utenti / macchine contano solo se e' selezionato almeno un modulo con gruppo di prezzo (moduli per utente); solo moduli a prezzo fisso: vale il prezzo
+                Map<Long, Integer> drv = l.drivers() == null || !perUserSelected(app, l) ? Map.of() : l.drivers();
                 Result r = pricing.calculate(app, mode, sel, drv);
                 selections.add(new LineSelection(app, mode, sel, drv));
                 BigDecimal licTot = r.licenseWithOnetime();
@@ -175,6 +196,32 @@ public class OfferService {
         String numberInitials = initialsFor(req.customerId(), user);
         if (numberInitials.isBlank()) {
             throw new IllegalArgumentException("Mancano le iniziali per il numero offerta: l'account non ha un agente con nome e cognome e il tuo profilo non ha le iniziali (impostale in Profilo)");
+        }
+        // Dipartimentali: utenti (e ogni altra grandezza) partono da 0 e vanno indicati per ogni applicazione (SMITECH: dagli utenti di Power / Galileo)
+        if (req.lines() != null) {
+            for (LineRequest l : req.lines()) {
+                App app = catalog.find(l.applicationId()).orElse(null);
+                if (app == null || "SMITECH".equalsIgnoreCase(app.family()) || "SMITECH".equalsIgnoreCase(app.code())) {
+                    continue;
+                }
+                // un solo tipo di utenti: obbligatorio; piu' tipi: almeno uno dei due. Solo se e' selezionato un modulo per utente (prezzo fisso: niente utenti)
+                if (app.drivers().isEmpty() || !perUserSelected(app, l)) {
+                    continue;
+                }
+                boolean any = false;
+                for (Driver d : app.drivers()) {
+                    Integer q = l.drivers() == null ? null : l.drivers().get(d.id());
+                    if (q != null && q >= 1) {
+                        any = true;
+                    }
+                }
+                if (!any) {
+                    Driver d = app.drivers().get(0);
+                    throw new IllegalArgumentException(app.name() + ": indica " + (app.drivers().size() == 1
+                            ? "il numero di " + (d.unitLabel() == null || d.unitLabel().isBlank() ? d.label() : d.unitLabel()).toLowerCase()
+                            : "almeno uno tra " + String.join(" e ", app.drivers().stream().map(x -> x.label().toLowerCase()).toList())));
+                }
+            }
         }
         CalcResponse calc = calculate(req);
         for (Violation v : calc.violations()) {
@@ -296,7 +343,7 @@ public class OfferService {
                     values (:o, :a, :m, :s, :la, :ma) returning id""")
                     .param("o", offerId).param("a", app.id()).param("m", mode).param("s", sort += 10)
                     .param("la", lr.licenseTotal()).param("ma", lr.maintenance()).query(Long.class).single();
-            if (l.drivers() != null) {
+            if (l.drivers() != null && perUserSelected(app, l)) {
                 for (Map.Entry<Long, Integer> e : l.drivers().entrySet()) {
                     if (e.getValue() != null && e.getValue() > 0) {
                         jdbc.sql("insert into offer_line_driver (line_id, driver_id, qty) values (:l, :d, :q)")
@@ -329,6 +376,7 @@ public class OfferService {
                 + "total_maintenance = :tm + coalesce((select maintenance from offer_galileo where offer_id = :o), 0) where id = :o")
                 .param("tl", calc.totalLicense()).param("tm", calc.totalMaintenance()).param("o", offerId).update();
         rememberProspectTravel(req);
+        revisions.recordChanges(offerId);                 // modifiche rispetto alla revisione precedente (nessuna per la prima)
         return offerId;
     }
 

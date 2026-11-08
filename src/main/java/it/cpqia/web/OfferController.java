@@ -218,6 +218,22 @@ public class OfferController {
         return Map.of("revision", revisions.revisionOf(id), "superseded", revisions.superseded(id), "history", revisions.history(id));
     }
 
+    /** confronto tra le revisioni indicate (almeno due): colonne = revisioni, righe = campi */
+    @GetMapping("/api/{id}/compare")
+    @ResponseBody
+    public it.cpqia.service.OfferRevisionService.Comparison compare(@PathVariable long id, @RequestParam java.util.List<Long> ids, Authentication auth) {
+        checkAccess(id, auth);
+        return revisions.compare(id, ids);
+    }
+
+    /** modifiche memorizzate della revisione rispetto alla precedente */
+    @GetMapping("/api/{id}/changes")
+    @ResponseBody
+    public java.util.List<it.cpqia.service.OfferRevisionService.StoredChange> changes(@PathVariable long id, Authentication auth) {
+        checkAccess(id, auth);
+        return revisions.storedChanges(id);
+    }
+
     /** promuove una revisione precedente ad attuale: ne crea una nuova (copia della revisione indicata) che diventa quella in gestione */
     @org.springframework.web.bind.annotation.PostMapping("/api/{id}/promote")
     @ResponseBody

@@ -67,6 +67,9 @@ public class GoogleSheetsController {
                                       HttpServletRequest http, HttpSession session) throws Exception {
         AppUser u = current.get(auth);
         Data data = grids.data(key, u);                              // controlla anche permessi e visibilita'
+        if (!data.meta().canExport()) {
+            throw new org.springframework.security.access.AccessDeniedException("Esportazione dei dati non abilitata su questa griglia");
+        }
         Map<String, Object> out = new LinkedHashMap<>();
         String redirect = redirectUri(http);
         if (!sheets.configured()) {
@@ -134,6 +137,9 @@ public class GoogleSheetsController {
             @SuppressWarnings("unchecked")
             List<String> rows = (List<String>) pending.get("rows");
             Data data = grids.data(key, u);
+            if (!data.meta().canExport()) {
+                return page("Esportazione dei dati non abilitata su questa griglia.");
+            }
             String url = sheets.create(tok, title(data), data, cols, rows);
             return ResponseEntity.status(302).header("Location", url).build();
         } catch (Exception e) {
