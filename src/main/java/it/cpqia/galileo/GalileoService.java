@@ -135,7 +135,15 @@ public class GalileoService {
                 ok = inList.stream().allMatch(present::contains);
             }
             if (!ok) {
-                out.add(new Violation(r.moduleCode(), r.severity(), r.moduleCode() + ": " + r.message()));
+                if ("AGG".equals(p.kind())) {
+                    // MODULI AGGIUNTIVI: le dipendenze non sono vincolanti, l'operatore deve solo verificare che il cliente abbia gia' i moduli richiesti
+                    List<String> missing = inList.stream().filter(x -> !present.contains(x)).toList();
+                    String which = "REQUIRES_ANY".equals(r.type()) ? "almeno uno tra " + String.join(", ", inList) : String.join(", ", missing);
+                    out.add(new Violation(r.moduleCode(), "WARNING", r.moduleCode() + ": verifica con il cliente se ha già " + (missing.size() > 1 || "REQUIRES_ANY".equals(r.type()) ? "i moduli " : "il modulo ") + which
+                            + " (dipendenza non vincolante)"));
+                } else {
+                    out.add(new Violation(r.moduleCode(), r.severity(), r.moduleCode() + ": " + r.message()));
+                }
             }
         }
         return out;

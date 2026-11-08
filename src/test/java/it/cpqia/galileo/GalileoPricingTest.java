@@ -111,6 +111,26 @@ class GalileoPricingTest {
     }
 
     @Test
+    void additionalModulesUsersBands() {
+        // foglio «AGGIUNTA NUOVI MODULI»: fino a 10 utenti = somma moduli; poi ogni utente di fascia costa somma * % (3,5 / 2,4 ...)
+        java.util.List<GalileoModel.Mod> mods = java.util.List.of(
+                new GalileoModel.Mod(1, "A", "A", "AREA", "FA", "D", false, new BigDecimal("1000"), null, null, 10),
+                new GalileoModel.Mod(2, "B", "B", "AREA", "FA", "D", false, new BigDecimal("500"), null, null, 20));
+        java.util.Map<String, java.util.List<GalileoModel.Tier>> tiers = new java.util.LinkedHashMap<>();
+        tiers.put("MAIN", java.util.List.of(new GalileoModel.Tier(1, 10, null), new GalileoModel.Tier(11, 20, new BigDecimal("3.5")),
+                new GalileoModel.Tier(21, 40, new BigDecimal("2.4")), new GalileoModel.Tier(41, null, new BigDecimal("1.4"))));
+        Profile p = new Profile(1, 1, "AGG", "Moduli aggiuntivi", "AGGIUNTA NUOVI MODULI", null, null, BigDecimal.ZERO, BigDecimal.ZERO, false, BigDecimal.ONE,
+                null, null, null, null, false, false, new BigDecimal("18"), tiers, mods, BigDecimal.ZERO);
+        java.util.Set<String> sel = new HashSet<>(java.util.List.of("A", "B"));
+        assertEquals(0, new BigDecimal("1500.00").compareTo(GalileoPricing.calculate(p, new Input(10, 0, "V9", 0, false, sel, new HashSet<>())).list()));
+        // 25 utenti: 1500 + 10 * 3,5% * 1500 + 5 * 2,4% * 1500 = 1500 + 525 + 180
+        assertEquals(0, new BigDecimal("2205.00").compareTo(GalileoPricing.calculate(p, new Input(25, 0, "V9", 0, false, sel, new HashSet<>())).list()));
+        // utenti non obbligatori: senza utenti vale la somma dei moduli
+        assertEquals(0, new BigDecimal("1500.00").compareTo(GalileoPricing.calculate(p, new Input(0, 0, "V9", 0, false, sel, new HashSet<>())).list()));
+        assertFalse(GalileoPricing.calculate(p, new Input(5, 0, "V9", 0, false, new HashSet<>(), new HashSet<>())).valid());
+    }
+
+    @Test
     void migrationFromV9ToV9IsRejected() throws Exception {
         Profile p = profiles().get("MIGRAZIONE AZ. COMMERCIALE");
         Result r = GalileoPricing.calculate(p, new Input(10, 0, "V9", 3, false, new HashSet<>(), new HashSet<>()));

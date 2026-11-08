@@ -132,7 +132,7 @@
     syncServicesUi(); $('#opt-days').checked = S.optDays; $('#opt-apptot').value = S.appTotalsMode; $('#svc-detail').checked = S.actDetail; $('#opt-hours-detail').checked = S.hoursDetail; $('#opt-power').checked = S.optPower; $('#opt-smitech').checked = S.optSmitech; $('#opt-dept').checked = S.optDept;
     renderGalileo();
     loadRevisions();
-    $('#opt-maint-hint').hidden = S.optSummary || !S.optMaint; $('#row-apptot').hidden = !S.optSummary; $('#row-detail').hidden = !S.optSummary;
+    refreshDocOptions();
     updateNumber();
   }
 
@@ -193,7 +193,7 @@
     const when = (x) => { const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(x.createdAt || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] : ''; };
     dlg.innerHTML = '<div class="dlg-head"><h3 style="margin:0">Confronto revisioni</h3><div class="muted">Scegli due o più revisioni da confrontare</div></div>' +
       '<div class="dlg-body"><div class="rev-pick">' + history.slice().reverse().map((x) =>
-        '<label class="check"><input type="checkbox" class="rev-sel" value="' + x.id + '"' + (history.length <= 3 || x.id === history[0].id || x.id === (history[1] || {}).id ? ' checked' : '') + '> Rev. ' + x.revision + ' <span class="muted">' + esc(when(x)) + (x.author ? ' - ' + esc(x.author) : '') + '</span></label>').join('') + '</div>' +
+        '<label class="check"><input type="checkbox" class="rev-sel" value="' + x.id + '"> Rev. ' + x.revision + ' <span class="muted">' + esc(when(x)) + (x.author ? ' - ' + esc(x.author) : '') + '</span></label>').join('') + '</div>' +
       '<div class="rev-bar"><label class="check"><input type="checkbox" id="rev-only" checked> Mostra solo le differenze</label>' +
       '<span class="grow"></span><button type="button" class="btn text sm" id="rev-tab-cmp">Confronto</button><button type="button" class="btn text sm" id="rev-tab-chg">Modifiche per revisione</button></div>' +
       '<div id="rev-out" class="tablewrap"></div></div>' +
@@ -205,6 +205,7 @@
     async function run() {
       const ids = Array.from(dlg.querySelectorAll('.rev-sel:checked')).map((i) => i.value);
       if (tab === 'chg') {
+        if (!ids.length) { out.innerHTML = ''; return; }
         out.innerHTML = 'Caricamento…';
         const parts = [];
         for (const x of history.slice().sort((a, b) => b.revision - a.revision)) {
@@ -214,10 +215,11 @@
             ? '<table class="t"><thead><tr><th>Sezione</th><th>Campo</th><th>Prima</th><th>Dopo</th></tr></thead><tbody>' + ch.map((c) => '<tr><td>' + esc(c.section) + '</td><td>' + esc(c.field) + '</td><td>' + val(c.oldValue) + '</td><td><b>' + val(c.newValue) + '</b></td></tr>').join('') + '</tbody></table>'
             : '<div class="muted">' + (x.revision === 0 || x === history[history.length - 1] ? 'Revisione iniziale: nessun confronto.' : 'Nessuna modifica rispetto alla revisione precedente.') + '</div>'));
         }
-        out.innerHTML = parts.join('') || '<div class="muted">Seleziona almeno una revisione.</div>';
+        out.innerHTML = parts.join('');
         return;
       }
-      if (ids.length < 2) { out.innerHTML = '<div class="muted">Seleziona almeno due revisioni.</div>'; return; }
+      if (!ids.length) { out.innerHTML = ''; return; }                       // nessuna revisione scelta: tabella vuota
+      if (ids.length < 2) { out.innerHTML = '<div class="muted">Seleziona almeno un\'altra revisione da confrontare.</div>'; return; }
       out.innerHTML = 'Caricamento…';
       try {
         const c = await CPQ.api('GET', '/offers/api/' + S.offerId + '/compare?ids=' + ids.join(','));
@@ -522,9 +524,47 @@
 
   /** mercati Galileo: applicazioni della famiglia GALILEO (non compaiono nell'elenco delle applicazioni) */
   const GALILEO = 'GALILEO';
+  /** scenario MODULI AGGIUNTIVI: gli altri contenuti sono oscurati, il Modello Light e' obbligatorio, niente totali per applicazione né manutenzione «in aggiunta» */
+  const galAgg = () => { const a = S.optGalileo && S.galileoId ? appOf(S.galileoId) : null; return !!a && a.code === GAL_AGG_CODE; };
+  function refreshDocOptions() {
+    const agg = galAgg();
+    $('#opt-maint-hint').hidden = agg || S.optSummary || !S.optMaint;
+    $('#row-apptot').hidden = agg || !S.optSummary;
+    $('#row-detail').hidden = !S.optSummary;
+    const mw = $('#opt-maint').closest('label'); if (mw) mw.hidden = agg;
+    const sum = $('#opt-summary'); sum.checked = S.optSummary; sum.disabled = agg;
+    const sm = $('#sel-svc-mode'); if (sm) { sm.disabled = agg; if (agg) sm.value = 'MANUAL'; }          // MODULI AGGIUNTIVI: Servizi solo in modalità Manuale
+    ['#opt-power', '#opt-smitech', '#opt-dept', '#opt-services'].forEach((id) => {          // «Servizi» resta utilizzabile
+      const el = $(id); if (!el) return;
+      el.disabled = agg;
+      const w = el.closest('label.check') || el.closest('.field'); if (w) w.classList.toggle('opt-dim', agg);
+    });
+  }
+  /** entrando in MODULI AGGIUNTIVI: toglie le altre componenti (previa conferma se ci sono dati) e imposta Modello Light, senza totali applicazioni */
+  async function enterAggMode() {
+    const has = S.lines.length || S.activities.some((a) => !a.rfq && a.appId) || S.optPower || S.optSmitech || S.optServices || S.optMaint;
+    if (has && !(await CPQ.confirm('Con «MODULI AGGIUNTIVI» le altre componenti dell\'offerta (Dipartimentali, Power System, SMITECH, Servizi accessori, e le attività legate alle applicazioni) vengono tolte. Continuare?',
+      { title: 'Moduli aggiuntivi', yes: 'Sì, togli', no: 'No, mantieni', danger: true }))) return false;
+    S.lines = []; calc = null; expanded.clear();
+    if (S.servicesMode === 'RFQ') { S.servicesMode = 'MANUAL'; S.optRfq = false; S.activities = S.activities.filter((a) => !a.rfq); S.rfqSheetTotal = null; }      // solo modalità Manuale
+    S.activities = S.activities.filter((a) => a.rfq || !a.appId);          // «Servizi» resta: si tengono le attività non legate a un'applicazione
+    S.svcGroups = (S.svcGroups || []).filter((g) => !g.appId);
+    S.optDept = false; S.optServices = false; S.optMaint = false;
+    S.optPower = false; S.powerModelId = null; S.powerRam = ''; S.powerDisk = ''; S.optSmitech = false;
+    S.optSummary = true; S.appTotalsMode = 'NO';
+    $('#opt-power').checked = false; $('#opt-smitech').checked = false; $('#opt-dept').checked = false; $('#opt-services').checked = false; $('#opt-maint').checked = false;
+    $('#opt-apptot').value = 'NO';
+    renderPower(); syncServicesUi(); renderApps(); scheduleCalc();
+    return true;
+  }
+  const GAL_AGG_CODE = 'CRM_JGAL_MODULI';            // applicazione «AGGIUNTA MODULI»: compare in fondo all'elenco come «MODULI AGGIUNTIVI»
+  const galAppName = (a) => (a && a.code === GAL_AGG_CODE ? 'MODULI AGGIUNTIVI' : (a ? a.name : ''));
   function renderGalileo() {
     const list = catalog.filter((a) => a.family === GALILEO);
-    $('#sel-galileo').innerHTML = '<option value="">— seleziona —</option>' + list.map((a) => '<option value="' + a.id + '"' + (S.galileoId === a.id ? ' selected' : '') + '>' + esc(a.name) + '</option>').join('');
+    const opt = (a) => '<option value="' + a.id + '"' + (S.galileoId === a.id ? ' selected' : '') + '>' + esc(galAppName(a)) + '</option>';
+    const agg = list.filter((a) => a.code === GAL_AGG_CODE);
+    $('#sel-galileo').innerHTML = '<option value="">— seleziona —</option>' + list.filter((a) => a.code !== GAL_AGG_CODE).map(opt).join('') +
+      (agg.length ? '<option value="" disabled>──────────</option>' + agg.map(opt).join('') : '');
   }
 
   // ---------------------------------------------------------------- IBM Power System (elemento + pagina di configurazione)
@@ -824,6 +864,8 @@
     // servizi: righe di attivita' incomplete
     if (S.servicesMode !== 'NONE') {
       const rows = new Set(C.activityRows(S.activities, S.lines));
+      // «Servizi» attivi: serve almeno un servizio specificato prima di proseguire
+      if (!rows.size) add(5, 'svc', S.optRfq ? '#btn-rfq-import' : '#svc-body', S.optRfq ? 'Servizi: importa le attività dal foglio RFQ oppure disattiva «Servizi»' : 'Servizi: inserisci almeno un servizio (descrizione, profilo professionale e ore) oppure disattiva «Servizi»');
       for (let i = 0; i < S.activities.length; i++) {
         const a = S.activities[i];
         if (!rows.has(a)) continue;
@@ -887,7 +929,8 @@
       }
     }
     const first = collectErrors().find((e) => (e.kind === 'base' && n > 1) || (e.kind === 'type' && idx(n) > idx(6))
-      || (e.kind === 'power' && idx(n) > idx(7)) || (e.kind === 'gal' && idx(n) > idx(8)));
+      || (e.kind === 'power' && idx(n) > idx(7)) || (e.kind === 'gal' && idx(n) > idx(8))
+      || ((e.kind === 'svc' || e.kind === 'act') && idx(n) > idx(5)));          // con «Servizi» attivi non si va avanti senza servizi completi
     if (first) { revealError(first); return; }
     const after6 = idx(n) > idx(6);
     while (!stepVisible(n) && n !== 4) n = nextStep(n);        // salta i passi non presenti nell'offerta
@@ -1839,6 +1882,7 @@
   }
   /** cambio modalita' dei servizi: le attivita' di un'altra modalita' vengono rimosse dopo conferma */
   async function applyServicesMode(next) {
+    if (galAgg() && next === 'RFQ') next = 'MANUAL';          // MODULI AGGIUNTIVI: modalità fissa Manuale
     const cur = S.servicesMode;
     if (next === cur) { syncServicesUi(); return; }
     const hasManual = S.activities.some((a) => !a.rfq), hasRfq = S.activities.some((a) => a.rfq);
@@ -1855,7 +1899,7 @@
     S.servicesMode = next; syncServicesUi(); CPQ.markDirty('page', root); refreshStepper(); updateAmounts(); refreshSaveState();
   }
   function bindRfq() {
-    $('#opt-services-on').addEventListener('change', (e) => applyServicesMode(e.target.checked ? (lastServicesMode || 'MANUAL') : 'NONE'));
+    $('#opt-services-on').addEventListener('change', (e) => applyServicesMode(e.target.checked ? (galAgg() ? 'MANUAL' : (lastServicesMode || 'MANUAL')) : 'NONE'));
     $('#sel-svc-mode').addEventListener('change', (e) => applyServicesMode(e.target.value));
     $('#opt-days').addEventListener('change', (e) => { S.optDays = e.target.checked; });
     $('#opt-hours-detail').addEventListener('change', (e) => { S.hoursDetail = e.target.checked; });
@@ -2082,11 +2126,12 @@
 
   // ---------------------------------------------------------------- Galileo: listino JGalileo per mercato e scenario
   const G = { info: { markets: [] }, profile: null, rules: [], timer: null, seq: 0, collapsed: new Set(), loading: false };
-  const GAL_KIND = { NEW: 'Nuova configurazione', CONS: 'Consociata', MIG: 'Migrazione', MIGCONS: 'Migrazione consociata', IMMOB: 'Immobiliare (fino a 3 utenti)' };
+  const GAL_KIND = { NEW: 'Nuova configurazione', CONS: 'Consociata', MIG: 'Migrazione', MIGCONS: 'Migrazione consociata', IMMOB: 'Immobiliare (fino a 3 utenti)', AGG: 'Moduli aggiuntivi' };
   const galMarket = () => (G.info.markets || []).find((m) => m.applicationId === S.galileoId);
   /** la pagina Galileo c'e' solo se e' scelta una tipologia che ha un listino configurato */
   function galHasListino() { return !!(S.optGalileo && S.galileoId && galMarket()); }
   const galProfileLabel = () => (G.profile ? (GAL_KIND[G.profile.kind] || G.profile.label) : '');
+  const galIsAgg = () => !!G.profile && G.profile.kind === 'AGG';
   const galIsMig = () => !!G.profile && (G.profile.kind === 'MIG' || G.profile.kind === 'MIGCONS');
   const galDate = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || ''); };
 
@@ -2098,7 +2143,7 @@
   /** all'apertura del passo: carica il profilo (scenario predefinito = nuova configurazione) e disegna la pagina */
   async function galEnter() {
     const m = galMarket(); if (!m) return;
-    $('#gal-market').textContent = m.name;
+    $('#gal-market').textContent = m.code === GAL_AGG_CODE ? 'MODULI AGGIUNTIVI' : m.name;
     const l = G.info.listino;
     $('#gal-listino').textContent = l ? 'Listino ' + l.name + ' ' + l.version + ' – valido fino al ' + galDate(l.validUntil) : '';
     const ex = $('#gal-expired'); ex.hidden = !G.info.expired;
@@ -2142,7 +2187,7 @@
     const kind = G.profile.kind, st = galState(m);
     if (kind === 'IMMOB') return '<span class="muted">incluso</span>';
     if (m.flag === 'V11') return '<span class="muted">' + (S.gal.release === 'V11' ? 'incluso (V11)' : 'solo con V11') + '</span>';
-    if (kind === 'NEW') {
+    if (kind === 'NEW' || kind === 'AGG') {
       if (m.flag === 'CB') return '<span class="muted">incluso</span>';
       return '<input type="checkbox" class="gal-chk" data-m="' + m.moduleId + '"' + (st === 'D' ? ' checked' : '') + '>';
     }
@@ -2166,15 +2211,20 @@
     const P = G.profile; if (!P) return;
     const mk = galMarket();
     if (mk) galFill($('#gal-kind'), mk.profiles.map((p) => [p.id, GAL_KIND[p.kind] || p.label]), P.id);
+    // MODULI AGGIUNTIVI: si sceglie solo il numero di utenti (nessuno scenario) e poi i moduli per area
+    $('#gal-kind').closest('.field').hidden = galIsAgg();
     $('#gal-release-box').hidden = !P.cfgV11;
     galFill($('#gal-release'), [['', '— non selezionato —'], ['V9', 'V9'], ['V11', 'V11']], S.gal.release);
     $('#gal-users').value = S.gal.users;
-    $('#gal-users-help').textContent = P.kind === 'IMMOB' ? 'da 1 a ' + P.maxUsers + ' utenti' : '';
+    const ul = document.querySelector('label[for="gal-users"]'); if (ul) ul.textContent = galIsAgg() ? 'Numero utenti' : 'Numero utenti *';          // MODULI AGGIUNTIVI: facoltativo
+    $('#gal-users-help').textContent = P.kind === 'IMMOB' ? 'da 1 a ' + P.maxUsers + ' utenti'
+      : galIsAgg() ? 'Facoltativo. Fino a 10 utenti il prezzo è la somma dei moduli; oltre si aggiunge un importo per utente in base alla fascia' : '';
     $('#gal-source-box').hidden = !galIsMig();
     galFill($('#gal-source'), [[0, '— seleziona —'], [1, 'Carattere'], [2, 'Visuale'], [3, 'V9']], S.gal.source || 0);
     $('#gal-add-box').hidden = !galIsMig(); $('#gal-addusers').value = S.gal.addUsers;
     $('#gal-agg-box').hidden = !P.aggiuntaSupported; $('#gal-agg').checked = !!S.gal.aggiunta;
-    $('#gal-mods-help').textContent = P.kind === 'NEW' ? 'Spunta le funzioni aggiuntive (FA); i moduli base (CB) sono compresi nella configurazione.'
+    $('#gal-mods-help').textContent = galIsAgg() ? 'Spunta i moduli da aggiungere, organizzati per area applicativa.'
+      : P.kind === 'NEW' ? 'Spunta le funzioni aggiuntive (FA); i moduli base (CB) sono compresi nella configurazione.'
       : P.kind === 'IMMOB' ? 'Configurazione immobiliare: i moduli base sono inclusi nel prezzo fisso.'
       : 'Per ogni modulo indica se è ' + (galIsMig() ? 'già presente (migrato)' : 'in comune con la principale') + ' oppure nuovo; i moduli base (CB) sono ' + (galIsMig() ? 'migrati' : 'in comune') + ' salvo diversa scelta.';
     galRenderMods();
@@ -2194,7 +2244,8 @@
       if (!(a in idx)) { idx[a] = groups.length; groups.push({ area: a, mods: [] }); }
       groups[idx[a]].mods.push(m);
     });
-    const viol = new Set(((S.gal.calc && S.gal.calc.violations) || []).map((v) => v.moduleCode));
+    const violSev = {}; ((S.gal.calc && S.gal.calc.violations) || []).forEach((v) => { violSev[v.moduleCode] = v.severity; });
+    const viol = new Set(Object.keys(violSev));
     $('#gal-mods').innerHTML = groups.map((g) => {
       const rows = g.mods.filter((m) => (!q || (m.code + ' ' + m.description).toLowerCase().includes(q)) && (!only || galState(m)));
       if (!rows.length) return '';
@@ -2204,7 +2255,7 @@
         (closed ? '' : '<div class="tablewrap"><table class="t gal-t"><tbody>' + rows.map((m) => {
           const st = galState(m);
           return '<tr data-m="' + m.moduleId + '" class="' + (st && m.flag !== 'CB' && m.flag !== 'V11' ? 'sel' : '') + '"><td style="width:150px">' + galStateCtl(m) + '</td><td class="mono"><b>' + esc(m.code) + '</b></td><td>' + esc(m.description) +
-            (m.flag === 'CB' ? ' <span class="chip">base</span>' : '') + (viol.has(m.code) ? ' <span class="chip err">vincolo non rispettato</span>' : '') +
+            (m.flag === 'CB' ? ' <span class="chip">base</span>' : '') + (viol.has(m.code) ? (violSev[m.code] === 'ERROR' ? ' <span class="chip err">vincolo non rispettato</span>' : ' <span class="chip warn" title="Dipendenza non vincolante: verifica con il cliente">dipendenza da verificare</span>') : '') +
             (galNoCharge(m) ? ' <span class="chip warn" title="Nel foglio Excel del listino questo modulo non ha la formula di addebito">non addebitato</span>' : '') + '</td>' +
             '<td class="num pr nowrap">' + (m.price == null ? '' : CPQ.eur(m.price)) + '</td></tr>';
         }).join('') + '</tbody></table></div>');
@@ -2237,7 +2288,7 @@
   }
 
   function galRenderTotals() {
-    const c = S.gal.calc, need = Number(S.gal.users) >= 1;
+    const c = S.gal.calc, need = galIsAgg() ? Object.keys(S.gal.sel).some((k) => S.gal.sel[k]) : Number(S.gal.users) >= 1;
     const inv = $('#gal-invalid');
     const r = c && c.result;
     const ok = !!(r && r.valid);
@@ -2256,9 +2307,9 @@
     if (!stepVisible(8)) return [];
     const g = S.gal, e = [];
     const add = (sel, msg) => e.push({ step: 8, kind: 'gal', sel: sel, msg: msg });
-    if (!g.profileId) return [{ step: 8, kind: 'gal', sel: '#gal-kind', msg: 'Galileo: scegli lo scenario' }];
+    if (!g.profileId) { const mk = galMarket(); return mk && mk.code === GAL_AGG_CODE ? [{ step: 8, kind: 'gal', sel: '#gal-mods', msg: 'Galileo: seleziona almeno un modulo' }] : [{ step: 8, kind: 'gal', sel: '#gal-kind', msg: 'Galileo: scegli lo scenario' }]; }
     if (G.profile && G.profile.id === g.profileId && G.profile.cfgV11 && !g.release) return [{ step: 8, kind: 'gal', sel: '#gal-release', msg: 'Galileo: seleziona la release (V9 o V11)' }];
-    if (!(Number(g.users) >= 1)) return [{ step: 8, kind: 'gal', sel: '#gal-users', msg: 'Galileo: indica il numero di utenti' }];
+    if (!(Number(g.users) >= 1) && !galIsAgg()) return [{ step: 8, kind: 'gal', sel: '#gal-users', msg: 'Galileo: indica il numero di utenti' }];          // MODULI AGGIUNTIVI: utenti facoltativi
     if (!g.calc) return [{ step: 8, kind: 'gal', sel: '#gal-users', msg: 'Galileo: calcolo in corso' }];
     if (g.calc.error) return [{ step: 8, kind: 'gal', sel: '#gal-card-tot', msg: 'Galileo: ' + g.calc.error }];
     if (!g.calc.result.valid) add('#gal-card-tot', 'Galileo: ' + g.calc.result.message);
@@ -2542,7 +2593,7 @@
   $('#opt-galileo').addEventListener('change', (e) => {
     S.optGalileo = e.target.checked; $('#galileo-box').hidden = !S.optGalileo; syncPowerUsers();
     if (!S.optGalileo) { S.galileoId = null; $('#sel-galileo').value = ''; galReset(); }
-    refreshStepper();
+    refreshDocOptions(); refreshStepper();
   });
   // «Dipartimentali»: se si toglie la spunta le applicazioni selezionate vengono rimosse (previa conferma, predefinito No)
   $('#opt-dept').addEventListener('change', async (e) => {
@@ -2555,7 +2606,12 @@
     }
     S.optDept = false; refreshStepper();
   });
-  $('#sel-galileo').addEventListener('change', (e) => { S.galileoId = e.target.value ? Number(e.target.value) : null; galReset(); refreshStepper(); });
+  $('#sel-galileo').addEventListener('change', async (e) => {
+    const prev = S.galileoId;
+    S.galileoId = e.target.value ? Number(e.target.value) : null;
+    if (galAgg() && !(await enterAggMode())) { S.galileoId = prev; renderGalileo(); return; }
+    galReset(); refreshDocOptions(); refreshStepper();
+  });
   bindProfileRates();
   bindSmitech();
   $('#hd-prev').addEventListener('click', () => go(prevStep(S.step)));
@@ -2579,7 +2635,7 @@
   $('#sum-title').addEventListener('input', (e) => { S.title = e.target.value; });
   [['opt-maint', 'optMaint'], ['opt-services', 'optServices'], ['opt-summary', 'optSummary']].forEach(([id, key]) => {
     $('#' + id).addEventListener('change', (e) => {
-      S[key] = e.target.checked; $('#opt-maint-hint').hidden = S.optSummary || !S.optMaint; $('#row-apptot').hidden = !S.optSummary; $('#row-detail').hidden = !S.optSummary;
+      S[key] = e.target.checked; refreshDocOptions();
       refreshStepper(); scheduleCalc();
     });
   });

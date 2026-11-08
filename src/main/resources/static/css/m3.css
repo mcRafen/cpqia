@@ -1135,3 +1135,13 @@ table.rev-cmp th:first-child, table.rev-cmp td:first-child { width: 260px; posit
 table.rev-cmp td { word-break: break-word; vertical-align: top; }
 table.rev-cmp tr.rev-sec td { background: var(--surface-2); padding: 6px 12px; }
 table.rev-cmp tr.rev-diff td:not(:first-child) { background: var(--warn-container); }
+
+/* chip di filtro selezionati (es. «Tutte le BU»): sfondo pieno del tema e testo a contrasto, anche in modalità notte */
+.chip.filter.on, html[data-theme="dark"] .chip.filter.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+
+/* separatore negli elenchi a discesa (voce disabilitata con valore vuoto, es. prima di «MODULI AGGIUNTIVI») */
+.cs-opt.dis.ph { opacity: .5; cursor: default; padding-top: 2px; padding-bottom: 2px; pointer-events: none; }
+.cs-opt.dis.ph span { text-align: center; letter-spacing: -1px; }
+
+/* contenuti dell'offerta oscurati (es. scenario MODULI AGGIUNTIVI) */
+.opt-dim { opacity: .38; pointer-events: none; filter: grayscale(1); }

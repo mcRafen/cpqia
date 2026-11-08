@@ -39,6 +39,9 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTR;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRow;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTc;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STVerticalJc;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTText;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -198,13 +201,22 @@ public class OfferDocxService {
         }
 
         // Galileo: listino di vendita e manutenzione della configurazione entrano nelle licenze e nei totali
-        record GalRow(BigDecimal list, BigDecimal maint, int users, String label, String market) {
+        record GalRow(BigDecimal list, BigDecimal maint, int users, String label, String market, boolean agg) {
         }
-        GalRow gal = jdbc.sql("select og.list_total, og.maintenance, og.users, gp.label, a.name as market from offer_galileo og "
+        GalRow gal = jdbc.sql("select og.list_total, og.maintenance, og.users, gp.label, case when a.code = 'CRM_JGAL_MODULI' then 'MODULI AGGIUNTIVI' else a.name end as market, "
+                + "(a.code = 'CRM_JGAL_MODULI') as agg from offer_galileo og "
                 + "join galileo_profile gp on gp.id = og.profile_id join application a on a.id = gp.application_id where og.offer_id = :id")
                 .param("id", h.id()).query((rs, n) -> new GalRow(rs.getBigDecimal("list_total"), rs.getBigDecimal("maintenance"), rs.getInt("users"),
-                        rs.getString("label"), rs.getString("market"))).optional().orElse(null);
-        if (gal != null && gal.list() != null) {
+                        rs.getString("label"), rs.getString("market"), rs.getBoolean("agg"))).optional().orElse(null);
+        boolean aggOnly = gal != null && gal.agg();                 // MODULI AGGIUNTIVI: tabella con una riga per modulo, nessun riepilogo per applicazione
+        if (gal != null && gal.list() != null && aggOnly) {
+            BigDecimal gm = gal.maint() == null ? BigDecimal.ZERO : gal.maint();
+            List<TableLine> agg = aggregateModuleLines(h.id(), gal.list(), gm, gal.users());
+            tableLines.addAll(0, agg);
+            lineFamilies.addAll(0, java.util.Collections.nCopies(agg.size(), "JGALILEO"));
+            totLic = totLic.add(gal.list());
+            totMan = totMan.add(gm);
+        } else if (gal != null && gal.list() != null) {
             BigDecimal gm = gal.maint() == null ? BigDecimal.ZERO : gal.maint();
             tableLines.add(0, new TableLine(List.of("GALILEO"), List.of(gal.market()), eur(gal.list()), eur(gm), gal.users() > 0 ? "Licenze Posti di Lavoro n. " + gal.users() : ""));
             lineFamilies.add(0, "JGALILEO");
@@ -301,7 +313,7 @@ public class OfferDocxService {
             for (int idx = 0; idx < PARTS.size(); idx++) {
                 Part pt = PARTS.get(idx);
                 if (("servizi-accessori".equals(pt.key()) && !h.optExtraServices())
-                        || ("riepilogo-finale".equals(pt.key()) && !h.optFinalSummary())
+                        || ("riepilogo-finale".equals(pt.key()) && (!h.optFinalSummary() || aggOnly))          // MODULI AGGIUNTIVI: niente riepilogo finale
                         || (pt.key().startsWith("power-") && (!h.optPowerSystem() || power == null))
                         || ("power-solution".equals(pt.key()) && !"SOLUTION".equalsIgnoreCase(h.powerEdition()))
                         || (("power-migrazione".equals(pt.key()) || "power-transfer".equals(pt.key())) && !transferOn(h))
@@ -311,7 +323,9 @@ public class OfferDocxService {
                 }
                 // documento Word collegato al modello Power (cartella Power); se manca o non e' leggibile la sezione si salta
                 // «Modello offerta Light» (= riepilogo finale): le attività usano attivita-light.docx (con tariffe e valori), altrimenti attivita.docx (con figura professionale)
-                List<String> partFiles = "attivita".equals(pt.key()) && h.optFinalSummary() ? List.of("attivita-light.docx", "attivita.docx") : pt.files();
+                List<String> partFiles = "attivita".equals(pt.key()) && h.optFinalSummary() ? List.of("attivita-light.docx", "attivita.docx")
+                        : "licenze".equals(pt.key()) && aggOnly ? List.of("licenze-elenco-semplice.docx", "licenze.docx")          // MODULI AGGIUNTIVI: elenco semplice dei moduli
+                        : pt.files();
                 InputStream pin = "power-model".equals(pt.key()) ? powerDocs.open(power.wordFile()).orElse(null) : openTemplate(partFiles);
                 if (pin == null) {
                     continue;
@@ -325,7 +339,11 @@ public class OfferDocxService {
                             fillTotals(part.getTables().get(1), eur(totLic), eur(totMan), eur(netLic), eur(netMan), hasDiscount);
                             replaceEverywhere(part, tokens);
                             elems = trimToOwnPart(part.getBodyElements(), idx);
-                            elems = withModuleList(doc, elems, moduleFamilies);      // elenco dei moduli appena prima della tabella degli importi
+                            if (!aggOnly) {
+                                elems = withModuleList(doc, elems, moduleFamilies);  // elenco dei moduli appena prima della tabella degli importi (non per MODULI AGGIUNTIVI)
+                            } else if ("NONE".equals(h.servicesMode()) || activityRows.isEmpty()) {
+                                elems = dropTrailingBlanks(elems);                   // via i salti pagina finali: la nota segue la tabella nella stessa pagina
+                            }
                             if (!h.optFinalSummary()) {                               // «Modello offerta Light» spento: titolo «Importi licenze software» + riga vuota prima della tabella
                                 elems = withLicenceHeading(part, elems);
                             }
@@ -401,6 +419,15 @@ public class OfferDocxService {
                     }
                     appendPart(doc, part, elems, !hardware, pt.key().startsWith("power-"));
                     prevKey = pt.key();
+                    // MODULI AGGIUNTIVI senza «Servizi»: dopo le licenze, nota sulle eventuali attività a consuntivo
+                    if (aggOnly && "licenze".equals(pt.key()) && ("NONE".equals(h.servicesMode()) || activityRows.isEmpty())) {
+                        doc.createParagraph();                             // due capo riga, poi la nota (nessun salto pagina)
+                        doc.createParagraph();
+                        XWPFRun nr = doc.createParagraph().createRun();
+                        nr.setFontFamily("Arial");
+                        nr.setFontSize(10);
+                        nr.setText("Eventuale attività sarà conteggiata a consuntivo mensile alle tariffe in vigore.");
+                    }
                     // seconda tabella del riepilogo finale: solo con "aggiungi servizi accessori" (stessa pagina, nessun salto)
                     if ("riepilogo-finale".equals(pt.key()) && h.optExtraServices() && extraTotals != null) {
                         try (InputStream sin = openTemplate(List.of("riepilogo-finale-servizi-accessori.docx"));
@@ -695,6 +722,39 @@ public class OfferDocxService {
         return out;
     }
 
+    /**
+     * MODULI AGGIUNTIVI: una riga per ogni modulo selezionato (codice, descrizione, licenza, manutenzione annua) e una riga per i posti di lavoro
+     * con l'importo degli utenti aggiuntivi, cosi' la somma delle righe coincide con il totale della configurazione.
+     */
+    private List<TableLine> aggregateModuleLines(long offerId, BigDecimal listTotal, BigDecimal maintTotal, int users) {
+        record Pct(BigDecimal reduction, BigDecimal maint) {
+        }
+        Pct pct = jdbc.sql("select coalesce(a.additional_reduction_pct, 0), coalesce(a.maintenance_pct, 18) from offer_galileo og "
+                + "join galileo_profile gp on gp.id = og.profile_id join application a on a.id = gp.application_id where og.offer_id = :o")
+                .param("o", offerId).query((rs, n) -> new Pct(rs.getBigDecimal(1), rs.getBigDecimal(2))).optional().orElse(new Pct(BigDecimal.ZERO, new BigDecimal("18")));
+        BigDecimal keep = BigDecimal.ONE.subtract(pct.reduction().divide(HUNDRED));
+        List<TableLine> out = new ArrayList<>();
+        BigDecimal sumLic = BigDecimal.ZERO, sumMan = BigDecimal.ZERO;
+        for (Map<String, Object> m : jdbc.sql("""
+                select coalesce(nullif(m.print_code, ''), m.code) as code, m.description,
+                       coalesce(gm.price, (select mp.price from module_price mp where mp.module_id = m.id and mp.mode_code = 'STD'), 0) as price
+                from offer_galileo og join offer_galileo_module x on x.offer_id = og.offer_id
+                join galileo_profile gp on gp.id = og.profile_id
+                join galileo_module gm on gm.profile_id = gp.id and gm.module_id = x.module_id
+                join module m on m.id = x.module_id
+                where og.offer_id = :o order by gm.sheet_order, m.id""").param("o", offerId).query().listOfRows()) {
+            BigDecimal lic = ((BigDecimal) m.get("price")).multiply(keep).setScale(0, java.math.RoundingMode.HALF_UP).setScale(2);
+            BigDecimal man = lic.multiply(pct.maint()).divide(HUNDRED, 2, java.math.RoundingMode.HALF_UP);
+            sumLic = sumLic.add(lic);
+            sumMan = sumMan.add(man);
+            out.add(new TableLine(List.of(String.valueOf(m.get("code"))), List.of(String.valueOf(m.get("description")).trim()), eur(lic), eur(man), ""));
+        }
+        if (users > 0) {
+            out.add(new TableLine(List.of(""), List.of("Licenze Posti di Lavoro n. " + users), "", "", ""));          // solo informativa: senza importo né manutenzione
+        }
+        return out;
+    }
+
     /** due righe vuote, titolo «Importi licenze software» (Arial 11 grassetto) e una riga vuota, subito prima della prima tabella della parte «licenze» */
     private static List<IBodyElement> withLicenceHeading(XWPFDocument part, List<IBodyElement> elems) {
         XWPFParagraph pre1 = part.createParagraph();
@@ -861,17 +921,39 @@ public class OfferDocxService {
     // ------------------------------------------------------------------ tabelle
     private void fillLicenceTable(XWPFTable table, List<TableLine> lines) {
         CTRow protoA = table.getRow(1).getCtRow();
-        CTRow protoB = table.getRow(2).getCtRow();
+        CTRow protoB = table.getRows().size() > 2 ? table.getRow(2).getCtRow() : null;      // licenze-elenco-semplice.docx: una sola riga prototipo
         for (TableLine tl : lines) {
             CTRow a = cloneRow(table, protoA);
-            CTRow b = cloneRow(table, protoB);
             fillCellLines(a.getTcArray(0), tl.codes());
             fillCellLines(a.getTcArray(1), tl.descriptions());
             setCellText(a.getTcArray(2), tl.license());
             setCellText(a.getTcArray(3), tl.maintenance());
-            setCellText(b.getTcArray(1), tl.seats());
+            // seconda riga (utenti / posti di lavoro) solo se l'applicazione ha utenti: altrimenti una sola riga
+            if (protoB != null && tl.seats() != null && !tl.seats().isBlank()) {
+                CTRow b = cloneRow(table, protoB);
+                setCellText(b.getTcArray(1), tl.seats());
+                // due righe: la cella «codice» si unisce in verticale e il codice e' centrato in altezza
+                CTTc top = a.getTcArray(0), bottom = b.getTcArray(0);
+                CTTcPr tp = top.isSetTcPr() ? top.getTcPr() : top.addNewTcPr();
+                if (tp.isSetVMerge()) {
+                    tp.unsetVMerge();
+                }
+                tp.addNewVMerge().setVal(STMerge.RESTART);
+                if (tp.isSetVAlign()) {
+                    tp.unsetVAlign();
+                }
+                tp.addNewVAlign().setVal(STVerticalJc.CENTER);
+                CTTcPr bp = bottom.isSetTcPr() ? bottom.getTcPr() : bottom.addNewTcPr();
+                if (bp.isSetVMerge()) {
+                    bp.unsetVMerge();
+                }
+                bp.addNewVMerge();                                   // continuazione dell'unione
+                setCellText(bottom, "");
+            }
         }
-        table.removeRow(2);   // righe prototipo (le copie sono state aggiunte in coda)
+        if (protoB != null) {
+            table.removeRow(2);   // righe prototipo (le copie sono state aggiunte in coda)
+        }
         table.removeRow(1);
     }
 
@@ -1315,6 +1397,49 @@ public class OfferDocxService {
         addSubtotal(table, sub, "Totale " + appName, qty, total, !"AMOUNT".equals(m), !"HOURS".equals(m));
     }
 
+    /** riga dell'area: nome gia' scritto, ore/gg nella 2ª cella e, se il modello ha {{ATT_SUB_VALORE}}, l'importo nell'ultima; hours null = solo svuota i segnaposto */
+    private void areaTotals(CTRow hdr, BigDecimal hours, BigDecimal total, boolean withValue) {
+        if (hdr == null) {
+            return;
+        }
+        int n = hdr.sizeOfTcArray();
+        if (n > 1) {
+            setCellText(hdr.getTcArray(1), hours == null ? "" : hoursText(hours));
+        }
+        for (int k = 2; k < n; k++) {
+            setCellText(hdr.getTcArray(k), withValue && total != null && k == n - 1 ? eur(total) : "");
+        }
+    }
+
+    /** totali sulla riga di intestazione (ore/gg nella 2ª cella, importo nell'ultima); hours/total null = solo svuota i segnaposto */
+    private void headerTotals(CTRow hdr, BigDecimal hours, BigDecimal total, boolean showQty, boolean showAmount) {
+        if (hdr == null) {
+            return;
+        }
+        int n = hdr.sizeOfTcArray();
+        if (n > 1) {
+            setCellText(hdr.getTcArray(1), hours != null && showQty ? hoursText(hours) : "");
+        }
+        if (n > 2) {
+            setCellText(hdr.getTcArray(n - 1), total != null && showAmount ? eur(total) : "");
+        }
+    }
+
+    /** totale dell'applicazione sulla riga di intestazione: stessa regola di appTotalRow (con una sola sezione sempre, altrimenti secondo il menu) */
+    private void appHeaderTotals(CTRow hdr, String mode, int groups, BigDecimal qty, BigDecimal total, boolean hoursOnly) {
+        String m = mode == null ? "NO" : mode;
+        if ("NO".equals(m)) {
+            if (groups > 1) {
+                return;
+            }
+            m = "BOTH";
+        }
+        if (hoursOnly) {
+            m = "HOURS";
+        }
+        headerTotals(hdr, qty, total, !"AMOUNT".equals(m), !"HOURS".equals(m));
+    }
+
     private BigDecimal fillActivityTables(XWPFDocument part, List<ActRow> acts, BigDecimal discountPct, boolean detail, boolean hoursDetail, boolean daysMode, String appTotalsMode, Map<String, String> tokens) {
         BigDecimal factor = BigDecimal.ONE.subtract((discountPct == null ? BigDecimal.ZERO : discountPct).divide(HUNDRED));
         XWPFTable table = null;
@@ -1348,6 +1473,79 @@ public class OfferDocxService {
             subIdx = -1;
             appIdx = -1;
         }
+        if (table == null) {
+            // modello con le righe prototipo in tabelle diverse (titolo applicazione, riga dell'area, dettaglio): si raccolgono in un'unica tabella,
+            // quella del titolo dell'applicazione, e le altre tabelle prototipo vengono tolte dal documento
+            XWPFTable tBand = null, tLine = null, tSub = null, tApp = null;
+            int rBand = -1, rLine = -1, rSub = -1, rApp = -1;
+            for (XWPFTable t : part.getTables()) {
+                CTRow[] trs = t.getCTTbl().getTrArray();
+                for (int i = 0; i < trs.length; i++) {
+                    String tx = rowText(trs[i]);
+                    if (tx.contains("{{ATT_APP}}") && tBand == null) {
+                        tBand = t;
+                        rBand = i;
+                    }
+                    if (tx.contains("{{APP_TITLE}}") && tApp == null) {
+                        tApp = t;
+                        rApp = i;
+                    }
+                    if (tx.contains("{{ATT_DESC}}") && tLine == null) {
+                        tLine = t;
+                        rLine = i;
+                    }
+                    if (tx.contains("{{ATT_SUB_ORE}}") && tSub == null) {
+                        tSub = t;
+                        rSub = i;
+                    }
+                }
+            }
+            if (tBand != null && tLine != null && tSub != null) {
+                table = tBand;
+                bandIdx = rBand;
+                List<XWPFTable> drop = new ArrayList<>();
+                CTRow lineCopy = (CTRow) tLine.getCTTbl().getTrArray(rLine).copy();
+                CTRow subCopy = (CTRow) tSub.getCTTbl().getTrArray(rSub).copy();
+                CTRow appCopy = tApp == null ? null : (CTRow) tApp.getCTTbl().getTrArray(rApp).copy();
+                if (tLine == table) {
+                    lineIdx = rLine;
+                } else {
+                    lineIdx = table.getCTTbl().sizeOfTrArray();
+                    table.getCTTbl().addNewTr().set(lineCopy);
+                    if (!drop.contains(tLine)) {
+                        drop.add(tLine);
+                    }
+                }
+                if (tSub == table) {
+                    subIdx = rSub;
+                } else {
+                    subIdx = table.getCTTbl().sizeOfTrArray();
+                    table.getCTTbl().addNewTr().set(subCopy);
+                    if (!drop.contains(tSub)) {
+                        drop.add(tSub);
+                    }
+                }
+                if (tApp != null) {
+                    if (tApp == table) {
+                        appIdx = rApp;
+                    } else {
+                        appIdx = table.getCTTbl().sizeOfTrArray();
+                        table.getCTTbl().addNewTr().set(appCopy);
+                        if (!drop.contains(tApp)) {
+                            drop.add(tApp);
+                        }
+                    }
+                }
+                List<Integer> pos = new ArrayList<>();
+                for (XWPFTable t : drop) {
+                    pos.add(part.getPosOfTable(t));
+                }
+                pos.sort(java.util.Comparator.reverseOrder());
+                for (int ps : pos) {
+                    part.removeBodyElement(ps);
+                }
+            }
+        }
         // attivita.docx (Light spento): ultima colonna con la figura professionale e nessun prezzo in riga
         boolean figLayout = table != null && rowText(table.getCTTbl().getTrArray(lineIdx)).contains("{{ATT_FIG_PROF}}");
         if (table == null) {
@@ -1361,10 +1559,20 @@ public class OfferDocxService {
         CTRow appRow = appIdx >= 0 ? (CTRow) table.getCTTbl().getTrArray(appIdx).copy() : band;      // senza {{APP_TITLE}}: fascia unica come prima
         CTRow line = (CTRow) table.getCTTbl().getTrArray(lineIdx).copy();
         CTRow sub = (CTRow) table.getCTTbl().getTrArray(subIdx).copy();
-        int[] idx = appIdx >= 0 ? new int[]{bandIdx, lineIdx, subIdx, appIdx} : new int[]{bandIdx, lineIdx, subIdx};
+        // se la riga dell'applicazione contiene gia' {{ATT_SUB_ORE}} i totali stanno sulla riga di intestazione, prima del dettaglio delle attivita'
+        boolean headerTotals = subIdx == bandIdx;
+        // modello con riga del titolo dell'applicazione ({{ATT_APP}}) e, prima del dettaglio, una riga per ogni area con il suo totale ({{ATT_SUB_ORE}})
+        boolean areaHeader = subIdx >= 0 && subIdx < lineIdx && subIdx != bandIdx;
+        boolean subHasValue = rowText(table.getCTTbl().getTrArray(subIdx)).contains("{{ATT_SUB_VALORE}}");
+        int[] idx = headerTotals ? (appIdx >= 0 ? new int[]{bandIdx, lineIdx, appIdx} : new int[]{bandIdx, lineIdx})
+                : (appIdx >= 0 ? new int[]{bandIdx, lineIdx, subIdx, appIdx} : new int[]{bandIdx, lineIdx, subIdx});
         java.util.Arrays.sort(idx);
         for (int i = idx.length - 1; i >= 0; i--) {
-            table.removeRow(idx[i]);
+            if (idx[i] < table.getRows().size()) {
+                table.removeRow(idx[i]);
+            } else {
+                table.getCTTbl().removeTr(idx[i]);                 // righe prototipo aggiunte da altre tabelle del modello (non ancora nell'elenco righe di POI)
+            }
         }
         // gruppi (titoli) di ogni applicazione: i totali dei gruppi ci sono solo se sono piu' di uno
         Map<Long, java.util.Set<String>> groupsOf = new LinkedHashMap<>();
@@ -1384,19 +1592,31 @@ public class OfferDocxService {
         String curGroup = null;                          // titolo del gruppo (solo righe importate da RFQ)
         BigDecimal grpTotal = BigDecimal.ZERO;
         BigDecimal grpHours = BigDecimal.ZERO;
+        CTRow appHeader = null;                          // righe di intestazione di applicazione / gruppo: ricevono i totali a fine gruppo (modello con totali in intestazione)
+        CTRow grpHeader = null;
         for (ActRow a : acts) {
             String grp = a.group() == null || a.group().isBlank() ? null : a.group();
             boolean newApp = current == null || current.longValue() != a.applicationId();
             if (curGroup != null && (newApp || !curGroup.equals(grp))) {
-                if (groupsOf.get(current).size() > 1 || currentName.isBlank()) {   // con un solo gruppo basta il totale dell'applicazione (senza applicazione: sempre il totale del gruppo)
-                    addSubtotal(table, sub, "Totale", grpHours, grpTotal, true, !figLayout);   // totale del titolo
+                if (areaHeader) {
+                    areaTotals(grpHeader, grpHours, grpTotal, subHasValue);          // totale dell'area sulla sua riga, prima del dettaglio
+                } else if (groupsOf.get(current).size() > 1 || currentName.isBlank()) {   // con un solo gruppo basta il totale dell'applicazione (senza applicazione: sempre il totale del gruppo)
+                    if (headerTotals) {
+                        headerTotals(grpHeader, grpHours, grpTotal, true, true);
+                    } else {
+                        addSubtotal(table, sub, "Totale", grpHours, grpTotal, true, !figLayout);   // totale del titolo
+                    }
                 }
                 curGroup = null;
             }
             if (newApp) {
                 if (current != null) {
                     if (!currentName.isBlank()) {
-                        appTotalRow(table, sub, appTotalsMode, groupsOf.get(current).size(), currentName, subHours, subTotal, figLayout);
+                        if (headerTotals) {
+                            appHeaderTotals(appHeader, appTotalsMode, groupsOf.get(current).size(), subHours, subTotal, figLayout);
+                        } else if (!areaHeader || groupsOf.get(current).isEmpty() || !"NO".equals(appTotalsMode)) {
+                            appTotalRow(table, sub, appTotalsMode, groupsOf.get(current).size(), currentName, subHours, subTotal, figLayout);      // con le aree il totale applicazione solo se richiesto
+                        }
                     }
                 }
                 current = a.applicationId();
@@ -1407,6 +1627,10 @@ public class OfferDocxService {
                     CTRow b = table.getCTTbl().addNewTr();
                     b.set(appRow.copy());                                 // riga {{APP_TITLE}}: nome dell'applicazione
                     setCellText(b.getTcArray(0), a.appName());
+                    if (headerTotals) {
+                        headerTotals(b, null, null, false, false);        // svuota i segnaposto: i totali si scrivono a fine applicazione
+                        appHeader = b;
+                    }
                     keepWithNext(b);
                 }
             }
@@ -1415,8 +1639,16 @@ public class OfferDocxService {
                 grpTotal = BigDecimal.ZERO;
                 grpHours = BigDecimal.ZERO;
                 CTRow gb = table.getCTTbl().addNewTr();
-                gb.set(band.copy());
+                gb.set((areaHeader ? sub : band).copy());
                 setCellText(gb.getTcArray(0), grp);                       // livello aggiuntivo: titolo sotto l'applicazione
+                if (areaHeader) {
+                    areaTotals(gb, null, null, subHasValue);              // svuota i segnaposto: il totale si scrive a fine area
+                    grpHeader = gb;
+                }
+                if (headerTotals) {
+                    headerTotals(gb, null, null, false, false);
+                    grpHeader = gb;
+                }
                 keepWithNext(gb);
             }
             BigDecimal netRate = a.rate().multiply(factor).setScale(2, java.math.RoundingMode.HALF_UP);
@@ -1443,12 +1675,22 @@ public class OfferDocxService {
             total = total.add(value);
             hours = hours.add(daysMode ? a.days() : a.hours());
         }
-        if (curGroup != null && (groupsOf.get(current).size() > 1 || currentName.isBlank())) {
-            addSubtotal(table, sub, "Totale", grpHours, grpTotal, true, !figLayout);
+        if (curGroup != null && areaHeader) {
+            areaTotals(grpHeader, grpHours, grpTotal, subHasValue);
+        } else if (curGroup != null && (groupsOf.get(current).size() > 1 || currentName.isBlank())) {
+            if (headerTotals) {
+                headerTotals(grpHeader, grpHours, grpTotal, true, true);
+            } else {
+                addSubtotal(table, sub, "Totale", grpHours, grpTotal, true, !figLayout);
+            }
         }
         if (current != null) {
             if (!currentName.isBlank()) {
-                appTotalRow(table, sub, appTotalsMode, groupsOf.get(current).size(), currentName, subHours, subTotal, figLayout);
+                if (headerTotals) {
+                    appHeaderTotals(appHeader, appTotalsMode, groupsOf.get(current).size(), subHours, subTotal, figLayout);
+                } else if (!areaHeader || groupsOf.get(current).isEmpty() || !"NO".equals(appTotalsMode)) {
+                    appTotalRow(table, sub, appTotalsMode, groupsOf.get(current).size(), currentName, subHours, subTotal, figLayout);
+                }
             }
         }
         tokens.put("{{ATT_TOT_ORE}}", hoursText(hours) + (daysMode ? " gg" : " ore"));

@@ -150,6 +150,23 @@ public final class GalileoPricing {
                 lines.add(new Line(extra < 0 ? "Utenti sotto il minimo previsto (" + (-extra) + ")" : "Utenti aggiuntivi (" + Math.max(0, extra) + ")", r2(total).subtract(r2(cfg)).subtract(r2(sum))));
                 return result(p, total, lines);
             }
+            case "AGG" -> {
+                // «AGGIUNTA NUOVI MODULI»: somma dei moduli scelti; fino alla prima fascia (10 utenti) nessun costo per utente, poi ogni utente
+                // costa somma * moltiplicatore % della fascia (celle H16:M21 del foglio). Nessuna configurazione base, nessuna release.
+                // gli utenti non sono obbligatori: senza utenti il prezzo e' la somma dei moduli
+                BigDecimal sum = reduced(eSum(p, in, false), p);
+                if (sum.signum() <= 0) {
+                    return invalid("Seleziona almeno un modulo");
+                }
+                BigDecimal total = users <= 0 ? sum : tierTotal(sum, users, p.tiers().get("MAIN"), false);
+                String included = firstTierUsers(p, "MAIN");
+                int inc = "—".equals(included) ? 0 : Integer.parseInt(included);
+                lines.add(new Line("Importo moduli aggiuntivi", r2(sum)));
+                if (users > 0) {
+                    lines.add(new Line("Utenti aggiuntivi (" + Math.max(0, users - inc) + ")", r2(total).subtract(r2(sum))));
+                }
+                return result(p, total, lines);
+            }
             case "CONS" -> {
                 if (users <= 0) {
                     return invalid("Indica il numero di utenti");
