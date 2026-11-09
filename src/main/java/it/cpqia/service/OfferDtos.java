@@ -35,7 +35,8 @@ public final class OfferDtos {
                                Integer powerMaintMonths, BigDecimal powerListPrice, BigDecimal powerNetPrice,
                                List<PowerProductSel> powerProducts, Integer powerDiskCount, Boolean optUseRfq, Boolean optServicesDays, String appTotalsMode, BigDecimal rfqSheetTotal,
                                it.cpqia.galileo.GalileoService.Request galileo, String servicesMode,
-                               List<ProfileRateReq> profileRates, List<PowerMaintReq> powerMaint, Boolean optHoursDetail) {
+                               List<ProfileRateReq> profileRates, List<PowerMaintReq> powerMaint, Boolean optHoursDetail,
+                               LocalDate activityDiscountUntil) {
     }
 
     /** importi di un periodo di manutenzione SW/HW (36, 48, 60 mesi) per la sezione POWER o LTO8 */

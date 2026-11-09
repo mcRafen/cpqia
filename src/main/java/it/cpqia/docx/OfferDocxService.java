@@ -313,7 +313,7 @@ public class OfferDocxService {
             for (int idx = 0; idx < PARTS.size(); idx++) {
                 Part pt = PARTS.get(idx);
                 if (("servizi-accessori".equals(pt.key()) && !h.optExtraServices())
-                        || ("riepilogo-finale".equals(pt.key()) && (!h.optFinalSummary() || aggOnly))          // MODULI AGGIUNTIVI: niente riepilogo finale
+                        || ("riepilogo-finale".equals(pt.key()) && (h.optFinalSummary() || aggOnly))          // il riepilogo c'e' solo con «Modello offerta Light» spento (mai per MODULI AGGIUNTIVI)
                         || (pt.key().startsWith("power-") && (!h.optPowerSystem() || power == null))
                         || ("power-solution".equals(pt.key()) && !"SOLUTION".equalsIgnoreCase(h.powerEdition()))
                         || (("power-migrazione".equals(pt.key()) || "power-transfer".equals(pt.key())) && !transferOn(h))
@@ -323,7 +323,7 @@ public class OfferDocxService {
                 }
                 // documento Word collegato al modello Power (cartella Power); se manca o non e' leggibile la sezione si salta
                 // «Modello offerta Light» (= riepilogo finale): le attività usano attivita-light.docx (con tariffe e valori), altrimenti attivita.docx (con figura professionale)
-                List<String> partFiles = "attivita".equals(pt.key()) && h.optFinalSummary() ? List.of("attivita-light.docx", "attivita.docx")
+                List<String> partFiles = "attivita".equals(pt.key()) && h.optFinalSummary() ? List.of("attivita-light.docx")
                         : "licenze".equals(pt.key()) && aggOnly ? List.of("licenze-elenco-semplice.docx", "licenze.docx")          // MODULI AGGIUNTIVI: elenco semplice dei moduli
                         : pt.files();
                 InputStream pin = "power-model".equals(pt.key()) ? powerDocs.open(power.wordFile()).orElse(null) : openTemplate(partFiles);
@@ -349,9 +349,17 @@ public class OfferDocxService {
                             }
                         }
                         case "attivita" -> {
-                            activitiesTotal = fillActivityTables(part, activityRows, h.activityDiscountPct(), h.optActivityDetail(), jdbc.sql("select opt_hours_detail from offer where id = :id").param("id", h.id()).query(Boolean.class).optional().orElse(false), h.optServicesDays(), h.appTotalsMode(), tokens);
+                            if (h.optFinalSummary()) {                       // Modello Light: tabella con dettaglio e totali (attivita-light.docx)
+                                activitiesTotal = fillActivityTables(part, activityRows, h.activityDiscountPct(), h.optActivityDetail(), false, h.optServicesDays(), h.appTotalsMode(), tokens);          // Light: contano solo «Dettaglio importi attività» e «Totali applicazioni»
+                            } else {                                         // altrimenti attivita.docx: tariffe, sviluppo del progetto, sconto e totali
+                                java.time.LocalDate until = jdbc.sql("select activity_discount_until from offer where id = :id").param("id", h.id())
+                                        .query((rs, n) -> rs.getObject(1, java.time.LocalDate.class)).optional().orElse(null);
+                                boolean hoursDetail = jdbc.sql("select opt_hours_detail from offer where id = :id").param("id", h.id()).query(Boolean.class).optional().orElse(false);
+                                activitiesTotal = fillActivityDocument(part, activityRows, h.activityDiscountPct(), until, hoursDetail, h.optServicesDays(), tokens);
+                            }
                             replaceEverywhere(part, tokens);
-                            elems = trimToOwnPart(part.getBodyElements(), idx);
+                            importNumbering(doc, part);                      // elenchi puntati (tariffe, trasferte): simbolo «-» con colore automatico come nel modello
+                            elems = dropTrailingBlanks(trimToOwnPart(part.getBodyElements(), idx));          // via i salti pagina finali: seguono altri documenti
                         }
                         case "power-model" -> {
                             replaceEverywhere(part, tokens);
@@ -390,7 +398,7 @@ public class OfferDocxService {
                         }
                         case "servizi-accessori" -> elems = prepareExtraServices(part, extraSel, extraTotals, tokens);
                         case "riepilogo-finale" -> {
-                            fillFinalSummary(part, netLic, activitiesTotal, netMan, h.optMaintenanceAdditional(), tokens);
+                            fillFinalSummary(part, netLic, activitiesTotal, netMan, h.optMaintenanceAdditional(), tokens, powerSummaryNets(h, power));
                             elems = trimToOwnPart(part.getBodyElements(), idx);
                         }
                         default -> {
@@ -419,6 +427,9 @@ public class OfferDocxService {
                     }
                     appendPart(doc, part, elems, !hardware, pt.key().startsWith("power-"));
                     prevKey = pt.key();
+                    if ("attivita".equals(pt.key())) {
+                        appendActivityExtras(doc, h.optFinalSummary(), "PROSPECT".equalsIgnoreCase(c.type()), tokens);
+                    }
                     // MODULI AGGIUNTIVI senza «Servizi»: dopo le licenze, nota sulle eventuali attività a consuntivo
                     if (aggOnly && "licenze".equals(pt.key()) && ("NONE".equals(h.servicesMode()) || activityRows.isEmpty())) {
                         doc.createParagraph();                             // due capo riga, poi la nota (nessun salto pagina)
@@ -868,13 +879,43 @@ public class OfferDocxService {
         return np;
     }
 
+    /**
+     * gli elenchi puntati/numerati di un modello usano numId propri: nel documento principale lo stesso numId puo' indicare un altro elenco
+     * (altro simbolo o colore). Copia nel principale le definizioni usate dal modello e riscrive i numId dei suoi paragrafi.
+     * Il colore del simbolo dei livelli copiati e' «Automatico».
+     */
+    private static void importNumbering(XWPFDocument main, XWPFDocument part) {
+        Map<BigInteger, BigInteger> cache = new HashMap<>();
+        // si lavora sul XML del corpo (comprese le righe aggiunte alle tabelle direttamente sul CT)
+        org.apache.xmlbeans.XmlObject[] ids = part.getDocument().getBody().selectPath(
+                "declare namespace w='http://schemas.openxmlformats.org/wordprocessingml/2006/main' .//w:numPr/w:numId");
+        for (org.apache.xmlbeans.XmlObject o : ids) {
+            if (!(o instanceof org.openxmlformats.schemas.wordprocessingml.x2006.main.CTDecimalNumber dn)) {
+                continue;
+            }
+            BigInteger old = dn.getVal();
+            BigInteger nid = cache.computeIfAbsent(old, k -> {
+                BigInteger created = importNumberingById(main, part, k, true);
+                return created == null ? k : created;
+            });
+            dn.setVal(nid);
+        }
+    }
+
     /** copia nel documento principale la definizione dell'elenco puntato usata dal paragrafo e restituisce il nuovo numId (null = invariato) */
     private static BigInteger importBulletNumbering(XWPFDocument main, XWPFDocument part, CTP para) {
+        if (!para.isSetPPr() || !para.getPPr().isSetNumPr() || !para.getPPr().getNumPr().isSetNumId()) {
+            return null;
+        }
+        return importNumberingById(main, part, para.getPPr().getNumPr().getNumId().getVal(), false);
+    }
+
+    /** copia la definizione dell'elenco con il numId indicato del modello nel principale; autoColor = colore del simbolo «Automatico» */
+    private static BigInteger importNumberingById(XWPFDocument main, XWPFDocument part, BigInteger oldId, boolean autoColor) {
         try {
-            if (!para.isSetPPr() || !para.getPPr().isSetNumPr() || part.getNumbering() == null) {
+            if (part.getNumbering() == null) {
                 return null;
             }
-            BigInteger oldId = para.getPPr().getNumPr().getNumId().getVal();
             XWPFNum num = part.getNumbering().getNum(oldId);
             if (num == null) {
                 return null;
@@ -885,6 +926,15 @@ public class OfferDocxService {
             }
             XWPFNumbering dst = main.getNumbering() != null ? main.getNumbering() : main.createNumbering();
             CTAbstractNum copy = (CTAbstractNum) abs.getCTAbstractNum().copy();
+            if (autoColor) {
+                for (var lvl : copy.getLvlList()) {
+                    var rpr = lvl.isSetRPr() ? lvl.getRPr() : lvl.addNewRPr();
+                    if (rpr.sizeOfColorArray() > 0) {
+                        rpr.removeColor(0);
+                    }
+                    rpr.addNewColor().setVal("auto");
+                }
+            }
             BigInteger absId = BigInteger.valueOf(900);
             while (dst.getAbstractNum(absId) != null) {
                 absId = absId.add(BigInteger.ONE);
@@ -1019,7 +1069,63 @@ public class OfferDocxService {
 
     // ------------------------------------------------------------------ segnaposto semplici
     private void replaceEverywhere(XWPFDocument doc, Map<String, String> tokens) {
+        joinSplitTokens(doc);
         replaceEverywhere(doc, literalReplacer(tokens));
+    }
+
+    /** segnaposto spezzati in piu' run da Word (es. «{{», «GG», «_HH}}»): li riunisce nel primo run, cosi' la sostituzione li trova */
+    private static void joinSplitTokens(XWPFDocument doc) {
+        for (XWPFParagraph p : doc.getParagraphs()) {
+            joinSplitTokens(p);
+        }
+        for (XWPFTable t : doc.getTables()) {
+            joinSplitTokens(t);
+        }
+    }
+
+    private static void joinSplitTokens(XWPFTable t) {
+        for (XWPFTableRow r : t.getRows()) {
+            for (XWPFTableCell c : r.getTableCells()) {
+                for (XWPFParagraph p : c.getParagraphs()) {
+                    joinSplitTokens(p);
+                }
+                for (XWPFTable n : c.getTables()) {
+                    joinSplitTokens(n);
+                }
+            }
+        }
+    }
+
+    private static void joinSplitTokens(XWPFParagraph p) {
+        List<XWPFRun> runs = p.getRuns();
+        for (int i = 0; i < runs.size(); i++) {
+            String t = runs.get(i).getText(0);
+            if (t == null) {
+                continue;
+            }
+            int open = t.lastIndexOf("{{");
+            if (open < 0 || t.indexOf("}}", open) >= 0) {
+                continue;
+            }
+            StringBuilder sb = new StringBuilder(t);
+            int j = i + 1;
+            boolean closed = false;
+            for (; j < runs.size(); j++) {
+                String u = runs.get(j).getText(0);
+                sb.append(u == null ? "" : u);
+                if (u != null && u.contains("}}")) {
+                    closed = true;
+                    break;
+                }
+            }
+            if (!closed) {
+                continue;
+            }
+            runs.get(i).setText(sb.toString(), 0);
+            for (int k = i + 1; k <= j; k++) {
+                runs.get(k).setText("", 0);
+            }
+        }
     }
 
     private static UnaryOperator<String> literalReplacer(Map<String, String> tokens) {
@@ -1397,6 +1503,193 @@ public class OfferDocxService {
         addSubtotal(table, sub, "Totale " + appName, qty, total, !"AMOUNT".equals(m), !"HOURS".equals(m));
     }
 
+    // ------------------------------------------------------------------ attivita.docx (Modello Light spento)
+    private static XWPFTable tableWith(XWPFDocument part, String token) {
+        for (XWPFTable t : part.getTables()) {
+            for (CTRow r : t.getCTTbl().getTrArray()) {
+                if (rowText(r).contains(token)) {
+                    return t;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static int rowWith(XWPFTable t, String token) {
+        CTRow[] trs = t.getCTTbl().getTrArray();
+        for (int i = 0; i < trs.length; i++) {
+            if (rowText(trs[i]).contains(token)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** toglie il paragrafo con il segnaposto e, se segue, un paragrafo vuoto */
+    private static void removeParagraphWith(XWPFDocument part, String token) {
+        List<IBodyElement> els = part.getBodyElements();
+        for (int i = 0; i < els.size(); i++) {
+            if (els.get(i) instanceof XWPFParagraph p && p.getText().contains(token)) {
+                part.removeBodyElement(i);
+                List<IBodyElement> after = part.getBodyElements();
+                if (i < after.size() && after.get(i) instanceof XWPFParagraph q && q.getText().isEmpty() && !q.getCTP().xmlText().contains("<w:br") && !hasSectPr(q.getCTP())) {
+                    part.removeBodyElement(i);
+                }
+                return;
+            }
+        }
+    }
+
+    private static String pctText(BigDecimal v) {
+        java.text.DecimalFormat f = new java.text.DecimalFormat("0.##", java.text.DecimalFormatSymbols.getInstance(Locale.ITALY));
+        return f.format(v) + "%";
+    }
+
+    private static String plainMoney(BigDecimal v) {
+        NumberFormat nf = NumberFormat.getInstance(IT);
+        nf.setMinimumFractionDigits(2);
+        nf.setMaximumFractionDigits(2);
+        return nf.format(v);
+    }
+
+    /**
+     * attivita.docx: tariffe di listino (una riga per profilo), «Sviluppo del Progetto» (gruppi e righe di servizio con ore/gg e figura professionale),
+     * paragrafi dello sconto e della data di validita' (solo se presenti) e tabella dei totali (listino ed eventuale netto). Restituisce il totale netto.
+     */
+    private BigDecimal fillActivityDocument(XWPFDocument part, List<ActRow> acts, BigDecimal discountPct, java.time.LocalDate until, boolean hoursDetail, boolean daysMode, Map<String, String> tokens) {
+        BigDecimal disc = discountPct == null ? BigDecimal.ZERO : discountPct;
+        boolean discounted = disc.signum() != 0;
+        BigDecimal factor = BigDecimal.ONE.subtract(disc.divide(HUNDRED));
+
+        // tariffe Italia: nome profilo e tariffa da listino «Tariffe Professionali»
+        XWPFTable tt = tableWith(part, "{{PROFILO}}");
+        if (tt != null) {
+            int ri = rowWith(tt, "{{PROFILO}}");
+            CTRow proto = (CTRow) tt.getCTTbl().getTrArray(ri).copy();
+            tt.removeRow(ri);
+            for (Map<String, Object> pr : jdbc.sql("select name, amount from professional_profile where deleted_at is null order by sort_order, id").query().listOfRows()) {
+                CTRow r = tt.getCTTbl().addNewTr();
+                r.set(proto.copy());
+                setCellText(r.getTcArray(0), String.valueOf(pr.get("name")));
+                setCellText(r.getTcArray(r.sizeOfTcArray() - 1), plainMoney((BigDecimal) pr.get("amount")));
+            }
+        }
+
+        // sviluppo del progetto
+        BigDecimal gross = BigDecimal.ZERO, total = BigDecimal.ZERO, hoursTot = BigDecimal.ZERO, daysTot = BigDecimal.ZERO;
+        XWPFTable dev = tableWith(part, "{{ATT_SUB_NAME}}");
+        if (dev == null || rowWith(dev, "{{ATT_DESC}}") < 0) {
+            throw new IllegalStateException("attivita.docx: mancano le righe prototipo con {{ATT_SUB_NAME}} e {{ATT_DESC}}");
+        }
+        int subI = rowWith(dev, "{{ATT_SUB_NAME}}"), descI = rowWith(dev, "{{ATT_DESC}}");
+        CTRow subProto = (CTRow) dev.getCTTbl().getTrArray(subI).copy();
+        CTRow descProto = (CTRow) dev.getCTTbl().getTrArray(descI).copy();
+        dev.removeRow(Math.max(subI, descI));
+        dev.removeRow(Math.min(subI, descI));
+        Long curApp = null;
+        String curGrp = null;
+        CTRow grpRow = null;
+        BigDecimal grpSum = BigDecimal.ZERO;
+        for (ActRow a : acts) {
+            String grp = a.group() == null || a.group().isBlank() ? null : a.group().trim();
+            boolean newApp = curApp == null || curApp.longValue() != a.applicationId();
+            if (grpRow != null && (newApp || !java.util.Objects.equals(grp, curGrp))) {
+                setCellText(grpRow.getTcArray(1), hoursText(grpSum));              // totale del gruppo a fine gruppo, sulla riga del titolo
+                grpRow = null;
+            }
+            if (newApp) {
+                curApp = a.applicationId();
+                curGrp = null;
+            }
+            if (grp != null && !grp.equals(curGrp)) {
+                curGrp = grp;
+                grpSum = BigDecimal.ZERO;
+                grpRow = dev.getCTTbl().addNewTr();
+                grpRow.set(subProto.copy());
+                setCellText(grpRow.getTcArray(0), grp);
+                for (int k = 1; k < grpRow.sizeOfTcArray(); k++) {
+                    setCellText(grpRow.getTcArray(k), "");
+                }
+                keepWithNext(grpRow);
+            } else if (grp == null) {
+                curGrp = null;
+            }
+            BigDecimal q = daysMode ? a.days() : a.hours();
+            CTRow r = dev.getCTTbl().addNewTr();
+            r.set(descProto.copy());
+            setCellText(r.getTcArray(0), a.description());
+            setCellText(r.getTcArray(1), hoursDetail ? hoursText(q) : "");          // ore / giorni di ogni riga solo con «Dettaglio ore per singola attività»; i totali restano
+            setCellText(r.getTcArray(2), a.profile() == null ? "" : a.profile());
+            if (grpRow != null) {
+                grpSum = grpSum.add(q);
+            }
+            BigDecimal netRate = a.rate().multiply(factor).setScale(2, java.math.RoundingMode.HALF_UP);
+            gross = gross.add(a.hours().multiply(a.rate()).setScale(2, java.math.RoundingMode.HALF_UP));
+            total = total.add(a.hours().multiply(netRate).setScale(2, java.math.RoundingMode.HALF_UP));
+            hoursTot = hoursTot.add(a.hours());
+            daysTot = daysTot.add(a.days());
+        }
+        if (grpRow != null) {
+            setCellText(grpRow.getTcArray(1), hoursText(grpSum));
+        }
+
+        // sconto e validita': paragrafi presenti solo se c'e' lo sconto (e, per la data, solo se specificata)
+        if (discounted) {
+            tokens.put("{{SCONTO_TARIFFE}}", pctText(disc));
+        } else {
+            removeParagraphWith(part, "{{SCONTO_TARIFFE}}");
+        }
+        if (discounted && until != null) {
+            tokens.put("{{DATA_VAL_SCONTO}}", until.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        } else {
+            removeParagraphWith(part, "{{DATA_VAL_SCONTO}}");
+        }
+
+        // totali: listino e, con lo sconto, totale netto
+        XWPFTable tot = tableWith(part, "{{TOT_GG}}");
+        if (tot != null && !discounted) {
+            int ni = rowWith(tot, "{{TOT_NETTO}}");
+            if (ni >= 0) {
+                tot.removeRow(ni);
+            }
+        }
+        tokens.put("{{GG_HH}}", daysMode ? "GG" : "ORE");
+        tokens.put("{{TOT_GG}}", hoursText(daysTot));
+        tokens.put("{{TOT_HH}}", hoursText(hoursTot));
+        tokens.put("{{TOT_LISTINO}}", eur(gross));
+        tokens.put("{{TOT_NETTO}}", eur(total));
+        return total;
+    }
+
+    /** documenti agganciati dopo le attivita': Light = appendice; altrimenti «Servizi extra progetto» con conversioni (solo prospect), personalizzazioni e follow up */
+    private void appendActivityExtras(XWPFDocument doc, boolean light, boolean prospect, Map<String, String> tokens) throws IOException {
+        if (light) {
+            appendTemplate(doc, "attivita-appendice.docx", tokens);
+            return;
+        }
+        doc.createParagraph();
+        doc.createParagraph();
+        XWPFRun r = doc.createParagraph().createRun();
+        r.setFontFamily("Arial");
+        r.setFontSize(12);
+        r.setBold(true);
+        r.setText("Servizi extra progetto");
+        if (prospect) {
+            appendTemplate(doc, "attivita-conversioni.docx", tokens);
+        }
+        appendTemplate(doc, "attivita-personalizzazioni.docx", tokens);
+        appendTemplate(doc, "attivita-followup.docx", tokens);
+    }
+
+    /** un capo riga e poi il documento indicato */
+    private void appendTemplate(XWPFDocument doc, String file, Map<String, String> tokens) throws IOException {
+        doc.createParagraph();
+        try (InputStream in = openTemplate(List.of(file)); XWPFDocument sub = new XWPFDocument(in)) {
+            replaceEverywhere(sub, tokens);
+            appendPart(doc, sub, dropTrailingBlanks(new ArrayList<>(sub.getBodyElements())), false, true);
+        }
+    }
+
     /** riga dell'area: nome gia' scritto, ore/gg nella 2ª cella e, se il modello ha {{ATT_SUB_VALORE}}, l'importo nell'ultima; hours null = solo svuota i segnaposto */
     private void areaTotals(CTRow hdr, BigDecimal hours, BigDecimal total, boolean withValue) {
         if (hdr == null) {
@@ -1661,8 +1954,7 @@ public class OfferDocxService {
                 setCellText(r.getTcArray(1), hoursDetail ? hoursText(daysMode ? a.days() : a.hours()) : "");      // ore / giorni di ogni attività solo con «Dettaglio ore»
                 setCellText(r.getTcArray(2), a.profile() == null ? "" : a.profile());
             } else {
-                boolean withProfile = detail && a.profile() != null && !a.profile().isBlank();
-                fillCellLines(r.getTcArray(0), withProfile ? List.of(a.description(), a.profile()) : List.of(a.description()));
+                fillCellLines(r.getTcArray(0), List.of(a.description()));        // modello Light: mai il profilo professionale
                 setCellText(r.getTcArray(1), detail || hoursDetail ? hoursText(daysMode ? a.days() : a.hours()) : "");
                 setCellText(r.getTcArray(2), detail ? eur(netRate) : "");
                 setCellText(r.getTcArray(3), detail ? eur(value) : "");
@@ -1780,18 +2072,45 @@ public class OfferDocxService {
      * canone di manutenzione (netto) con l'eventuale dicitura "IN AGGIUNTA ALL'ATTUALE".
      * POWER SYSTEM e PACCHETTO GIORNATE DI FOLLOW UP non sono gestiti dall'applicazione: le righe vengono tolte.
      */
+    /**
+     * Importo della riga «POWER SYSTEM» del riepilogo: totale netto Power + LTO8 di ogni opzione di manutenzione SW/HW (36, 48, 60 mesi),
+     * separati da « ~ » se sono piu' opzioni. null = offerta senza Power System (riga omessa).
+     */
+    private List<BigDecimal> powerSummaryNets(OfferHeader h, PowerRow power) {
+        if (!h.optPowerSystem() || power == null) {
+            return null;
+        }
+        List<BigDecimal> vals = new ArrayList<>();
+        for (Map<String, Object> m : jdbc.sql("select months, sum(net_price) as net from offer_power_maint where offer_id = :id group by months order by months")
+                .param("id", h.id()).query().listOfRows()) {
+            vals.add((BigDecimal) m.get("net"));
+        }
+        if (vals.isEmpty() && h.powerNetPrice() != null) {
+            vals.add(h.powerNetPrice());                     // offerte salvate prima dei periodi multipli
+        }
+        return vals.isEmpty() ? null : vals;
+    }
+
     private void fillFinalSummary(XWPFDocument part, BigDecimal netLic, BigDecimal activities, BigDecimal netMan,
-                                  boolean additional, Map<String, String> baseTokens) {
-        removeRowsContaining(part, "{{RF_POWER}}");
+                                  boolean additional, Map<String, String> baseTokens, List<BigDecimal> powerNets) {
+        String powerText = powerNets == null ? null : String.join(" ~ ", powerNets.stream().map(OfferDocxService::eur).toList());
+        if (powerText == null) {
+            removeRowsContaining(part, "{{RF_POWER}}");           // senza Power System la riga non c'e'
+        }
         removeRowsContaining(part, "{{RF_FOLLOWUP}}");
         if (activities == null) {
             removeRowsContaining(part, "{{RF_ATTIVITA}}");
         }
-        BigDecimal total = netLic.add(activities == null ? BigDecimal.ZERO : activities);
+        // totale: licenze + (Power se ha una sola opzione di manutenzione) + attivita'; con piu' opzioni Power il totale non e' determinabile e resta vuoto
+        boolean multiPower = powerNets != null && powerNets.size() > 1;
+        BigDecimal total = netLic.add(activities == null ? BigDecimal.ZERO : activities).add(powerNets != null && powerNets.size() == 1 ? powerNets.get(0) : BigDecimal.ZERO);
         Map<String, String> t = new LinkedHashMap<>(baseTokens);
         t.put("{{RF_LICENZE}}", eur(netLic));
+        if (powerText != null) {
+            t.put("{{RF_POWER}}", powerText);
+        }
         t.put("{{RF_ATTIVITA}}", activities == null ? "" : eur(activities));
-        t.put("{{RF_TOTALE}}", eur(total));
+        t.put("{{RF_TOTALE}}", multiPower ? "" : eur(total));
         t.put("{{RF_MANUT}}", eur(netMan));
         t.put("{{RF_MANUT_NOTE}}", additional ? " IN AGGIUNTA ALL'ATTUALE" : "");
         replaceEverywhere(part, t);

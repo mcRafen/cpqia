@@ -362,8 +362,12 @@
             <div class="card pr" id="sum-act-card">
                 <h2>Attività sistemistiche</h2>
                 <div class="grid c4" style="align-items:start">
-                    <div class="field"><input type="number" id="svc-disc" min="0" max="100" step="0.5" placeholder=" "><label for="svc-disc">Sconto %</label>
-                        <div class="help">Riduce tutte le tariffe orarie</div></div>
+                    <div>
+                        <div class="field"><input type="number" id="svc-disc" min="0" max="100" step="0.5" placeholder=" "><label for="svc-disc">Sconto %</label>
+                            <div class="help">Riduce tutte le tariffe orarie</div></div>
+                        <div class="field" id="svc-until-box" style="margin-top:10px" hidden><input type="date" id="svc-until" required placeholder=" "><label for="svc-until">Data validità *</label>
+                            <div class="help">Fino a quando vale lo sconto sulle attività successive</div></div>
+                    </div>
                     <div class="kv-box"><small>Totale a listino</small><b id="sum-act-list">€ 0,00</b><span class="note" id="sum-act-hours"></span></div>
                     <div class="kv-box"><small>Risparmio</small><b id="sum-act-save">€ 0,00</b><span class="note">listino meno scontato</span></div>
                     <div class="kv-box margin"><small>Totale scontato</small><b id="sum-act-net">€ 0,00</b><span class="note">compare come “Attività di progetto” nel riepilogo finale del documento</span></div>
@@ -389,9 +393,9 @@
                 <h2>Opzioni del documento</h2>
                 <div class="grid c2" style="align-items:start;gap:10px 28px">
                     <div style="display:flex;flex-direction:column;gap:10px">
-                        <label class="check"><input type="checkbox" id="opt-summary"> Modello offerta Light <span class="hint">(aggiunge al documento il riepilogo finale)</span></label>
-                        <label class="check"><input type="checkbox" id="opt-days" checked> Servizi espressi in gg <span class="hint">(nel documento la colonna «STIMA» riporta i giorni invece delle ore)</span></label>
-                        <label class="check"><input type="checkbox" id="opt-hours-detail"> Dettaglio ore per singola attività <span class="hint">(nella tabella dei servizi compaiono ore o giorni di ogni attività; altrimenti solo i totali)</span></label>
+                        <label class="check"><input type="checkbox" id="opt-summary"> Modello offerta Light <span class="hint">(senza «Light» il documento comprende il riepilogo finale)</span></label>
+                        <label class="check"><input type="checkbox" id="opt-days" checked> Servizi espressi in gg</label>
+                        <label class="check" id="row-hours-detail"><input type="checkbox" id="opt-hours-detail"> Dettaglio ore per singola attività <span class="hint">(nella tabella dei servizi compaiono ore o giorni di ogni attività; altrimenti solo i totali)</span></label>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:10px">
                         <div id="row-detail" hidden><label class="check"><input type="checkbox" id="svc-detail"> Dettaglio importi attività <span class="hint">(nel documento compaiono ore, tariffa e valore di ogni riga di attività; altrimenti per ogni applicazione solo le attività e il totale)</span></label></div>
@@ -402,7 +406,7 @@
                     <label class="check"><input type="checkbox" id="maint-on-net" checked> <span style="white-space:nowrap;flex:none">Manutenzione su netto scontato</span></label>
                     <label class="check"><input type="checkbox" id="opt-maint"> Canone di manutenzione in aggiunta all'attuale</label>
                 </div>
-                <div class="hint" id="opt-maint-hint" style="margin-top:8px" hidden>La dicitura “in aggiunta all'attuale” compare nel riepilogo finale: attiva anche “Modello offerta Light”.</div>
+                <div class="hint" id="opt-maint-hint" style="margin-top:8px" hidden>La dicitura “in aggiunta all'attuale” compare nel riepilogo finale, che c'è solo con “Modello offerta Light” spento.</div>
             </div>
             <div id="sum-violations"></div>
             <div class="muted" id="sum-blockers" style="margin-bottom:8px;color:var(--error)"></div>

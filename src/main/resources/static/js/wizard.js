@@ -21,7 +21,7 @@
     gal: { profileId: null, release: '', users: '0', addUsers: '', source: 0, aggiunta: false, sel: {}, calc: null },
     customer: null, title: '', contactRef: '', discountPct: 0, optMaint: false, optServices: false, optSummary: false,
     xSel: { services: new Set(), options: {} },
-    accountTravelRateId: null, activities: [], actDiscount: 0, actDetail: false, hoursDetail: false, maintOnNet: true, profiles: [],
+    accountTravelRateId: null, activities: [], actDiscount: 0, actUntil: '', actDetail: false, hoursDetail: false, maintOnNet: true, profiles: [],
     distanceKm: null, nearestSede: '', distMethod: '', distFor: null, travelRateId: null, travelRates: [],
     terms: null, payTouched: { lic: false, fee: false, act: false },
     lines: [], step: 1, saved: null,
@@ -53,6 +53,12 @@
   }
   S.powerMaintLines = () => maintSlots().map((sl) => { const a = slotAmt(sl); return { months: sl.months, kind: sl.kind, listPrice: a.list, netPrice: a.net }; });
   S.powerMaintTotals = () => maintSlots().reduce((t, sl) => { const a = slotAmt(sl); return { list: t.list + (a.list || 0), net: t.net + (a.net || 0) }; }, { list: 0, net: 0 });
+  /** periodo di manutenzione con il totale (Power + LTO8) piu' alto tra quelli selezionati: listino e netto di quel periodo */
+  S.powerMaintMax = () => {
+    const by = {};
+    maintSlots().forEach((sl) => { const a = slotAmt(sl); const o = by[sl.months] || (by[sl.months] = { list: 0, net: 0 }); o.list += a.list || 0; o.net += a.net || 0; });
+    return Object.keys(by).map((k) => by[k]).reduce((m, o) => (o.list > m.list || (o.list === m.list && o.net > m.net) ? o : m), { list: 0, net: 0 });
+  };
   const maintComplete = () => S.powerMaintList.length > 0 && maintSlots().every((sl) => { const a = slotAmt(sl); return a.list != null && a.net != null; });
 
   // ---------------------------------------------------------------- avvio
@@ -89,7 +95,7 @@
           const g = rq.galileo; S.gal = { profileId: g.profileId, release: g.release || 'V9', users: g.users || '', addUsers: g.addUsers || '', source: g.source || 0, aggiunta: !!g.aggiunta, sel: {}, calc: null };
           (g.selections || []).forEach((x) => { S.gal.sel[x.moduleId] = x.state; });
         }
-        S.actDiscount = rq.activityDiscountPct || 0; S.actDetail = !!rq.optActivityDetail; S.hoursDetail = !!rq.optHoursDetail; S.maintOnNet = rq.maintOnNet !== false;
+        S.actDiscount = rq.activityDiscountPct || 0; S.actUntil = rq.activityDiscountUntil || ''; S.actDetail = !!rq.optActivityDetail; S.hoursDetail = !!rq.optHoursDetail; S.maintOnNet = rq.maintOnNet !== false;
         S.activities = (rq.activities || []).map((a) => ({ appId: a.applicationId, desc: a.description, profileId: a.profileId, profileName: a.profileName, hours: a.hours, rate: a.rate, rfq: !!a.rfqImport, group: a.rfqGroup || '', days: a.days }));
         S.profileEdits = {}; (rq.profileRates || []).forEach((r) => { S.profileEdits[r.profileId] = Number(r.amount); });
         if (S.servicesMode !== 'RFQ') buildGroupsFromRows();
@@ -528,9 +534,10 @@
   const galAgg = () => { const a = S.optGalileo && S.galileoId ? appOf(S.galileoId) : null; return !!a && a.code === GAL_AGG_CODE; };
   function refreshDocOptions() {
     const agg = galAgg();
-    $('#opt-maint-hint').hidden = agg || S.optSummary || !S.optMaint;
+    $('#opt-maint-hint').hidden = agg || !S.optSummary || !S.optMaint;
     $('#row-apptot').hidden = agg || !S.optSummary;
     $('#row-detail').hidden = !S.optSummary;
+    const rh = $('#row-hours-detail'); if (rh) rh.hidden = S.optSummary;          // «Dettaglio ore»: solo senza Modello Light
     const mw = $('#opt-maint').closest('label'); if (mw) mw.hidden = agg;
     const sum = $('#opt-summary'); sum.checked = S.optSummary; sum.disabled = agg;
     const sm = $('#sel-svc-mode'); if (sm) { sm.disabled = agg; if (agg) sm.value = 'MANUAL'; }          // MODULI AGGIUNTIVI: Servizi solo in modalità Manuale
@@ -878,6 +885,9 @@
         else if (C.parseHours(a.hours) > 9999) add(5, 'act', where + '.svc-hours', 'Attività «' + name + '»: massimo 9999 ore', prep);
       }
     }
+    if (Number(S.actDiscount) > 0 && !S.actUntil) add(4, 'until', '#svc-until', 'Attività sistemistiche: indica la data di validità dello sconto');
+    // titolo del progetto: obbligatorio quando non si puo' calcolare in automatico dalle applicazioni scelte
+    if (!(S.title || '').trim() && !C.suggestTitle(catalog, S.lines)) add(4, 'title', '#sum-title', 'Indica il titolo del progetto (non si può calcolare in automatico)');
     // modalita' di fatturazione e pagamento
     const TS = [['Fatturazione licenze', '#t-bill-lic-date'], ['Fatturazione canoni', '#t-bill-fee-date'],
       ['Pagamento licenze: "Solito', '#t-pay-lic'], ['Pagamento canoni: "Solito', '#t-pay-fee'], ['Pagamento attività sistemistiche: "Solito', '#t-pay-act'],
@@ -901,6 +911,13 @@
   /** vero se nella riga e' selezionato almeno un modulo con gruppo di prezzo (moduli per utente): solo allora si mostrano e si chiedono gli utenti */
   function perUserSelected(a, line) {
     return !!line && a.modules.some((m) => m.groupId != null && m.section !== 'LINK' && !m.included && line.modules[m.id] > 0);
+  }
+
+  /** «Data validità» dello sconto sulle attività: compare solo se c'e' uno sconto ed e' obbligatoria */
+  function syncUntil() {
+    const box = $('#svc-until-box'); if (!box) return;
+    box.hidden = !(Number(S.actDiscount) > 0);
+    const i = $('#svc-until'); if (i && document.activeElement !== i) i.value = S.actUntil || '';
   }
 
   /** applicazioni Dipartimentali (non SMITECH) senza utenti: un solo tipo da indicare, con piu' tipi almeno uno */
@@ -1005,7 +1022,8 @@
       }).join('');
     return '<tr class="app-row' + (line ? ' sel' : '') + '" data-app="' + a.id + '">' +
       '<td><label class="check"><input type="checkbox" class="app-check" data-app="' + a.id + '"' + (line ? ' checked' : '') + ' aria-label="Seleziona ' + esc(a.name) + '"></label></td>' +
-      '<td class="name"><div class="appname" title="' + esc(a.name) + '">' + esc(a.name) + '</div><div style="margin-top:3px"><span class="chip ' + famClass(a.family) + '">' + esc(a.family || '') + '</span>' +
+      '<td class="name"><div class="appname-row"><div class="appname" title="' + esc(a.name) + '">' + esc(a.name) + '</div>' +
+        (hasTiers(a) ? '<button type="button" class="btn icon sm tiers-info" data-app="' + a.id + '" title="Progressione delle licenze per scaglioni di utenti" aria-label="Scaglioni di utenti"><svg class="ic"><use href="#i-info"/></svg></button>' : '') + '</div><div style="margin-top:3px"><span class="chip ' + famClass(a.family) + '">' + esc(a.family || '') + '</span>' +
       (a.needsReview ? ' <span class="chip warn" title="Logica del listino da verificare">da verificare</span>' : '') +
       ' <span class="muted">' + a.modules.filter((m) => m.section !== 'LINK').length + ' moduli</span></div></td>' +
       '<td>' + modeSel + '</td><td>' + drv + '</td>' +
@@ -1046,6 +1064,56 @@
       (m.note && !m.rules.length ? '<div class="hint">' + esc(m.note.length > 160 ? m.note.slice(0, 158) + '…' : m.note) + '</div>' : '') +
       (rules ? '<div class="rules">' + rules + '</div>' : '') + '</td>' +
       '<td class="num pr nowrap">' + priceTxt + ' ' + kind + '</td><td style="width:80px">' + qty + '</td></tr>';
+  }
+
+  /** l'applicazione ha una progressione delle licenze per scaglioni (gruppi di prezzo con piu' fasce; sono esclusi i gruppi lineari «per unita'») */
+  const tierGroups = (a) => a.groups.filter((g) => g.baseMode !== 'LINEAR' && g.tiers.length > 1);
+  const hasTiers = (a) => tierGroups(a).length > 0;
+
+  /** finestra «centro informazioni»: tabella degli scaglioni di utenti (Da, A, costo) per ogni gruppo di prezzo dell'applicazione */
+  function openTiersInfo(appId) {
+    const a = appOf(appId); if (!a) return;
+    const line = lineOf(appId);
+    const mode = line ? line.modeCode : (a.modes.find((x) => x.preferred) || a.modes[0] || {}).code;
+    const dlg = document.createElement('dialog');
+    dlg.className = 'tiers-dlg';
+    /** valore base del gruppo sul quale si applicano le percentuali: base fissa, altrimenti somma dei moduli selezionati del gruppo (x quantita') */
+    const baseOf = (g) => {
+      if (g.fixedBase && Object.keys(g.fixedBase).length) return Number(g.fixedBase[mode] != null ? g.fixedBase[mode] : (g.fixedBase.STD || 0));
+      return a.modules.filter((m) => m.groupId === g.id && line && line.modules[m.id] > 0 && m.section !== 'LINK' && !m.included)
+        .reduce((n, m) => n + C.modulePrice(m, mode) * (m.qtyEnabled ? line.modules[m.id] : 1), 0);
+    };
+    let needModules = false;
+    const money = (t, g, i) => {
+      const sing = (w) => { w = String(w || 'unità'); return /[^aeiou]i$/.test(w) ? w.slice(0, -1) + 'e' : (/ne$/.test(w) && !/zione$/.test(w) ? w.slice(0, -1) + 'a' : w); };      // utenti → utente, macchine → macchina
+      const u = t.unitByMode || {}, d = a.drivers.find((x) => x.id === g.driverId) || {}, unit = esc(sing(d.unitLabel));
+      const v = u[mode] != null ? u[mode] : u.STD;
+      if (g.baseMode === 'STEP') return v != null ? '<b>' + CPQ.eur(v) + '</b> canone annuo della fascia' : '<span class="muted">valutazione ad hoc</span>';
+      if (i === 0) return (g.fixedBase && Object.keys(g.fixedBase).length) ? '<b>' + CPQ.eur(g.fixedBase[mode] != null ? g.fixedBase[mode] : (g.fixedBase.STD || 0)) + '</b> (base inclusa)' : 'inclusa nel prezzo dei moduli';
+      if (v != null) return '<b>' + CPQ.eur(v) + '</b> per ' + unit;
+      if (t.pct == null) return '—';
+      const base = baseOf(g);
+      if (!(base > 0)) { needModules = true; return '<span class="muted">seleziona i moduli</span>'; }
+      return '<b>' + CPQ.eur(base * t.pct / 100) + '</b> per ' + unit;          // controvalore in euro della percentuale sul valore dei moduli selezionati
+    };
+    const body = tierGroups(a).map((g) => {
+      const d = a.drivers.find((x) => x.id === g.driverId) || {};
+      const users = line ? (line.drivers[g.driverId] || 0) : 0;
+      const rows = g.tiers.map((t, i) => {
+        const cur = users >= 1 && users >= t.fromQty && (t.toQty == null || users <= t.toQty);
+        return '<tr class="' + (cur ? 'cur' : '') + '"><td>' + esc(t.label) + (cur ? ' <span class="chip blue">' + users + ' ' + esc(d.unitLabel || 'unità') + '</span>' : '') + '</td><td class="num">' + t.fromQty + '</td><td class="num">' + (t.toQty == null ? '∞' : t.toQty) + '</td><td>' + money(t, g, i) + '</td></tr>';
+      }).join('');
+      return '<h4 style="margin:14px 0 6px">' + esc(g.label) + ' <span class="muted" style="font-weight:400">– ' + esc(d.label || 'utenti') + '</span></h4>' +
+        '<table class="t"><thead><tr><th>Fascia</th><th class="num">Da</th><th class="num">A</th><th>Costo</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }).join('');
+    dlg.innerHTML = '<div class="dlg-head"><h3 style="margin:0">' + esc(a.name) + '</h3><div class="muted">Progressione delle licenze per scaglioni di utenti' + (mode ? ' · listino ' + esc(mode) : '') + '</div></div>' +
+      '<div class="dlg-body">' + body + '<div class="hint" style="margin-top:12px">Il prezzo dei moduli è moltiplicato dal numero di utenti secondo gli scaglioni: i primi sono inclusi, gli ulteriori si pagano per ogni utente della fascia.' +
+        (needModules ? ' Gli importi per utente si calcolano sul valore dei moduli selezionati: spunta i moduli dell\'applicazione per vederli.' : '') + '</div></div>' +
+      '<div class="dlg-foot"><button type="button" class="btn" data-close>Chiudi</button></div>';
+    document.body.appendChild(dlg);
+    dlg.addEventListener('click', (e) => { if (e.target.closest('[data-close]') || e.target === dlg) dlg.close(); });
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.showModal();
   }
 
   function tiersText(a, g, mode) {
@@ -1115,12 +1183,14 @@
         renderApps(); scheduleCalc();
       }
     });
+    body.addEventListener('click', (e) => { const b = e.target.closest('.tiers-info'); if (b) { e.stopPropagation(); openTiersInfo(Number(b.dataset.app)); } });
     body.addEventListener('input', (e) => {
       const t = e.target; const id = Number(t.dataset.app);
       if (t.classList.contains('drv-in')) { lineOf(id).drivers[Number(t.dataset.drv)] = Math.max(0, parseInt(t.value || '0', 10) || 0); scheduleCalc(); if (S.usersMark) markUsers(); }
       else if (t.classList.contains('mod-qty')) { lineOf(id).modules[Number(t.dataset.mod)] = Math.max(1, parseInt(t.value || '1', 10) || 1); scheduleCalc(); }
     });
     body.addEventListener('click', (e) => {
+      if (e.target.closest('.tiers-info')) return;                  // icona scaglioni: apre solo la finestra informativa
       const tg = e.target.closest('.toggle');
       if (tg) { const id = Number(tg.dataset.app); expanded.has(id) ? expanded.delete(id) : expanded.add(id); renderApps(); return; }
       const nameCell = e.target.closest('td.name');
@@ -1416,7 +1486,10 @@
     $('#sum-customer').textContent = c ? c.companyName + ' (' + c.code + ')' : '—';
     $('#sum-elements').textContent = elementsText();
     $('#sum-title').value = S.title || C.suggestTitle(catalog, S.lines);
+    const tl = document.querySelector('label[for="sum-title"]');
+    if (tl) tl.textContent = 'Titolo del progetto (copertina)' + (C.suggestTitle(catalog, S.lines) ? '' : ' *');          // obbligatorio se non calcolato in automatico
     if (document.activeElement !== $('#svc-disc')) $('#svc-disc').value = S.actDiscount || '';
+    syncUntil();
     if (document.activeElement !== $('#sum-disc')) $('#sum-disc').value = S.discountPct || '';
     // le applicazioni si dividono in due tabelle: licenze una tantum con manutenzione (%) e servizi a canone annuo (moduli ANNUAL / MONTHLY)
     const isFee = (m) => m && (m.kind === 'ANNUAL' || m.kind === 'MONTHLY');
@@ -1555,6 +1628,7 @@
     if (S.optRfq) renderRfq();
     $('#svc-body').innerHTML = S.optRfq ? '' : renderManualGroups();
     if (document.activeElement !== $('#svc-disc')) $('#svc-disc').value = S.actDiscount || '';
+    syncUntil();
     $('#svc-detail').checked = S.actDetail;
     updateServiceTotals();
   }
@@ -2117,7 +2191,7 @@
     $('#svc-disc').addEventListener('input', (e) => {
       let v = Number(String(e.target.value || 0).replace(',', '.'));
       if (v > 100) { v = 100; e.target.value = 100; } if (v < 0 || !isFinite(v)) { v = 0; e.target.value = 0; }
-      S.actDiscount = v; updateServiceTotals(); updateSummaryTotals();
+      S.actDiscount = v; syncUntil(); updateServiceTotals(); updateSummaryTotals();
     });
     $('#svc-detail').addEventListener('change', (e) => { S.actDetail = e.target.checked; });
     $('#btn-back5').addEventListener('click', () => go(prevStep(5)));
@@ -2515,7 +2589,7 @@
     // importi del Power System (solo listino e netto)
     $('#sum-pw-card').hidden = !S.optPower;
     if (S.optPower) {
-      const pt = S.powerMaintTotals(), pl = maintComplete() ? pt.list : null, pn = maintComplete() ? pt.net : null, pm = powerModelOf(S.powerModelId);
+      const pt = S.powerMaintMax(), pl = maintComplete() ? pt.list : null, pn = maintComplete() ? pt.net : null, pm = powerModelOf(S.powerModelId);
       $('#sum-pw-list').textContent = pl == null ? '—' : CPQ.eur(pl); $('#sum-pw-net').textContent = pn == null ? '—' : CPQ.eur(pn);
       $('#sum-pw-model').textContent = pm ? pm.description : '';
       const rowsP = maintComplete() ? maintSlots().map((sl) => { const am = slotAmt(sl); return '<tr><td>' + sl.months + ' mesi</td><td>' + (sl.kind === 'LTO8' ? 'LTO8' : 'Power') + '</td><td class="num">' + CPQ.eur(am.list) + '</td><td class="num">' + CPQ.eur(am.net) + '</td></tr>'; }) : [];
@@ -2633,6 +2707,7 @@
   $('#travel-rate').addEventListener('change', (e) => { S.travelRateId = e.target.value ? Number(e.target.value) : null; });
   $('#dist-refresh').addEventListener('click', () => loadDistance(true));
   $('#sum-title').addEventListener('input', (e) => { S.title = e.target.value; });
+  $('#svc-until').addEventListener('input', (e) => { S.actUntil = e.target.value; CPQ.markDirty('page', root); });
   [['opt-maint', 'optMaint'], ['opt-services', 'optServices'], ['opt-summary', 'optSummary']].forEach(([id, key]) => {
     $('#' + id).addEventListener('change', (e) => {
       S[key] = e.target.checked; refreshDocOptions();

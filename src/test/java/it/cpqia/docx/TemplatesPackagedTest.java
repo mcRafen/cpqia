@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Tutti i documenti Word di offer-template (anche Power e Smitech) devono essere nel classpath, e quindi nel WAR. */
 class TemplatesPackagedTest {
 
-    private static final List<String> REQUIRED = List.of("offer-template.docx", "licenze.docx", "attivita.docx", "attivita-light.docx", "manutenzione.docx",
+    private static final List<String> REQUIRED = List.of("offer-template.docx", "licenze.docx", "attivita.docx", "attivita-light.docx", "attivita-appendice.docx", "attivita-conversioni.docx", "attivita-personalizzazioni.docx", "attivita-followup.docx", "licenze-elenco-semplice.docx", "moduli.docx", "manutenzione.docx",
             "servizi-accessori.docx", "riepilogo-finale.docx", "riepilogo-finale-servizi-accessori.docx", "varie.docx", "pagamenti.docx", "condizioni-gdpr.docx",
             "Power/tabelle-power-hardware.docx", "Power/tabelle-power-software.docx", "Power/tabelle-power-manutenzione.docx", "Power/tabelle-power-chiavi di licenza.docx",
             "Power/tabelle-power-solution edition.docx", "Power/tabelle-power-migrazione programmi.docx", "Power/tabelle-power-transfer.docx",

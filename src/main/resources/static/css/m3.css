@@ -1145,3 +1145,14 @@ table.rev-cmp tr.rev-diff td:not(:first-child) { background: var(--warn-containe
 
 /* contenuti dell'offerta oscurati (es. scenario MODULI AGGIUNTIVI) */
 .opt-dim { opacity: .38; pointer-events: none; filter: grayscale(1); }
+
+/* Dipartimentali: nome applicazione con icona «centro informazioni» (scaglioni di utenti) */
+.apps .appname-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.apps .appname-row .appname { flex: 1; min-width: 0; }
+.apps .tiers-info { flex: none; color: var(--primary); }
+dialog.tiers-dlg { width: min(720px, 94vw); }
+.tiers-dlg tr.cur > td { background: var(--secondary-container); font-weight: 500; }
+
+/* icona «scaglioni»: centrata verticalmente sull'intera riga dell'applicazione (non solo sulla riga del nome) */
+table.apps td.name { position: relative; padding-right: 46px; }
+table.apps .tiers-info { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }

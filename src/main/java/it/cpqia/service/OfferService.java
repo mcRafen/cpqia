@@ -184,6 +184,12 @@ public class OfferService {
         if (req.offerDate() == null) {
             throw new IllegalArgumentException("Indicare la data dell'offerta");
         }
+        if (actDiscount(req).signum() > 0 && req.activityDiscountUntil() == null) {
+            throw new IllegalArgumentException("Attività sistemistiche: indicare la data di validità dello sconto");
+        }
+        if (req.projectTitle() == null || req.projectTitle().isBlank()) {
+            throw new IllegalArgumentException("Indicare il titolo del progetto");
+        }
         if (req.progressive() == null || req.progressive() < 1) {
             throw new IllegalArgumentException("Indicare il numero progressivo (>= 1)");
         }
@@ -326,7 +332,8 @@ public class OfferService {
             throw new IllegalArgumentException("Esiste gia' un'offerta con numero " + number
                     + ": scegliere un altro progressivo");
         }
-        jdbc.sql("update offer set opt_hours_detail = :f where id = :id").param("f", flag(req.optHoursDetail())).param("id", offerId).update();
+        jdbc.sql("update offer set opt_hours_detail = :f, activity_discount_until = :u where id = :id").param("f", flag(req.optHoursDetail()))
+                .param("u", actDiscount(req).signum() > 0 ? req.activityDiscountUntil() : null).param("id", offerId).update();
         checkGalileo(req.galileoApplicationId());
         checkPower(req);
         termsRepo.save(offerId, terms);
@@ -762,7 +769,8 @@ public class OfferService {
                 h.distanceKm(), h.nearestSede(), h.travelRateId(), loadActivities(id), h.activityDiscountPct(), h.optActivityDetail(), h.maintOnNet(),
                 h.optPowerSystem(), h.galileoApplicationId(), h.optSmitechServices(), h.optDepartmental(),
                 h.powerModelId(), h.powerRamGb(), h.powerDisk(), h.powerLto8(), h.powerEth10(), h.powerIbmiUsers(), h.powerIbmiUnlimited(),
-                h.powerCable(), h.powerTransfer(), h.powerTransferRef(), h.powerEdition(), h.powerOs(), h.powerMaintMonths(), h.powerListPrice(), h.powerNetPrice(), loadPowerProducts(id), h.powerDiskCount(), h.optUseRfq(), h.optServicesDays(), h.appTotalsMode(), h.rfqSheetTotal(), galileo.load(id), h.servicesMode(), loadProfileRates(id), loadPowerMaint(id), jdbc.sql("select opt_hours_detail from offer where id = :id").param("id", id).query(Boolean.class).optional().orElse(false));
+                h.powerCable(), h.powerTransfer(), h.powerTransferRef(), h.powerEdition(), h.powerOs(), h.powerMaintMonths(), h.powerListPrice(), h.powerNetPrice(), loadPowerProducts(id), h.powerDiskCount(), h.optUseRfq(), h.optServicesDays(), h.appTotalsMode(), h.rfqSheetTotal(), galileo.load(id), h.servicesMode(), loadProfileRates(id), loadPowerMaint(id), jdbc.sql("select opt_hours_detail from offer where id = :id").param("id", id).query(Boolean.class).optional().orElse(false),
+                jdbc.sql("select activity_discount_until from offer where id = :id").param("id", id).query((rs, n) -> rs.getObject(1, java.time.LocalDate.class)).optional().orElse(null));
     }
 
     private List<OfferDtos.ActivityReq> loadActivities(long offerId) {

@@ -100,6 +100,7 @@ public class OfferSnapshotService {
         put(out, T, "Dettaglio importi attività", yn(o.get("opt_activity_detail")));
         put(out, T, "Dettaglio ore per singola attività", yn(o.get("opt_hours_detail")));
         put(out, T, "Sconto servizi %", num(o, "activity_discount_pct"));
+        put(out, T, "Validità sconto servizi", s(o.get("activity_discount_until")));
         put(out, T, "Distanza (km)", num(o, "distance_km"));
         put(out, T, "Sede più vicina", s(o.get("nearest_sede")));
 
