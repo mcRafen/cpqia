@@ -88,7 +88,10 @@
                         <label class="check"><input type="checkbox" id="opt-galileo"> Galileo</label>
                         <div class="field" id="galileo-box" style="min-width:300px;flex:0 1 380px" hidden><select id="sel-galileo"></select><label for="sel-galileo" class="on">Tipologia Galileo *</label></div>
                     </div>
-                    <label class="check"><input type="checkbox" id="opt-power"> Power System <span class="hint">(modello e configurazione si scelgono nella pagina «Power System»)</span></label>
+                    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                        <label class="check"><input type="checkbox" id="opt-power"> Power System</label>
+                        <div class="field" id="power-kind-box" style="min-width:240px;flex:0 1 280px" hidden><select id="sel-power-kind"><option value="NEW">Nuovo Power</option><option value="HADR">Power HA/DR</option></select><label for="sel-power-kind" class="on">Configurazione</label></div>
+                    </div>
                     <label class="check"><input type="checkbox" id="opt-smitech"> Servizi SMITECH <span class="hint">(SMISMP, SMIDRI, ecc: si configurano in un passo dedicato)</span></label>
                     <label class="check"><input type="checkbox" id="opt-dept"> Dipartimentali</label>
                     <label class="check"><input type="checkbox" id="opt-services"> Servizi accessori <span class="hint">(Audit, Discovery Xchange, Firmae, CRC: si configurano in un passo dedicato)</span></label>
@@ -108,9 +111,16 @@
 
         <!-- ============ STEP 7: POWER SYSTEM ============ -->
         <section data-step="7" hidden>
+            <div class="pw-tabs" id="pw-tabs" role="tablist" hidden>
+                <button type="button" role="tab" class="pw-tab active" data-pwtab="PROD" aria-selected="true">Power Produzione</button>
+                <button type="button" role="tab" class="pw-tab" data-pwtab="CBU" aria-selected="false">Power CBU</button>
+            </div>
             <div class="pw-layout">
                 <div class="card pw-model" id="pw-card-model">
-                    <h2>Selezione del modello</h2>
+                    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+                        <h2 style="margin:0">Selezione del modello</h2>
+                        <button type="button" class="btn tonal sm" id="pw-copy-prod" title="Copia in Power CBU tutte le impostazioni di Power Produzione" hidden><svg class="ic"><use href="#i-copy"/></svg>Copia da Produzione</button>
+                    </div>
                     <div class="grid c4" style="align-items:start;margin-bottom:6px">
                         <div class="field span3"><select id="sel-power"></select><label for="sel-power" class="on">Modello *</label>
                             <div class="help" id="power-model-info"></div></div>
@@ -122,7 +132,7 @@
                     </div>
                     <div class="grid c4" style="align-items:start;margin-top:16px">
                         <div class="field"><input type="number" id="pw-users" min="1" step="1" placeholder=" "><label for="pw-users">N. utenti IBM i licenziati *</label><div class="help" id="pw-users-link" hidden>Collegato agli utenti di Galileo</div></div>
-                        <div style="align-self:center"><label class="check"><input type="checkbox" id="pw-unlimited"> ILLIMITATI</label></div>
+                        <div style="align-self:center" id="pw-unlimited-box"><label class="check"><input type="checkbox" id="pw-unlimited"> ILLIMITATI</label></div>
                     </div>
                 </div>
 
@@ -159,12 +169,14 @@
                             <div class="field"><select id="pw-transfer"><option value="NO">No</option><option value="TRANSFER">Transfer</option><option value="CONVERSION">Conversion</option></select><label for="pw-transfer" class="on">Transfer-Conversion</label></div>
                             <div class="field span2" id="pw-tref-box" hidden title="Riferimenti del Power da cui trasferire le licenze"><input type="text" id="pw-tref" maxlength="500" placeholder=" "><label for="pw-tref">Riferimenti Power *</label></div>
                         </div>
+                        <div id="pw-prod-wrap">
                         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 8px">
                             <h3 style="margin:0">Prodotti IBM i <span class="muted" style="font-weight:400">(valore obbligatorio per ogni prodotto)</span></h3>
                             <span class="grow" style="flex:1"></span>
                             <button type="button" class="btn tonal sm" id="pw-copy-all" title="Copia su tutti i prodotti il valore impostato nel primo"><svg class="ic"><use href="#i-copy"/></svg>Copia su tutti</button>
                         </div>
                         <div id="pw-products" class="pw-products"></div>
+                        </div>
                     </fieldset>
                 </div>
             </div>

@@ -77,7 +77,7 @@ public class OfferSnapshotService {
     public Map<String, Map<String, String>> snapshot(long id) {
         Map<String, Map<String, String>> out = new LinkedHashMap<>();
         Map<String, Object> o = jdbc.sql("""
-                select o.*, c.company_name, c.code as customer_code, pm.model as pm_model, pm.type as pm_type, pm.description as pm_desc
+                select o.*, c.company_name, c.code as customer_code, (case when pm.machine_type = '' then pm.model else pm.machine_type || '-' || pm.model end) as pm_model, pm.type as pm_type, ('Model ' || (case when pm.machine_type = '' then pm.model else pm.machine_type || '-' || pm.model end) || ' ' || pm.cores || ' core ' || pm.mounting) as pm_desc
                 from offer o join account c on c.id = o.customer_id left join power_model pm on pm.id = o.power_model_id where o.id = :id""")
                 .param("id", id).query().singleRow();
         String T = "Testata";

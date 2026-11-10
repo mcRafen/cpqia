@@ -28,7 +28,7 @@ public enum TrashKind {
     PROFILE("professional_profile", "Profilo professionale", "name", null),
     TRAVEL("travel_rate", "Trasferta Italia", "name", null),
     SEDE("sede", "Sede Sanmarco", "name", null),
-    POWER("power_model", "Modello Power System", "model || ' ' || type || ' – ' || cores || ' core ' || mounting", null),
+    POWER("power_model", "Modello Power System", "(case when machine_type = '' then model else machine_type || '-' || model end) || ' ' || type || coalesce(' – ' || cores || ' core', '') || coalesce(' ' || mounting, '')", null),
     IBMI_PRODUCT("ibmi_product", "Prodotto IBM i", "code || ' – ' || description", null);
 
     private final String table;

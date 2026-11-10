@@ -41,6 +41,7 @@
     <div class="settings-tabs sync-tabs" role="tablist" style="margin-top:6px">
         <a href="#" role="tab" data-tab="clients" class="active">Sync Clienti</a>
         <a href="#" role="tab" data-tab="agents">Sync Agenti</a>
+        <a href="#" role="tab" data-tab="hw">Schede HW</a>
     </div>
     <div id="tab-clients">
     <div class="card">
@@ -95,6 +96,33 @@
         <h3 style="margin:22px 0 8px">Ultime esecuzioni</h3>
         <div class="tablewrap"><table class="t"><thead><tr><th>Avvio</th><th>Tipo</th><th>Esito</th><th class="num">Letti</th><th class="num">Nuovi</th><th class="num">Aggiornati</th><th class="num">Invariati</th><th class="num">Scartati</th><th>Messaggio</th><th></th></tr></thead>
             <tbody id="ag-runs"><tr><td colspan="10" class="muted">Caricamento…</td></tr></tbody></table></div>
+    </div>
+    </div>
+    <div id="tab-hw" hidden>
+    <div class="card">
+        <h2>Schede HW</h2>
+        <div class="hint" style="margin-bottom:14px">Legge da IBM Power System il file <code>CGYHW00F</code> (libreria <code>INF90DAT</code>): importa i record inseriti o modificati dall'ultima importazione fino a oggi (campi <code>DT01SH</code> e <code>DTMNSH</code>, formato AAAAMMGG) nell'anagrafica <b>Schede HW</b>. Il codice cliente (<code>CONTSH</code>) si collega all'anagrafica Account; <code>MODESH</code> è diviso in tipo macchina e modello al carattere «-». Usa la connessione impostata qui sopra.</div>
+        <div id="hw-form" class="grid c4" style="align-items:start">
+            <div style="align-self:center"><label class="check"><input type="checkbox" id="hw-enabled" th:checked="${hwSync.enabled}"> Esecuzione automatica attiva</label></div>
+            <div class="field"><select id="hw-mode"><option value="DAILY" th:selected="${hwSync.mode == 'DAILY'}">Ogni giorno alle…</option><option value="INTERVAL" th:selected="${hwSync.mode == 'INTERVAL'}">Ogni N minuti</option></select><label for="hw-mode" class="on">Pianificazione</label></div>
+            <div class="field" id="hw-time-box"><input type="time" id="hw-time" th:value="${hwSync.dailyTime}" placeholder=" "><label for="hw-time" class="on">Orario</label></div>
+            <div class="field" id="hw-int-box"><input type="number" id="hw-int" min="5" max="1440" step="5" th:value="${hwSync.intervalMin}" placeholder=" "><label for="hw-int" class="on">Intervallo (minuti)</label></div>
+            <div class="field"><input type="text" id="hw-lib" maxlength="10" th:value="${hwSync.sourceLibrary}" placeholder=" " style="text-transform:uppercase"><label for="hw-lib">Libreria sorgente</label></div>
+            <div class="field"><input type="text" id="hw-file" maxlength="10" th:value="${hwSync.sourceFile}" placeholder=" " style="text-transform:uppercase"><label for="hw-file">File schede HW</label></div>
+            <div class="field"><input type="date" id="hw-last-date" th:value="${hwSync.lastSyncDate}" placeholder=" "><label for="hw-last-date" class="on">Data ultima importazione</label><div class="help">Svuotala per rifare l'importazione totale</div></div>
+            <div style="align-self:center"><button type="button" class="btn tonal sm" id="hw-last-date-clear" title="Svuota la data: alla prossima esecuzione si rileggono tutte le schede HW">Svuota data</button></div>
+        </div>
+        <div class="kv-row" style="display:flex;gap:28px;flex-wrap:wrap;margin-top:14px">
+            <div><div class="muted">Ultima esecuzione</div><b id="hw-last-run" th:text="${hwSync.lastRunAt != null} ? ${#temporals.format(hwSync.lastRunAt, 'dd/MM/yyyy HH:mm:ss')} : '—'">—</b></div>
+            <div><div class="muted">Prossima esecuzione</div><b id="hw-next" th:text="${hwNextRun}">—</b></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+            <button type="button" class="btn tonal" id="hw-run"><svg class="ic"><use href="#i-download"/></svg>Esegui ora</button>
+            <button type="button" class="btn" id="hw-save"><svg class="ic"><use href="#i-save"/></svg>Salva pianificazione</button>
+        </div>
+        <h3 style="margin:22px 0 8px">Ultime esecuzioni</h3>
+        <div class="tablewrap"><table class="t"><thead><tr><th>Avvio</th><th>Tipo</th><th>Esito</th><th class="num">Letti</th><th class="num">Nuovi</th><th class="num">Aggiornati</th><th class="num">Invariati</th><th class="num">Saltati</th><th>Messaggio</th><th></th></tr></thead>
+            <tbody id="hw-runs"><tr><td colspan="10" class="muted">Caricamento…</td></tr></tbody></table></div>
     </div>
     </div>
     </div>
@@ -199,12 +227,14 @@ function setupSync(P, BASE, hasDate) {
 }
 setupSync('sync', '/admin/integrations/sync', true);
 setupSync('ag', '/admin/integrations/agents', true);
+setupSync('hw', '/admin/integrations/hw', true);
 
 document.querySelectorAll('.sync-tabs a').forEach((a) => a.addEventListener('click', (e) => {
   e.preventDefault();
   document.querySelectorAll('.sync-tabs a').forEach((x) => x.classList.toggle('active', x === a));
   document.getElementById('tab-clients').hidden = a.dataset.tab !== 'clients';
   document.getElementById('tab-agents').hidden = a.dataset.tab !== 'agents';
+  document.getElementById('tab-hw').hidden = a.dataset.tab !== 'hw';
 }));
 
 (function () {

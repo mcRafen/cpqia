@@ -920,6 +920,10 @@ html[data-theme="dark"] #pw-card-hw { border-top-color: #ffd36b; }
 html[data-theme="dark"] #pw-card-amt { border-top-color: #a5b4fc; }
 
 /* pagina Power System: Selezione del modello (75%) + Importi (25%); Opzioni Hardware (25%) + Opzioni Software (75%) */
+.pw-tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--outline-var); }
+.pw-tab { appearance: none; background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 18px; font: inherit; font-weight: 500; color: var(--on-surface-var); cursor: pointer; }
+.pw-tab:hover { background: var(--surface-2); }
+.pw-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 .pw-layout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .pw-layout > .card { margin-bottom: 0; min-width: 0; }
 .pw-layout > #pw-card-model, .pw-layout > #pw-card-sw { grid-column: span 3; }

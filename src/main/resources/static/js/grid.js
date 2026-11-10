@@ -700,11 +700,12 @@
      */
     bindAutoDescription(inputs, row) {
       if (this.key !== 'power-models' || !inputs.description || !inputs.model || !inputs.cores || !inputs.mounting) return;
-      const auto = () => 'Model ' + (inputs.model.value || '').trim() + ' ' + inputs.cores.value + ' core ' + inputs.mounting.value;
-      let last = row ? 'Model ' + row.model + ' ' + row.cores + ' core ' + row.mounting : auto();
+      const full = (mt, m) => (String(mt || '').trim() ? String(mt).trim() + '-' : '') + String(m || '').trim();      // codice completo: tipo macchina-modello
+      const auto = () => 'Model ' + full(inputs.machineType && inputs.machineType.value, inputs.model.value) + ' ' + inputs.cores.value + ' core ' + inputs.mounting.value;
+      let last = row ? 'Model ' + full(row.machineType, row.model) + ' ' + row.cores + ' core ' + row.mounting : auto();
       if (!row) inputs.description.value = auto();
       const follow = () => { if (inputs.description.value === last || !inputs.description.value) { last = auto(); inputs.description.value = last; } else { last = auto(); } };
-      ['model', 'cores', 'mounting'].forEach((k) => { inputs[k].addEventListener('input', follow); inputs[k].addEventListener('change', follow); });
+      ['machineType', 'model', 'cores', 'mounting'].forEach((k) => { if (!inputs[k]) return; inputs[k].addEventListener('input', follow); inputs[k].addEventListener('change', follow); });
     }
 
     // ------------------------------------------------------------------ nuovo record

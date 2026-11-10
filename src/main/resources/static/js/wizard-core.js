@@ -244,6 +244,7 @@
       optHoursDetail: !!state.hoursDetail,
       maintOnNet: state.maintOnNet !== false,
       optPowerSystem: !!state.optPower,
+      powerKind: state.optPower ? (state.powerKind || 'NEW') : 'NEW',
       powerModelId: state.optPower ? (state.powerModelId || null) : null,
       powerRamGb: state.optPower && state.powerRam ? Number(state.powerRam) : null,
       powerDisk: state.optPower && state.powerDisk ? state.powerDisk : null,

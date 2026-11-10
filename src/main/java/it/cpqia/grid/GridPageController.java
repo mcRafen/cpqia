@@ -55,4 +55,14 @@ public class GridPageController {
         m.addAttribute("hint", "Elenco alimentato dalla «Sync Agenti» (Impostazioni > Integrazioni): da IBM Power System, file SMTAB01L, tipo tabella 01AG.");
         return "grid/page";
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/hw-cards")
+    public String hwCards(Model m) {
+        m.addAttribute("title", "Schede HW");
+        m.addAttribute("active", "hw-cards");
+        m.addAttribute("gridKey", "hw-cards");
+        m.addAttribute("hint", "Anagrafica in sola visualizzazione, alimentata dalla «Schede HW» (Impostazioni > Integrazioni): da IBM Power System, file CGYHW00F della libreria INF90DAT. La ragione sociale è decodificata dal codice cliente.");
+        return "grid/page";
+    }
 }

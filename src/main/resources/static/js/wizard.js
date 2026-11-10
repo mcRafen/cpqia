@@ -91,6 +91,8 @@
           S.powerMaintAmt[amtKey(S.powerMaintList[0], 'POWER')] = { list: CPQ.num(h.powerListPrice, 2), net: CPQ.num(h.powerNetPrice || 0, 2) };
         }
         S.powerProducts = {}; (rq.powerProducts || []).forEach((p) => { S.powerProducts[p.productId] = p.value; });
+        S.powerKind = rq.powerKind || 'NEW'; S.pwTab = 'PROD';
+        S.pwOther = S.powerKind === 'HADR' && rq.powerCbu ? cbuSlotFromRequest(rq.powerCbu) : pwFresh();      // scheda «Power CBU» (HA/DR)
         if (rq.galileo) {
           const g = rq.galileo; S.gal = { profileId: g.profileId, release: g.release || 'V9', users: g.users || '', addUsers: g.addUsers || '', source: g.source || 0, aggiunta: !!g.aggiunta, sel: {}, calc: null };
           (g.selections || []).forEach((x) => { S.gal.sel[x.moduleId] = x.state; });
@@ -135,7 +137,7 @@
     $('#opt-maint').checked = S.optMaint; $('#opt-services').checked = S.optServices; $('#opt-summary').checked = S.optSummary;
     $('#opt-galileo').checked = S.optGalileo; $('#galileo-box').hidden = !S.optGalileo;
     renderPower();
-    syncServicesUi(); $('#opt-days').checked = S.optDays; $('#opt-apptot').value = S.appTotalsMode; $('#svc-detail').checked = S.actDetail; $('#opt-hours-detail').checked = S.hoursDetail; $('#opt-power').checked = S.optPower; $('#opt-smitech').checked = S.optSmitech; $('#opt-dept').checked = S.optDept;
+    syncServicesUi(); $('#opt-days').checked = S.optDays; $('#opt-apptot').value = S.appTotalsMode; $('#svc-detail').checked = S.actDetail; $('#opt-hours-detail').checked = S.hoursDetail; $('#opt-power').checked = S.optPower; renderPwKind(); $('#opt-smitech').checked = S.optSmitech; $('#opt-dept').checked = S.optDept;
     renderGalileo();
     loadRevisions();
     refreshDocOptions();
@@ -504,6 +506,7 @@
   }
 
   function showStep(n) {
+    if (n !== 7 && S.pwTab === 'CBU') pwSwitchTab('PROD', false);      // fuori dalla pagina Power lo stato attivo e' sempre quello di produzione
     S.step = n;
     $$('[data-step]').forEach((p) => { p.hidden = Number(p.dataset.step) !== n; });
     const ORDER = orderAll();                                // ordine di navigazione (5 = Servizi, dopo i Dipartimentali)
@@ -559,6 +562,8 @@
     S.optDept = false; S.optServices = false; S.optMaint = false;
     S.optPower = false; S.powerModelId = null; S.powerRam = ''; S.powerDisk = ''; S.optSmitech = false;
     S.optSummary = true; S.appTotalsMode = 'NO';
+    if (pwIsCbu()) pwSwap();
+    S.powerKind = 'NEW'; S.pwOther = pwFresh(); renderPwKind();
     $('#opt-power').checked = false; $('#opt-smitech').checked = false; $('#opt-dept').checked = false; $('#opt-services').checked = false; $('#opt-maint').checked = false;
     $('#opt-apptot').value = 'NO';
     renderPower(); syncServicesUi(); renderApps(); scheduleCalc();
@@ -598,7 +603,102 @@
     $('#pw-ram').disabled = false; $('#pw-disk').disabled = false;
   }
 
+  // ---- tipo di Power: «Nuovo Power» / «Power HA/DR» (due schede: Produzione e CBU).
+  // La pagina lavora sempre sui campi S.power*: la scheda inattiva tiene i suoi valori in S.pwOther e le schede si scambiano.
+  const PW_KEYS = ['powerModelId', 'powerRam', 'powerDisk', 'powerLto8', 'powerEth10', 'powerUsers', 'powerUnlimited', 'powerCable', 'powerTransfer', 'powerTransferRef', 'powerEdition', 'powerOs', 'powerMaint', 'powerMaintList', 'powerMaintAmt', 'powerDisks', 'powerProducts'];
+  const pwFresh = () => ({ powerModelId: null, powerRam: '', powerDisk: '', powerLto8: false, powerEth10: false, powerUsers: '', powerUnlimited: false, powerCable: '', powerTransfer: 'NO', powerTransferRef: '', powerEdition: 'SOLUTION', powerOs: '7.5', powerMaint: '36', powerMaintList: [36], powerMaintAmt: {}, powerDisks: '2', powerProducts: {} });
+  const pwPick = () => { const o = {}; PW_KEYS.forEach((k) => { o[k] = S[k]; }); return o; };
+  const pwLoad = (o) => { PW_KEYS.forEach((k) => { S[k] = o[k]; }); };
+  S.powerKind = 'NEW'; S.pwTab = 'PROD'; S.pwOther = pwFresh();
+  const pwIsCbu = () => S.pwTab === 'CBU';
+  function pwSwap() { const cur = pwPick(); pwLoad(S.pwOther); S.pwOther = cur; S.pwTab = S.pwTab === 'PROD' ? 'CBU' : 'PROD'; }
+  /** esegue fn con i dati di produzione attivi (salvataggio, calcolo): la scheda CBU, se aperta, viene scambiata e poi ripristinata */
+  function withProd(fn) {
+    if (!pwIsCbu()) return fn();
+    pwSwap();
+    try { return fn(); } finally { pwSwap(); }
+  }
+  /** utenti IBM i della scheda CBU imposti dai core del modello scelto in Produzione: 8 core -> 10, 4 core -> 5 (altri core: null, campo libero) */
+  const CBU_USERS_BY_CORES = { 8: 10, 4: 5 };
+  function cbuAutoUsers() {
+    if (S.powerKind !== 'HADR') return null;
+    const prodId = pwIsCbu() ? S.pwOther.powerModelId : S.powerModelId;
+    const m = prodId ? powerModelOf(prodId) : null;
+    return m && CBU_USERS_BY_CORES[Number(m.cores)] != null ? CBU_USERS_BY_CORES[Number(m.cores)] : null;
+  }
+  /** allinea gli utenti salvati della scheda CBU (anche se inattiva) alla regola sopra */
+  function applyCbuUsers() {
+    if (S.powerKind !== 'HADR') return;
+    const slot = pwIsCbu() ? S : S.pwOther;
+    slot.powerUnlimited = false;                         // nella scheda CBU gli utenti ILLIMITATI non esistono
+    const n = cbuAutoUsers(); if (n == null) return;
+    slot.powerUsers = String(n);
+  }
+
+  /** richiesta al server: la Produzione e, con Power HA/DR, la scheda CBU (campi tipizzati come la Produzione, senza i prodotti IBM i) */
+  function buildReq() {
+    applyCbuUsers();
+    return withProd(() => {
+      const r = C.buildRequest(S);
+      r.powerCbu = null;
+      if (S.optPower && S.powerKind === 'HADR') {
+        pwSwap();                                              // i campi S.power* sono quelli della CBU
+        try {
+          r.powerCbu = {
+            modelId: S.powerModelId || null, ramGb: S.powerRam ? Number(S.powerRam) : null, disk: S.powerDisk || null,
+            diskCount: Math.max(1, Number(S.powerDisks || 2)), lto8: !!S.powerLto8, eth10: !!S.powerEth10,
+            ibmiUsers: !S.powerUnlimited && S.powerUsers !== '' && S.powerUsers != null ? Number(S.powerUsers) : null, ibmiUnlimited: !!S.powerUnlimited,
+            cable: S.powerCable || null, transfer: S.powerTransfer || 'NO', transferRef: S.powerTransfer && S.powerTransfer !== 'NO' ? (S.powerTransferRef || '') : null,
+            edition: S.powerEdition || 'SOLUTION', os: S.powerOs || '7.5', maint: S.powerMaintLines(),
+          };
+        } finally { pwSwap(); }
+      }
+      return r;
+    });
+  }
+  /** scheda CBU salvata -> campi di stato (stessa forma di pwFresh) */
+  function cbuSlotFromRequest(c) {
+    const o = pwFresh(), ms = c.maint || [];
+    o.powerModelId = c.modelId || null; o.powerRam = c.ramGb ? String(c.ramGb) : ''; o.powerDisk = c.disk || ''; o.powerDisks = String(c.diskCount || 2);
+    o.powerLto8 = !!c.lto8; o.powerEth10 = !!c.eth10; o.powerUsers = c.ibmiUsers == null ? '' : String(c.ibmiUsers); o.powerUnlimited = !!c.ibmiUnlimited;
+    o.powerCable = c.cable || ''; o.powerTransfer = c.transfer || 'NO'; o.powerTransferRef = c.transferRef || ''; o.powerEdition = c.edition || 'SOLUTION'; o.powerOs = c.os || '7.5';
+    if (ms.length) { o.powerMaintList = Array.from(new Set(ms.map((x) => x.months))).sort((a, b) => a - b); o.powerMaint = String(o.powerMaintList[0]); }
+    ms.forEach((x) => { o.powerMaintAmt[amtKey(x.months, x.kind)] = { list: CPQ.num(x.listPrice, 2), net: CPQ.num(x.netPrice, 2) }; });
+    return o;
+  }
+  function pwSwitchTab(tab, render) {
+    if (S.pwTab === tab) return;
+    closeMaintPanel(); pwSwap();
+    if (render !== false) { renderPower(); renderPwKind(); }
+  }
+  /** menu «Tipo di Power», schede e sezione «Prodotti IBM i» (assente nella scheda CBU) */
+  function renderPwKind() {
+    $('#power-kind-box').hidden = !S.optPower;
+    $('#sel-power-kind').value = S.powerKind;
+    const hadr = S.optPower && S.powerKind === 'HADR';
+    $('#pw-tabs').hidden = !hadr;
+    $$('.pw-tab').forEach((b) => { const on = b.dataset.pwtab === S.pwTab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
+    $('#pw-prod-wrap').hidden = hadr && pwIsCbu();
+    $('#pw-copy-prod').hidden = !(hadr && pwIsCbu());
+    $('#pw-unlimited-box').hidden = hadr && pwIsCbu();               // la scheda CBU non ha gli utenti ILLIMITATI
+  }
+
+  /** «Copia da Produzione»: porta nella scheda CBU tutte le impostazioni della Produzione (esclusi i prodotti IBM i); gli utenti seguono la regola dei core */
+  async function copyProdToCbu() {
+    if (!pwIsCbu()) return;
+    const prod = S.pwOther;
+    if (!prod.powerModelId) { toast('Power Produzione non ha ancora un modello da copiare', true); return; }
+    if (S.powerModelId && !(await CPQ.confirm('La configurazione di Power CBU verrà sostituita con quella di Power Produzione. Continuare?',
+      { title: 'Copia da Produzione', yes: 'Sì, copia', no: 'No' }))) return;
+    const copy = JSON.parse(JSON.stringify(prod));          // copia profonda: le due schede non devono condividere gli stessi oggetti
+    copy.powerProducts = {};
+    pwLoad(copy);
+    applyCbuUsers();                                       // 8 core -> 10 utenti, 4 core -> 5; con altri core restano quelli copiati
+    renderPower(); refreshStepper(); CPQ.markDirty('page', root); refreshSaveState();
+  }
+
   function renderPower() {
+    applyCbuUsers();
     renderPowerProducts();
     refreshPowerModelList(false);
     const m = powerModelOf(S.powerModelId);
@@ -610,6 +710,7 @@
     $('#pw-cable').value = S.powerCable; $('#pw-edition').value = S.powerEdition; $('#pw-os').value = S.powerOs; $('#pw-disks').value = S.powerDisks; renderMaintBtn(); renderAmtSummary(); $('#pw-transfer').value = S.powerTransfer;
     $('#pw-tref').value = S.powerTransferRef; $('#pw-tref-box').hidden = S.powerTransfer === 'NO';
     $('#pw-cable-box').hidden = S.powerLto8;                  // con LTO8 il cavo di collegamento non si sceglie
+    renderPwKind();
   }
 
   /** sezione «Selezione del modello» completa: modello, RAM, disco e utenti IBM i (numero oppure ILLIMITATI) */
@@ -769,10 +870,13 @@
   const galUsersLinked = () => !!(S.optGalileo && S.galileoId && Number(S.gal.users) >= 1);
   function syncPowerUsers(userChange) {
     const u = $('#pw-users'), un = $('#pw-unlimited'), h = $('#pw-users-link'); if (!u || !un) return;
-    const linked = galUsersLinked();
-    if (linked) { S.powerUsers = String(Number(S.gal.users)); S.powerUnlimited = false; u.value = S.powerUsers; un.checked = false; }
-    u.disabled = linked || S.powerUnlimited; un.disabled = linked;
-    if (h) h.hidden = !linked;
+    // scheda CBU: gli utenti derivano dai core del Power Produzione (8 core -> 10, 4 core -> 5); altrimenti restano liberi
+    const auto = pwIsCbu() ? cbuAutoUsers() : null;
+    const linked = auto == null && !pwIsCbu() && galUsersLinked();
+    if (auto != null) { S.powerUsers = String(auto); S.powerUnlimited = false; u.value = S.powerUsers; un.checked = false; }
+    else if (linked) { S.powerUsers = String(Number(S.gal.users)); S.powerUnlimited = false; u.value = S.powerUsers; un.checked = false; }
+    u.disabled = linked || auto != null || S.powerUnlimited; un.disabled = linked || auto != null;
+    if (h) { h.hidden = !linked && auto == null; h.textContent = auto != null ? 'Utenti minimi - Gli altri sono ereditati da Power Produzione' : 'Collegato agli utenti di Galileo'; }
     refreshPowerModelList(!!userChange);
     updatePowerLock();
     smitechUsersChanged();
@@ -799,19 +903,32 @@
   /** errori della pagina Power System, ciascuno con il campo da evidenziare */
   function powerErrorList() {
     if (!S.optPower) return [];
+    if (S.powerKind !== 'HADR') return powerErrorsOfTab('Power System', null);
+    // HA/DR: si controllano entrambe le schede; la scheda inattiva si scambia solo per il controllo
+    const cur = pwIsCbu();
+    const label = (c) => (c ? 'Power CBU' : 'Power Produzione');
+    const tabOf = (c) => (c ? 'CBU' : 'PROD');
+    // ogni errore porta la sua scheda: revealError apre quella giusta prima di segnalare il campo
+    const a = powerErrorsOfTab(label(cur), tabOf(cur));
+    pwSwap();
+    let b; try { b = powerErrorsOfTab(label(!cur), tabOf(!cur)); } finally { pwSwap(); }
+    // prima gli errori della Produzione, poi quelli della CBU
+    return cur ? b.concat(a) : a.concat(b);
+  }
+  function powerErrorsOfTab(prefix, tab) {
     const e = [];
-    const add = (sel, msg) => e.push({ step: 7, kind: 'power', sel: sel, msg: msg });
+    const add = (sel, msg) => e.push({ step: 7, kind: 'power', tab: tab, sel: sel, msg: msg.replace(/^Power System/, prefix) });
     if (!S.powerModelId) add('#sel-power', 'Power System: scegli il modello');
     else {
       if (!S.powerRam) add('#pw-ram', 'Power System: scegli la RAM');
       if (!S.powerDisk) add('#pw-disk', 'Power System: scegli il disco');
       if (!(Number(S.powerDisks) >= 1)) add('#pw-disks', 'Power System: indica il numero di dischi');
-      const noProd = S.ibmiProducts.find((p) => !S.powerProducts[p.id]);
+      const noProd = pwIsCbu() ? null : S.ibmiProducts.find((p) => !S.powerProducts[p.id]);       // la scheda CBU non ha i «Prodotti IBM i»
       if (noProd) add('#pw-products select[data-pid="' + noProd.id + '"]', 'Power System: seleziona il valore di ogni prodotto IBM i');
       if (!S.powerMaintList.length) add('#pw-maint-btn', 'Power System: seleziona la manutenzione SW/HW');
       else if (!maintComplete()) add('#pw-amt-open', 'Power System: indica gli importi (listino e netto scontato) di ogni periodo di manutenzione SW/HW');
       if (S.powerTransfer !== 'NO' && !S.powerTransferRef.trim()) add('#pw-tref', 'Power System: indica i riferimenti del Power da cui trasferire le licenze');
-      if (!S.powerUnlimited && !(Number(S.powerUsers) >= 1)) add('#pw-users', 'Power System: indica gli utenti IBM i licenziati o ILLIMITATI');
+      if (!S.powerUnlimited && !(Number(S.powerUsers) >= 1)) add('#pw-users', 'Power System: indica gli utenti IBM i licenziati' + (pwIsCbu() ? '' : ' o ILLIMITATI'));
     }
     return e;
   }
@@ -902,6 +1019,7 @@
   function revealError(err) {
     if (err.prep) err.prep();
     showStep(err.step);
+    if (err.tab && S.pwTab !== err.tab) pwSwitchTab(err.tab);          // Power HA/DR: apre la scheda (Produzione / CBU) a cui appartiene il campo
     requestAnimationFrame(() => {
       const el = err.sel ? $(err.sel) : null;
       if (el) CPQ.fieldError(el, err.msg); else toast(err.msg, true);
@@ -1212,7 +1330,7 @@
     calcTimer = setTimeout(async () => {
       const seq = ++calcSeq;
       try {
-        const res = await CPQ.api('POST', '/offers/api/calc', C.buildRequest(S));
+        const res = await CPQ.api('POST', '/offers/api/calc', buildReq());
         if (seq !== calcSeq) return;
         calc = res; updateAmounts();
         if (S.step === 4) renderSummary();
@@ -2605,7 +2723,7 @@
     const title = $('#sum-title').value.trim();
     S.title = title || C.suggestTitle(catalog, S.lines);
     try {
-      const r = await CPQ.api('POST', '/offers/api/save', C.buildRequest(S));
+      const r = await CPQ.api('POST', '/offers/api/save', buildReq());
       S.offerId = r.id; S.saved = r.number; CPQ.clean();
       toast('Offerta ' + r.number + ' salvata');
       if (thenDocx) window.location = CPQ.url('/offers/' + r.id + '/docx');
@@ -2627,9 +2745,21 @@
   });
   $('#opt-power').addEventListener('change', (e) => {
     S.optPower = e.target.checked;
-    if (!S.optPower) { S.powerModelId = null; S.powerRam = ''; S.powerDisk = ''; renderPower(); }
+    if (!S.optPower) {
+      if (pwIsCbu()) pwSwap();
+      S.powerModelId = null; S.powerRam = ''; S.powerDisk = ''; S.powerKind = 'NEW'; S.pwOther = pwFresh(); renderPower();
+    }
+    renderPwKind();
     refreshStepper(); syncSmitechMode(true);
   });
+  $('#sel-power-kind').addEventListener('change', (e) => {
+    const k = e.target.value;
+    if (k !== 'HADR' && pwIsCbu()) pwSwap();                // si esce da HA/DR: resta la configurazione di produzione
+    S.powerKind = k;                                        // la scheda CBU resta in memoria (non viene inviata se il tipo non è HA/DR)
+    renderPower(); CPQ.markDirty('page', root); refreshSaveState();
+  });
+  $('#pw-copy-prod').addEventListener('click', copyProdToCbu);
+  $$('.pw-tab').forEach((b) => b.addEventListener('click', () => { pwSwitchTab(b.dataset.pwtab); CPQ.markDirty('page', root); }));
   $('#sel-power').addEventListener('change', (e) => { S.powerModelId = e.target.value ? Number(e.target.value) : null; renderPower(); refreshStepper(); syncSmitechMode(true); });
   $('#pw-ram').addEventListener('change', (e) => { S.powerRam = e.target.value; updatePowerLock(); });
   $('#pw-disks').addEventListener('input', (e) => { S.powerDisks = e.target.value.replace(/\D/g, ''); updatePowerLock(); });

@@ -19,7 +19,7 @@ import java.util.Set;
 public class OfferRevisionService {
 
     /** tabelle figlie con colonna offer_id copiate cosi' come sono (le colonne si leggono dal catalogo, per seguire le migrazioni future) */
-    private static final List<String> CHILD_TABLES = List.of("offer_activity", "offer_profile_rate", "offer_power_maint", "offer_power_product",
+    private static final List<String> CHILD_TABLES = List.of("offer_activity", "offer_profile_rate", "offer_power_maint", "offer_power_product", "offer_power_cbu", "offer_power_cbu_maint",
             "offer_extra_service", "offer_extra_option", "offer_galileo", "offer_galileo_module");
 
     private static final Set<String> NOT_COPIED = Set.of("created_at", "updated_at", "created_by", "status", "revision", "revision_of", "deleted_at", "deleted_by");

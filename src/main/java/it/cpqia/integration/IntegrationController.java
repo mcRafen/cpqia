@@ -33,10 +33,12 @@ public class IntegrationController {
     private final CurrentUserService current;
     private final AccountSyncService sync;
     private final AgentSyncService agents;
+    private final HwCardSyncService hwCards;
     private final it.cpqia.geo.GeoAgentService geoAgent;
 
     public IntegrationController(IbmiService ibmi, CurrentUserService current, AccountSyncService sync, AgentSyncService agents,
-                                 it.cpqia.geo.GeoAgentService geoAgent) {
+                                 HwCardSyncService hwCards, it.cpqia.geo.GeoAgentService geoAgent) {
+        this.hwCards = hwCards;
         this.geoAgent = geoAgent;
         this.ibmi = ibmi;
         this.current = current;
@@ -53,6 +55,8 @@ public class IntegrationController {
         m.addAttribute("nextRun", sync.nextRunText());
         m.addAttribute("agSync", agents.config());
         m.addAttribute("agNextRun", agents.nextRunText());
+        m.addAttribute("hwSync", hwCards.config());
+        m.addAttribute("hwNextRun", hwCards.nextRunText());
         m.addAttribute("geoCfg", geoAgent.config());
         m.addAttribute("geoNextRun", geoAgent.nextRunText());
         return "admin/integrations";
@@ -181,6 +185,60 @@ public class IntegrationController {
     @ResponseBody
     public Map<String, Object> agentsRunDetails(@org.springframework.web.bind.annotation.PathVariable long id) {
         return Map.of("details", agents.runDetails(id));
+    }
+
+    // ------------------------------------------------------------------ Sync Schede HW
+    @PostMapping("/admin/integrations/hw/save")
+    @ResponseBody
+    public Map<String, Object> saveHw(@RequestBody SyncForm f) {
+        HwCardSyncService.Config old = hwCards.config();
+        hwCards.saveConfig(new HwCardSyncService.Config(Boolean.TRUE.equals(f.enabled()), f.mode() == null ? "DAILY" : f.mode(),
+                f.intervalMin() == null ? 60 : f.intervalMin(), f.dailyTime() == null ? "03:30" : f.dailyTime(),
+                f.sourceLibrary() == null ? "" : f.sourceLibrary(), f.sourceFile() == null ? "" : f.sourceFile(), sinceDate(f.lastSyncDate(), old.lastSyncDate()), old.lastRunAt()));
+        return Map.of("ok", true, "message", "Pianificazione salvata", "nextRun", hwCards.nextRunText());
+    }
+
+    @PostMapping("/admin/integrations/hw/run")
+    @ResponseBody
+    public Map<String, Object> runHw() {
+        if (hwCards.running()) {
+            throw new IllegalArgumentException("Una sincronizzazione è già in corso");
+        }
+        Thread t = new Thread(() -> {
+            try {
+                hwCards.run("MANUAL");
+            } catch (RuntimeException e) {
+                // già registrato nello storico
+            }
+        }, "ibmi-hw-manual");
+        t.setDaemon(true);
+        t.start();
+        return Map.of("ok", true, "message", "Sincronizzazione avviata");
+    }
+
+    @GetMapping("/admin/integrations/hw/status")
+    @ResponseBody
+    public Map<String, Object> hwStatus() {
+        HwCardSyncService.Config c = hwCards.config();
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("running", hwCards.running());
+        out.put("lastSyncDate", c.lastSyncDate() == null ? null : c.lastSyncDate().toString());
+        out.put("lastRunAt", c.lastRunAt() == null ? null : c.lastRunAt().toString());
+        out.put("nextRun", hwCards.nextRunText());
+        out.put("runs", hwCards.lastRuns(10));
+        return out;
+    }
+
+    @GetMapping("/admin/integrations/hw/run/{id}/details")
+    @ResponseBody
+    public Map<String, Object> hwRunDetails(@org.springframework.web.bind.annotation.PathVariable long id) {
+        return Map.of("details", hwCards.runDetails(id));
+    }
+
+    @PostMapping("/admin/integrations/hw/stop")
+    @ResponseBody
+    public Map<String, Object> stopHw() {
+        return Map.of("ok", true, "message", hwCards.stop());
     }
 
     // ------------------------------------------------------------------ agente Geo

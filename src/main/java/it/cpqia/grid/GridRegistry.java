@@ -45,6 +45,7 @@ public class GridRegistry {
         sedi();
         geodata();
         agents();
+        hwCards();
         lookupTables();
         powerModels();
         ibmiProducts();
@@ -290,6 +291,38 @@ public class GridRegistry {
                 }));
     }
 
+    // ------------------------------------------------------------------ schede HW (alimentate dalla Sync Schede HW, sola visualizzazione)
+    private void hwCards() {
+        add(new GridSpec("hw-cards", "Schede HW", "hw_card", "h.id", "hw_card h", "true")
+                .col(c("customerCode", "Cod. cliente", "h.customer_code").width(110))
+                .col(c("customer", "Ragione sociale", "coalesce((select a.company_name from account a where a.code = h.customer_code and a.deleted_at is null limit 1), '')").width(260))
+                .col(c("hwType", "Tipo hardware", "h.hw_type").width(130))
+                .col(c("machineType", "Tipo macchina", "h.machine_type").width(120))
+                .col(c("model", "Modello", "h.model").width(110))
+                .col(c("serialNumber", "Matricola", "h.serial_number").width(130))
+                .col(c("installDate", "Data installazione", "h.install_date").type("date").width(130))
+                .col(c("version", "Versione", "h.version").width(100))
+                .col(c("pefCumulative", "Cumulativo PEF", "h.pef_cumulative").width(130))
+                .col(c("tapeUnit", "Unità nastro", "h.tape_unit").width(120))
+                .col(c("processorType", "Tipo processore", "h.processor_type").width(130))
+                .col(c("swMaintenanceExpiry", "Scad. manut. SW", "h.sw_maintenance_expiry").type("date").width(130))
+                .col(c("hwMaintenanceExpiry", "Scad. manut. HW", "h.hw_maintenance_expiry").type("date").width(130))
+                .col(c("swEffectiveExpiry", "Scad. effettiva SW", "h.sw_effective_expiry").type("date").width(140))
+                .col(c("hwEffectiveExpiry", "Scad. effettiva HW", "h.hw_effective_expiry").type("date").width(140))
+                .col(c("autoRenewal", "Rinnovo automatico", "h.auto_renewal").type("bool").width(140))
+                .col(c("swGroup", "Gruppo software", "h.sw_group").width(130))
+                .col(c("swServiceType", "Tipo servizio SW", "h.sw_service_type").width(140))
+                .col(c("hwServiceType", "Tipo servizio HW", "h.hw_service_type").width(140))
+                .col(c("licenseCount", "N. licenze", "h.license_count").type("int").agg("sum").width(100))
+                .col(c("notes", "Note", "h.notes").width(320))
+                .col(c("sourceInsertedOn", "Inserita su IBM i", "h.source_inserted_on").type("date").width(130).hidden())
+                .col(c("sourceModifiedOn", "Modificata su IBM i", "h.source_modified_on").type("date").width(140).hidden())
+                .col(c("updatedAt", "Aggiornata", "h.updated_at").type("datetime").width(140).hidden())
+                // ordine predefinito: ragione sociale, data installazione, tipo hardware, tipo macchina, modello (poi id, per un ordine stabile)
+                .orderBy("\"customer\", \"installDate\", \"hwType\", \"machineType\", \"model\", \"id\"")
+                .view(GridRegistry::admin));                      // nessuna modifica, creazione o eliminazione: i dati arrivano solo dalla sincronizzazione
+    }
+
     // ------------------------------------------------------------------ prodotti IBM i (software dei sistemi Power)
     private void ibmiProducts() {
         add(new GridSpec("ibmi-products", "Prodotti IBM i", "ibmi_product", "id", "ibmi_product", "deleted_at is null")
@@ -303,21 +336,36 @@ public class GridRegistry {
     // ------------------------------------------------------------------ anagrafica modelli IBM Power System
     private void powerModels() {
         add(new GridSpec("power-models", "Modelli IBM Power System", "power_model", "id", "power_model", "deleted_at is null")
+                .col(c("machineType", "Tipo macchina", "machine_type").edit("machine_type").required().maxLen(20).creatable().width(130))
                 .col(c("model", "Modello", "model").edit("model").required().maxLen(20).creatable().width(130))
+                .col(c("band", "Fascia", "band").edit("band").maxLen(100).creatable().width(170))
                 .col(c("type", "Tipo", "type").edit("type").required().maxLen(20).creatable().width(100))
                 .col(c("cores", "Core", "cores").intOptions(1, 4, 8).edit("cores").required().creatable().width(80))
                 .col(c("mounting", "Montaggio", "mounting").options("DESK", "Desk", "RACK", "Rack").edit("mounting").required().creatable().width(110))
-                .col(c("description", "Descrizione", "coalesce(nullif(description, ''), 'Model ' || model || ' ' || cores || ' core ' || mounting)").edit("description").maxLen(200).creatable().width(260))
+                .col(c("description", "Descrizione", "'Model ' || (case when machine_type = '' then model else machine_type || '-' || model end) || coalesce(' ' || cores || ' core', '') || coalesce(' ' || mounting, '')").width(260))
                 .col(c("processorGroup", "Gruppo processore", "coalesce(processor_group, '')").options("P05", "P05", "P10", "P10").edit("processor_group").required().creatable().width(150))
                 .col(c("ramOptions", "RAM supportata", "ram_options").multiOptions("32", "32 GB", "64", "64 GB", "96", "96 GB", "128", "128 GB", "256", "256 GB", "384", "384 GB", "512", "512 GB").edit("ram_options").creatable().width(240))
                 .col(c("diskOptions", "Dischi supportati", "disk_options").multiOptions("1.6TB", "1.6 TB", "3.2TB", "3.2 TB", "6.4TB", "6.4 TB").edit("disk_options").creatable().width(200))
-                .col(c("version", "Versione", "version").options("POWER 11", "POWER 11", "POWER 10", "POWER 10").edit("version").required().creatable().width(130))
+                .col(c("version", "Versione", "version").options("POWER 11", "POWER 11", "POWER 10", "POWER 10", "POWER 9", "POWER 9", "POWER 8", "POWER 8", "POWER 7+", "POWER 7+", "POWER 7", "POWER 7", "POWER 6", "POWER 6").edit("version").required().creatable().width(130))
                 .col(c("ghz", "GHz", "coalesce(ghz, '')").edit("ghz").maxLen(200).creatable().width(156))
                 .col(c("cpw", "CPW", "cpw").type("int").edit("cpw").required().range(0d, 10_000_000d).creatable().width(100))
                 .col(c("wordFile", "Documento Word", "coalesce(word_file, '')").upload("admin/power-models/{id}/document").width(240))
                 .col(c("active", "Attivo", "active").type("bool").edit("active").creatable().width(80))
                 .col(c("sortOrder", "Ordine", "sort_order").type("int").edit("sort_order").creatable().width(80).service())
-                .view(GridRegistry::catalog).edit(GridRegistry::catalog).create(GridRegistry::catalog).delete(GridRegistry::catalog, TrashKind.POWER));
+                .view(GridRegistry::catalog).edit(GridRegistry::catalog).create(GridRegistry::catalog).delete(GridRegistry::catalog, TrashKind.POWER)
+                // i modelli importati dall'elenco IBM sono incompleti: si attivano (e quindi si offrono nelle offerte) solo con tutti i dati tecnici
+                .hook((u, row, col, v) -> {
+                    if (!"active".equals(col.key()) || !Boolean.TRUE.equals(v) || row.get("id") == null) {
+                        return null;
+                    }
+                    List<String> missing = new ArrayList<>();
+                    if (String.valueOf(row.get("type") == null ? "" : row.get("type")).isBlank()) missing.add("Tipo");
+                    if (row.get("cores") == null) missing.add("Core");
+                    if (row.get("mounting") == null) missing.add("Montaggio");
+                    if (String.valueOf(row.get("processorGroup") == null ? "" : row.get("processorGroup")).isBlank()) missing.add("Gruppo processore");
+                    if (row.get("cpw") == null) missing.add("CPW");
+                    return missing.isEmpty() ? null : "Per attivare il modello completa prima: " + String.join(", ", missing);
+                }));
     }
 
     // ------------------------------------------------------------------ tabelle di riferimento dell'account (solo administrator)

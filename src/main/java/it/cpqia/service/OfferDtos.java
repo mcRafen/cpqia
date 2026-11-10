@@ -36,7 +36,13 @@ public final class OfferDtos {
                                List<PowerProductSel> powerProducts, Integer powerDiskCount, Boolean optUseRfq, Boolean optServicesDays, String appTotalsMode, BigDecimal rfqSheetTotal,
                                it.cpqia.galileo.GalileoService.Request galileo, String servicesMode,
                                List<ProfileRateReq> profileRates, List<PowerMaintReq> powerMaint, Boolean optHoursDetail,
-                               LocalDate activityDiscountUntil) {
+                               LocalDate activityDiscountUntil, String powerKind, PowerCbuReq powerCbu) {
+    }
+
+    /** scheda «Power CBU» di un Power HA/DR: gli stessi campi della scheda Produzione, senza i prodotti IBM i */
+    public record PowerCbuReq(Long modelId, Integer ramGb, String disk, Integer diskCount, Boolean lto8, Boolean eth10,
+                              Integer ibmiUsers, Boolean ibmiUnlimited, String cable, String transfer, String transferRef,
+                              String edition, String os, List<PowerMaintReq> maint) {
     }
 
     /** importi di un periodo di manutenzione SW/HW (36, 48, 60 mesi) per la sezione POWER o LTO8 */

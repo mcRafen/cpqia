@@ -16,11 +16,13 @@ public class SyncScheduler {
     private static final Logger log = LoggerFactory.getLogger(SyncScheduler.class);
     private final AccountSyncService sync;
     private final AgentSyncService agents;
+    private final HwCardSyncService hwCards;
     private final it.cpqia.geo.GeoAgentService geoAgent;
 
-    public SyncScheduler(AccountSyncService sync, AgentSyncService agents, it.cpqia.geo.GeoAgentService geoAgent) {
+    public SyncScheduler(AccountSyncService sync, AgentSyncService agents, HwCardSyncService hwCards, it.cpqia.geo.GeoAgentService geoAgent) {
         this.sync = sync;
         this.agents = agents;
+        this.hwCards = hwCards;
         this.geoAgent = geoAgent;
     }
 
@@ -41,6 +43,14 @@ public class SyncScheduler {
             }
         } catch (Exception e) {
             log.warn("Sincronizzazione agenti pianificata non eseguita: {}", e.toString());
+        }
+        try {
+            if (hwCards.due(LocalDateTime.now())) {
+                log.info("Avvio sincronizzazione schede HW da IBM Power System");
+                log.info("{}", hwCards.run("SCHEDULED").message());
+            }
+        } catch (Exception e) {
+            log.warn("Sincronizzazione schede HW pianificata non eseguita: {}", e.toString());
         }
         try {
             if (geoAgent.due(LocalDateTime.now())) {

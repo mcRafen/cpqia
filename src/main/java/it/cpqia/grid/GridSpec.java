@@ -233,6 +233,7 @@ public final class GridSpec {
     UnaryOperator<Map<String, Object>> rowFixer;
     String newHref;
     String newLabel;
+    String orderBy;                         // ordinamento predefinito delle righe (alias di colonna, es. "customer", "model"); vuoto = per id
     String touch;                           // frammento SQL aggiunto agli UPDATE (es. updated_at = now())
     String insertSql;                       // opzionale: insert personalizzato (parametri nominati = chiavi dei valori)
     java.util.function.Supplier<List<Map<String, Object>>> customRows;   // sorgente dati non SQL (Cestino)
@@ -249,6 +250,12 @@ public final class GridSpec {
 
     public GridSpec col(ColDef c) {
         cols.add(c);
+        return this;
+    }
+
+    /** ordinamento predefinito delle righe (elenco di alias di colonna, tra virgolette): vale finché l'utente non ordina a mano */
+    public GridSpec orderBy(String sql) {
+        this.orderBy = sql;
         return this;
     }
 

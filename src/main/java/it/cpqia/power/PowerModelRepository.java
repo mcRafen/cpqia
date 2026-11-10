@@ -9,7 +9,7 @@ import java.util.List;
 @Repository
 public class PowerModelRepository {
 
-    public record PowerModel(Long id, String model, String type, int cores, String mounting, String version, int cpw,
+    public record PowerModel(Long id, String machineType, String model, String type, int cores, String mounting, String version, int cpw,
                              String description, String processorGroup, String ramOptions, String diskOptions, String ghz) {
     }
 
@@ -20,8 +20,8 @@ public class PowerModelRepository {
     }
 
     public List<PowerModel> active() {
-        return jdbc.sql("select id, model, type, cores, mounting, version, cpw, coalesce(nullif(description, ''), 'Model ' || model || ' ' || cores || ' core ' || mounting) as description, "
-                + "processor_group, ram_options, disk_options, ghz from power_model where deleted_at is null and active order by sort_order, model, cores, mounting")
+        return jdbc.sql("select id, machine_type, model, type, cores, mounting, version, cpw, 'Model ' || (case when machine_type = '' then model else machine_type || '-' || model end) || ' ' || cores || ' core ' || mounting as description, "
+                + "processor_group, ram_options, disk_options, ghz from power_model where deleted_at is null and active order by sort_order, machine_type, model, cores, mounting")
                 .query(PowerModel.class).list();
     }
 }

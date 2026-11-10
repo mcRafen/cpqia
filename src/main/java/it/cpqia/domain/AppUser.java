@@ -10,9 +10,9 @@ public record AppUser(
         boolean canDeleteOffers, boolean canExportDocx, boolean canManageCustomers, boolean canManageCatalog,
         boolean canViewPrices, LocalDateTime createdAt, LocalDateTime lastLoginAt, String agentCode) {
 
-    /** utente associato a un agente: vede solo i propri prospect e i clienti con lo stesso codice agente */
+    /** utente associato a un agente: vede solo i propri prospect e i clienti con lo stesso codice agente (mai un amministratore) */
     public boolean agentRestricted() {
-        return agentCode != null && !agentCode.isBlank();
+        return !administrator && agentCode != null && !agentCode.isBlank();
     }
 
 

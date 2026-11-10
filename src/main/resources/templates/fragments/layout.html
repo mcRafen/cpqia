@@ -98,8 +98,8 @@
         <a th:href="@{/offers}" th:classappend="${active == 'offers'} ? 'active'"><svg class="ic lg"><use href="#i-doc"/></svg>Offerte</a>
         <a th:href="@{/customers}" th:classappend="${active == 'customers'} ? 'active'"><svg class="ic lg"><use href="#i-business"/></svg>Account</a>
         <a th:href="@{/trash}" th:classappend="${active == 'trash'} ? 'active'"><svg class="ic lg"><use href="#i-trash"/></svg>Cestino</a>
-        <a sec:authorize="hasAuthority('P_MANAGE_CATALOG')" th:href="@{/admin/applications}" th:classappend="${active != null and T(java.util.List).of('apps','rates','power','ibmi-products','users','sedi','agents','geodata','lookups','grid-behavior','integrations','settings-pack').contains(active)} ? 'active'"><svg class="ic lg"><use href="#i-settings"/></svg>Impostazioni</a>
-        <a sec:authorize="hasRole('ADMIN') and !hasAuthority('P_MANAGE_CATALOG')" th:href="@{/admin/users}" th:classappend="${active != null and T(java.util.List).of('apps','rates','power','ibmi-products','users','sedi','geodata','lookups','integrations','settings-pack').contains(active)} ? 'active'"><svg class="ic lg"><use href="#i-settings"/></svg>Impostazioni</a>
+        <a sec:authorize="hasAuthority('P_MANAGE_CATALOG')" th:href="@{/admin/applications}" th:classappend="${active != null and T(java.util.List).of('apps','rates','power','ibmi-products','users','sedi','agents','hw-cards','geodata','lookups','grid-behavior','integrations','settings-pack').contains(active)} ? 'active'"><svg class="ic lg"><use href="#i-settings"/></svg>Impostazioni</a>
+        <a sec:authorize="hasRole('ADMIN') and !hasAuthority('P_MANAGE_CATALOG')" th:href="@{/admin/users}" th:classappend="${active != null and T(java.util.List).of('apps','rates','power','ibmi-products','users','sedi','hw-cards','geodata','lookups','integrations','settings-pack').contains(active)} ? 'active'"><svg class="ic lg"><use href="#i-settings"/></svg>Impostazioni</a>
     </nav>
 </div>
 
@@ -114,6 +114,7 @@
         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/users}" th:classappend="${active == 'users'} ? 'active'">Utenti e permessi</a>
         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/sedi}" th:classappend="${active == 'sedi'} ? 'active'">Sedi Sanmarco</a>
         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/agents}" th:classappend="${active == 'agents'} ? 'active'">Agenti</a>
+        <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/hw-cards}" th:classappend="${active == 'hw-cards'} ? 'active'">Schede HW</a>
         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/geodata}" th:classappend="${active == 'geodata'} ? 'active'">Comuni</a>
         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/lookups}" th:classappend="${active == 'lookups'} ? 'active'">Tipo azienda e indirizzo</a>
         <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/grid-behavior}" th:classappend="${active == 'grid-behavior'} ? 'active'">Comportamento griglie</a>

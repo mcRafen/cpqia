@@ -1191,7 +1191,7 @@ public class OfferDocxService {
     }
 
     private PowerRow powerModel(long id) {
-        return jdbc.sql("select model, type, cores, mounting, coalesce(nullif(description, ''), 'Model ' || model || ' ' || cores || ' core ' || mounting) as description, "
+        return jdbc.sql("select (case when machine_type = '' then model else machine_type || '-' || model end) as model, type, cores, mounting, 'Model ' || (case when machine_type = '' then model else machine_type || '-' || model end) || ' ' || cores || ' core ' || mounting as description, "
                 + "coalesce(ghz, '') as ghz, cpw, word_file, processor_group from power_model where id = :id").param("id", id).query(PowerRow.class).optional().orElse(null);
     }
 

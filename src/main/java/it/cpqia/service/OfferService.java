@@ -334,8 +334,11 @@ public class OfferService {
         }
         jdbc.sql("update offer set opt_hours_detail = :f, activity_discount_until = :u where id = :id").param("f", flag(req.optHoursDetail()))
                 .param("u", actDiscount(req).signum() > 0 ? req.activityDiscountUntil() : null).param("id", offerId).update();
+        jdbc.sql("update offer set power_kind = :k where id = :id").param("k", powerKind(req)).param("id", offerId).update();
         checkGalileo(req.galileoApplicationId());
         checkPower(req);
+        checkPowerCbu(req);
+        savePowerCbu(offerId, req);
         termsRepo.save(offerId, terms);
         extraRepo.saveSelection(offerId, Boolean.TRUE.equals(req.optExtraServices()) ? req.extras() : null);
         int sort = 0;
@@ -498,6 +501,115 @@ public class OfferService {
     private List<OfferDtos.PowerMaintReq> loadPowerMaint(long offerId) {
         return jdbc.sql("select months, kind, list_price, net_price from offer_power_maint where offer_id = :id order by months, kind desc").param("id", offerId)
                 .query((rs, n) -> new OfferDtos.PowerMaintReq(rs.getInt("months"), rs.getString("kind"), rs.getBigDecimal("list_price"), rs.getBigDecimal("net_price"))).list();
+    }
+
+    /** configurazione Power: NEW (Nuovo Power) o HADR (Power HA/DR); senza la sezione Power e' sempre NEW */
+    private static String powerKind(OfferRequest req) {
+        String k = req.powerKind() == null ? "NEW" : req.powerKind().trim().toUpperCase();
+        return powerOn(req) && List.of("NEW", "HADR").contains(k) ? k : "NEW";
+    }
+
+    private static String nz(String s, String def) {
+        return s == null || s.isBlank() ? def : s.trim();
+    }
+
+    /** scheda «Power CBU» (solo Power HA/DR): controlli come per la Produzione, esclusi i prodotti IBM i */
+    private void checkPowerCbu(OfferRequest req) {
+        if (!"HADR".equals(powerKind(req))) {
+            return;
+        }
+        OfferDtos.PowerCbuReq c = req.powerCbu();
+        if (c == null) {
+            throw new IllegalArgumentException("Power CBU: configurazione mancante");
+        }
+        long n = c.modelId() == null ? 0 : jdbc.sql("select count(*) from power_model where id = :id and deleted_at is null")
+                .param("id", c.modelId()).query(Long.class).single();
+        if (n == 0) {
+            throw new IllegalArgumentException("Power CBU: scegliere il modello");
+        }
+        if (c.ramGb() == null || !List.of(32, 64, 96, 128, 256, 384, 512).contains(c.ramGb())) {
+            throw new IllegalArgumentException("Power CBU: scegliere la RAM (32, 64, 96, 128, 256, 384 o 512 GB)");
+        }
+        if (c.disk() == null || !List.of("1.6TB", "3.2TB", "6.4TB").contains(c.disk())) {
+            throw new IllegalArgumentException("Power CBU: scegliere il disco (1.6TB, 3.2TB o 6.4TB)");
+        }
+        if (c.diskCount() == null || c.diskCount() < 1) {
+            throw new IllegalArgumentException("Power CBU: indicare il numero di dischi");
+        }
+        if (c.ibmiUsers() == null || c.ibmiUsers() < 1) {
+            throw new IllegalArgumentException("Power CBU: indicare gli utenti IBM i licenziati");
+        }
+        String tr = nz(c.transfer(), "NO").toUpperCase();
+        if (!List.of("NO", "TRANSFER", "CONVERSION").contains(tr)) {
+            throw new IllegalArgumentException("Power CBU: Transfer-Conversion non valido");
+        }
+        if (!"NO".equals(tr) && nz(c.transferRef(), "").isEmpty()) {
+            throw new IllegalArgumentException("Power CBU: indicare i riferimenti del Power da cui trasferire le licenze");
+        }
+        List<OfferDtos.PowerMaintReq> ms = c.maint() == null ? List.of() : c.maint();
+        if (ms.isEmpty()) {
+            throw new IllegalArgumentException("Power CBU: seleziona la manutenzione SW/HW e indica gli importi");
+        }
+        boolean lto = Boolean.TRUE.equals(c.lto8());
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        java.util.Set<Integer> periods = new java.util.TreeSet<>();
+        for (OfferDtos.PowerMaintReq m : ms) {
+            if (m == null || m.months() == null || !List.of(36, 48, 60).contains(m.months())) {
+                throw new IllegalArgumentException("Power CBU: la manutenzione SW/HW può essere di 36, 48 o 60 mesi");
+            }
+            if (m.kind() == null || !List.of("POWER", "LTO8").contains(m.kind()) || ("LTO8".equals(m.kind()) && !lto)) {
+                throw new IllegalArgumentException("Power CBU: sezione di manutenzione non valida");
+            }
+            if (m.listPrice() == null || m.netPrice() == null || m.listPrice().signum() < 0 || m.netPrice().signum() < 0) {
+                throw new IllegalArgumentException("Power CBU: manutenzione " + m.months() + " mesi (" + m.kind() + "): indica prezzo di listino e netto scontato (non negativi)");
+            }
+            if (!seen.add(m.months() + m.kind())) {
+                throw new IllegalArgumentException("Power CBU: importi duplicati per la manutenzione " + m.months() + " mesi");
+            }
+            periods.add(m.months());
+        }
+        for (Integer p : periods) {
+            if (!seen.contains(p + "POWER") || (lto && !seen.contains(p + "LTO8"))) {
+                throw new IllegalArgumentException("Power CBU: per la manutenzione " + p + " mesi indica gli importi di tutte le sezioni (Power" + (lto ? " e LTO8" : "") + ")");
+            }
+        }
+    }
+
+    /** riscrive la scheda «Power CBU» dell'offerta (solo con Power HA/DR; altrimenti resta vuota) */
+    private void savePowerCbu(long offerId, OfferRequest req) {
+        jdbc.sql("delete from offer_power_cbu where offer_id = :id").param("id", offerId).update();        
+        jdbc.sql("delete from offer_power_cbu_maint where offer_id = :id").param("id", offerId).update();
+        if (!"HADR".equals(powerKind(req))) {
+            return;
+        }
+        OfferDtos.PowerCbuReq c = req.powerCbu();
+        String tr = nz(c.transfer(), "NO").toUpperCase();
+        boolean unl = false;                                   // la scheda CBU non prevede gli utenti ILLIMITATI
+        jdbc.sql("""
+                insert into offer_power_cbu (offer_id, power_model_id, power_ram_gb, power_disk, power_disk_count, power_lto8, power_eth10,
+                    power_ibmi_users, power_ibmi_unlimited, power_cable, power_transfer, power_transfer_ref, power_edition, power_os)
+                values (:o, :m, :ram, :disk, :dc, :lto, :eth, :usr, :unl, :cab, :tr, :tref, :ed, :os)""")
+                .param("o", offerId).param("m", c.modelId()).param("ram", c.ramGb()).param("disk", c.disk()).param("dc", c.diskCount())
+                .param("lto", Boolean.TRUE.equals(c.lto8())).param("eth", Boolean.TRUE.equals(c.eth10()))
+                .param("usr", unl ? null : c.ibmiUsers()).param("unl", unl)
+                .param("cab", Boolean.TRUE.equals(c.lto8()) ? null : blankToNull(c.cable())).param("tr", tr)
+                .param("tref", "NO".equals(tr) ? null : blankToNull(c.transferRef()))
+                .param("ed", nz(c.edition(), "SOLUTION").toUpperCase()).param("os", nz(c.os(), "7.5")).update();
+        for (OfferDtos.PowerMaintReq m : c.maint()) {
+            jdbc.sql("insert into offer_power_cbu_maint (offer_id, months, kind, list_price, net_price) values (:o, :m, :k, :l, :n)")
+                    .param("o", offerId).param("m", m.months()).param("k", m.kind())
+                    .param("l", m.listPrice().setScale(2, java.math.RoundingMode.HALF_UP)).param("n", m.netPrice().setScale(2, java.math.RoundingMode.HALF_UP)).update();
+        }
+    }
+
+    private OfferDtos.PowerCbuReq loadPowerCbu(long offerId) {
+        List<OfferDtos.PowerMaintReq> maint = jdbc.sql("select months, kind, list_price, net_price from offer_power_cbu_maint where offer_id = :id order by months, kind desc")
+                .param("id", offerId).query((rs, n) -> new OfferDtos.PowerMaintReq(rs.getInt("months"), rs.getString("kind"), rs.getBigDecimal("list_price"), rs.getBigDecimal("net_price"))).list();
+        return jdbc.sql("select * from offer_power_cbu where offer_id = :id").param("id", offerId)
+                .query((rs, n) -> new OfferDtos.PowerCbuReq(rs.getLong("power_model_id"), rs.getInt("power_ram_gb"), rs.getString("power_disk"), rs.getInt("power_disk_count"),
+                        rs.getBoolean("power_lto8"), rs.getBoolean("power_eth10"), (Integer) rs.getObject("power_ibmi_users"), rs.getBoolean("power_ibmi_unlimited"),
+                        rs.getString("power_cable"), rs.getString("power_transfer"), rs.getString("power_transfer_ref"), rs.getString("power_edition"), rs.getString("power_os"), maint))
+                .optional().orElse(null);
     }
 
     private static String os(OfferRequest req) {
@@ -770,7 +882,8 @@ public class OfferService {
                 h.optPowerSystem(), h.galileoApplicationId(), h.optSmitechServices(), h.optDepartmental(),
                 h.powerModelId(), h.powerRamGb(), h.powerDisk(), h.powerLto8(), h.powerEth10(), h.powerIbmiUsers(), h.powerIbmiUnlimited(),
                 h.powerCable(), h.powerTransfer(), h.powerTransferRef(), h.powerEdition(), h.powerOs(), h.powerMaintMonths(), h.powerListPrice(), h.powerNetPrice(), loadPowerProducts(id), h.powerDiskCount(), h.optUseRfq(), h.optServicesDays(), h.appTotalsMode(), h.rfqSheetTotal(), galileo.load(id), h.servicesMode(), loadProfileRates(id), loadPowerMaint(id), jdbc.sql("select opt_hours_detail from offer where id = :id").param("id", id).query(Boolean.class).optional().orElse(false),
-                jdbc.sql("select activity_discount_until from offer where id = :id").param("id", id).query((rs, n) -> rs.getObject(1, java.time.LocalDate.class)).optional().orElse(null));
+                jdbc.sql("select activity_discount_until from offer where id = :id").param("id", id).query((rs, n) -> rs.getObject(1, java.time.LocalDate.class)).optional().orElse(null),
+                jdbc.sql("select power_kind from offer where id = :id").param("id", id).query(String.class).optional().orElse("NEW"), loadPowerCbu(id));
     }
 
     private List<OfferDtos.ActivityReq> loadActivities(long offerId) {

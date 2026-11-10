@@ -68,7 +68,7 @@ public class GridService {
         if (extraWhere != null) {
             sql.append(" and ").append(extraWhere);
         }
-        sql.append(" order by ").append(s.idExpr);
+        sql.append(" order by ").append(s.orderBy == null || s.orderBy.isBlank() ? s.idExpr : s.orderBy);
         JdbcClient.StatementSpec st = jdbc.sql(sql.toString());
         Map<String, Object> params = new HashMap<>(sc.params());
         params.putAll(extraParams);
