@@ -101,7 +101,7 @@ public class OAuthClientConfig {
         if (!appleId.isBlank() && !appleTeam.isBlank() && !appleKey.isBlank() && !appleFile.isBlank()) {
             apple = new AppleClientSecretGenerator(appleId, appleTeam, appleKey, appleFile);
         }
-        return new DynamicRepository(google, apple, appleId);
+        return new DynamicRepository(google, null, appleId);          // accesso con Apple disattivato: nessuna registrazione, anche se le proprieta' cpqia.oauth.apple.* sono presenti
     }
 
     /** Apple richiede response_mode=form_post quando si chiedono gli scope name/email */

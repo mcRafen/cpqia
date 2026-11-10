@@ -111,6 +111,7 @@ public class OfferController {
         model.addAttribute("today", LocalDate.now().toString());
         model.addAttribute("nextProgressive", 1);
         model.addAttribute("offerId", id);
+        model.addAttribute("offerNumber", offers.header(id).number());
         model.addAttribute("customerId", null);
         return "offers/wizard";
     }
@@ -180,6 +181,21 @@ public class OfferController {
     @ResponseBody
     public java.util.List<it.cpqia.power.PowerModelRepository.PowerModel> powerModels() {
         return powerModelRepo.active();
+    }
+
+    public record HwRef(String machineType, String model, String serial, String notes) {
+    }
+
+    /** schede hardware di tipo AS400 del cliente (codice account): riferimenti Power per Transfer / Conversion */
+    @GetMapping("/api/hw-cards")
+    @ResponseBody
+    public java.util.List<HwRef> hwCards(@RequestParam long customerId, Authentication auth) {
+        AppUser me = current.get(auth);
+        var c = customers.findById(customerId, me);
+        if (c.isEmpty()) {
+            return java.util.List.of();
+        }
+        return offers.hwCards(c.get().code());
     }
 
     /** prodotti IBM i attivi (pagina Power System dell'offerta) */

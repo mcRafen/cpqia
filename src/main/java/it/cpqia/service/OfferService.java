@@ -75,6 +75,21 @@ public class OfferService {
         this.extraRepo = extraRepo;
     }
 
+    /** riferimento Power «tipo|modello|matricola»: tutte e tre le parti sono obbligatorie */
+    static boolean transferRefComplete(String ref) {
+        if (ref == null) {
+            return false;
+        }
+        String[] p = ref.split("\\|", -1);
+        return p.length >= 3 && !p[0].isBlank() && !p[1].isBlank() && !p[2].isBlank();
+    }
+
+    /** schede hardware di tipo AS400 del cliente (codice account), per i riferimenti Power di Transfer / Conversion */
+    public java.util.List<it.cpqia.web.OfferController.HwRef> hwCards(String customerCode) {
+        return jdbc.sql("select machine_type, model, serial_number, coalesce(notes, '') from hw_card where customer_code = :c and upper(hw_type) = 'AS400' order by install_date desc nulls last, machine_type, model, serial_number")
+                .param("c", customerCode).query((rs, n) -> new it.cpqia.web.OfferController.HwRef(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4))).list();
+    }
+
     /** vero se nella riga e' selezionato almeno un modulo con gruppo di prezzo (moltiplicato dagli utenti): solo allora si chiedono gli utenti */
     public static boolean perUserSelected(App app, LineRequest l) {
         if (l.modules() == null) {
@@ -543,8 +558,12 @@ public class OfferService {
         if (!List.of("NO", "TRANSFER", "CONVERSION").contains(tr)) {
             throw new IllegalArgumentException("Power CBU: Transfer-Conversion non valido");
         }
-        if (!"NO".equals(tr) && nz(c.transferRef(), "").isEmpty()) {
+        if (!"NO".equals(tr) && !transferRefComplete(c.transferRef())) {
             throw new IllegalArgumentException("Power CBU: indicare i riferimenti del Power da cui trasferire le licenze");
+        }
+        if (!"NO".equals(tr) && !"NO".equals(transfer(req)) && req.powerTransferRef() != null
+                && req.powerTransferRef().trim().equalsIgnoreCase(c.transferRef().trim())) {
+            throw new IllegalArgumentException("Power CBU: tipo macchina, modello e matricola non possono essere uguali a quelli di Power Produzione");
         }
         List<OfferDtos.PowerMaintReq> ms = c.maint() == null ? List.of() : c.maint();
         if (ms.isEmpty()) {
@@ -705,7 +724,7 @@ public class OfferService {
         if (!List.of("NO", "TRANSFER", "CONVERSION").contains(transfer(req))) {
             throw new IllegalArgumentException("Power System: Transfer-Conversion non valido");
         }
-        if (!"NO".equals(transfer(req)) && (req.powerTransferRef() == null || req.powerTransferRef().isBlank())) {
+        if (!"NO".equals(transfer(req)) && !transferRefComplete(req.powerTransferRef())) {
             throw new IllegalArgumentException("Power System: indica i riferimenti del Power da cui trasferire le licenze");
         }
         if (diskCount(req) < 1 || diskCount(req) > 24) {

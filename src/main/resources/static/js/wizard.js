@@ -419,6 +419,7 @@
     refreshRates();
     applyDefaultPay();
     loadAgent();
+    HW.cust = null; if (S.powerTransfer !== 'NO') pwHwLoad();
     const box = $('#custbox'); const c = S.customer;
     if (!c) { box.hidden = true; return; }
     box.hidden = false;
@@ -683,7 +684,7 @@
     $('#pw-unlimited-box').hidden = hadr && pwIsCbu();               // la scheda CBU non ha gli utenti ILLIMITATI
   }
 
-  /** «Copia da Produzione»: porta nella scheda CBU tutte le impostazioni della Produzione (esclusi i prodotti IBM i); gli utenti seguono la regola dei core */
+  /** «Copia da Produzione»: porta nella scheda CBU le impostazioni della Produzione (esclusi i prodotti IBM i, Transfer-Conversion e riferimenti Power); gli utenti seguono la regola dei core */
   async function copyProdToCbu() {
     if (!pwIsCbu()) return;
     const prod = S.pwOther;
@@ -693,11 +694,23 @@
     const copy = JSON.parse(JSON.stringify(prod));          // copia profonda: le due schede non devono condividere gli stessi oggetti
     copy.powerProducts = {};
     pwLoad(copy);
+    // Transfer-Conversion e riferimenti Power (tipo macchina, modello, matricola) NON si copiano: la CBU parte da «No» e senza riferimenti
+    S.powerTransfer = 'NO'; S.powerTransferRef = '';
+    pwRenderTransfer();
     applyCbuUsers();                                       // 8 core -> 10 utenti, 4 core -> 5; con altri core restano quelli copiati
     renderPower(); refreshStepper(); CPQ.markDirty('page', root); refreshSaveState();
   }
 
+  /** Transfer-Conversion e riga dei riferimenti Power (elenco schede hardware + tipo macchina, modello, matricola) */
+  function pwRenderTransfer() {
+    $('#pw-transfer').value = S.powerTransfer;
+    pwRenderRef();
+    $('#pw-tref-box').hidden = S.powerTransfer === 'NO';
+    if (S.powerTransfer !== 'NO') pwHwLoad();
+  }
+
   function renderPower() {
+    pwRenderTransfer();                                       // per primo: non dipende dal resto della pagina
     applyCbuUsers();
     renderPowerProducts();
     refreshPowerModelList(false);
@@ -708,7 +721,7 @@
     $('#pw-lto8').checked = S.powerLto8; $('#pw-eth10').checked = S.powerEth10;
     syncPowerUsers(); syncSmitechMode(false);
     $('#pw-cable').value = S.powerCable; $('#pw-edition').value = S.powerEdition; $('#pw-os').value = S.powerOs; $('#pw-disks').value = S.powerDisks; renderMaintBtn(); renderAmtSummary(); $('#pw-transfer').value = S.powerTransfer;
-    $('#pw-tref').value = S.powerTransferRef; $('#pw-tref-box').hidden = S.powerTransfer === 'NO';
+    pwRenderRef(); $('#pw-tref-box').hidden = S.powerTransfer === 'NO';
     $('#pw-cable-box').hidden = S.powerLto8;                  // con LTO8 il cavo di collegamento non si sceglie
     renderPwKind();
   }
@@ -894,7 +907,7 @@
     parts.push('IBM i ' + S.powerOs);
     if (S.powerCable) parts.push('cavo ' + S.powerCable);
     parts.push('edition ' + (S.powerEdition === 'EXPRESS' ? 'Express' : 'Solution'));
-    if (S.powerTransfer !== 'NO') parts.push((S.powerTransfer === 'TRANSFER' ? 'Transfer' : 'Conversion') + (S.powerTransferRef.trim() ? ' da ' + S.powerTransferRef.trim() : ''));
+    if (S.powerTransfer !== 'NO') parts.push((S.powerTransfer === 'TRANSFER' ? 'Transfer' : 'Conversion') + (trDisplay(S.powerTransferRef) ? ' da ' + trDisplay(S.powerTransferRef) : ''));
     if (S.powerUnlimited) parts.push('utenti IBM i ILLIMITATI'); else if (S.powerUsers !== '') parts.push(CPQ.num(S.powerUsers, 0) + ' utenti IBM i');
     return parts.join(', ');
   }
@@ -927,7 +940,12 @@
       if (noProd) add('#pw-products select[data-pid="' + noProd.id + '"]', 'Power System: seleziona il valore di ogni prodotto IBM i');
       if (!S.powerMaintList.length) add('#pw-maint-btn', 'Power System: seleziona la manutenzione SW/HW');
       else if (!maintComplete()) add('#pw-amt-open', 'Power System: indica gli importi (listino e netto scontato) di ogni periodo di manutenzione SW/HW');
-      if (S.powerTransfer !== 'NO' && !S.powerTransferRef.trim()) add('#pw-tref', 'Power System: indica i riferimenti del Power da cui trasferire le licenze');
+      // Power CBU: il riferimento (tipo macchina, modello, matricola) non puo' essere quello della Produzione
+      if (tab === 'CBU' && S.powerTransfer !== 'NO' && S.pwOther && S.pwOther.powerTransfer !== 'NO') {
+        const a = trParse(S.powerTransferRef), b = trParse(S.pwOther.powerTransferRef), n = (x) => x.trim().toLowerCase();
+        if (a.t.trim() && a.m.trim() && a.n.trim() && n(a.t) === n(b.t) && n(a.m) === n(b.m) && n(a.n) === n(b.n)) add('#pw-tr-serial', 'Power System: tipo macchina, modello e matricola non possono essere uguali a quelli di Power Produzione');
+      }
+      if (S.powerTransfer !== 'NO') { const r = trParse(S.powerTransferRef); if (!r.t.trim() || !r.m.trim() || !r.n.trim()) add(!r.t.trim() ? '#pw-tr-type' : (!r.m.trim() ? '#pw-tr-model' : '#pw-tr-serial'), 'Power System: indica tipo macchina, modello e matricola del Power da cui trasferire le licenze'); }
       if (!S.powerUnlimited && !(Number(S.powerUsers) >= 1)) add('#pw-users', 'Power System: indica gli utenti IBM i licenziati' + (pwIsCbu() ? '' : ' o ILLIMITATI'));
     }
     return e;
@@ -1024,6 +1042,42 @@
       const el = err.sel ? $(err.sel) : null;
       if (el) CPQ.fieldError(el, err.msg); else toast(err.msg, true);
     });
+  }
+
+  // ---- Riferimenti Power (Transfer / Conversion): scheda hardware AS400 del cliente + tipo macchina, modello e matricola modificabili.
+  // Nell'offerta il riferimento e' salvato come «tipo|modello|matricola».
+  const HW = { cards: [], cust: null };
+  const trParse = (s) => { s = String(s || ''); if (s.indexOf('|') < 0) return { t: '', m: s, n: '' }; const p = s.split('|'); return { t: p[0] || '', m: p[1] || '', n: p.slice(2).join('|') }; };
+  const trJoin = (t, m, n) => ((t || '').trim() || (m || '').trim() || (n || '').trim() ? (t || '').trim() + '|' + (m || '').trim() + '|' + (n || '').trim() : '');
+  /** testo leggibile: tipo-modello matricola (i riferimenti scritti a mano in passato restano com'erano) */
+  const trDisplay = (s) => { s = String(s || ''); if (s.indexOf('|') < 0) return s.trim(); const r = trParse(s); return ((r.t ? r.t + '-' : '') + r.m + (r.n ? ' ' + r.n : '')).trim(); };
+  /** voce dell'elenco: tipo macchina-modello s/n matricola - note (note e matricola solo se presenti) */
+  const hwLabel = (c) => (c.machineType ? c.machineType + '-' : '') + c.model + (c.serial ? ' s/n ' + c.serial : '') + ((c.notes || '').trim() ? ' - ' + c.notes.trim().replace(/\s+/g, ' ') : '');
+  /** allinea l'elenco a discesa alla scheda che corrisponde ai tre campi (nessuna = voce vuota) */
+  function pwSyncHwSel() {
+    const r = trParse(S.powerTransferRef);
+    const i = HW.cards.findIndex((c) => c.machineType === r.t.trim() && c.model === r.m.trim() && c.serial === r.n.trim());
+    $('#pw-hw').value = i >= 0 ? String(i) : '';
+    const sel = $('#pw-hw'); if (sel.refresh) sel.refresh();
+  }
+  function pwRenderRef(fromSel) {
+    const r = trParse(S.powerTransferRef);
+    $('#pw-tr-type').value = r.t; $('#pw-tr-model').value = r.m; $('#pw-tr-serial').value = r.n;
+    $('#pw-hw').innerHTML = '<option value="">' + (HW.cards.length ? '— seleziona una scheda hardware —' : '— nessuna scheda AS400 per il cliente —') + '</option>' +
+      HW.cards.map((c, i) => '<option value="' + i + '">' + esc(hwLabel(c)) + '</option>').join('');
+    if (!fromSel) pwSyncHwSel(); else { const i = HW.cards.findIndex((c) => c.machineType === r.t && c.model === r.m && c.serial === r.n); $('#pw-hw').value = i >= 0 ? String(i) : ''; }
+  }
+  /** carica le schede hardware (tipo AS400) del cliente dell'offerta */
+  async function pwHwLoad() {
+    const c = S.customer;
+    if (!c) { HW.cards = []; HW.cust = null; pwRenderRef(); return; }
+    if (HW.cust === c.id) { pwRenderRef(); return; }
+    try {
+      const rows = await CPQ.api('GET', '/offers/api/hw-cards?customerId=' + encodeURIComponent(c.id));
+      if (!S.customer || S.customer.id !== c.id) return;
+      HW.cards = rows; HW.cust = c.id;
+    } catch (_) { HW.cards = []; }
+    pwRenderRef();
   }
 
   /** vero se nella riga e' selezionato almeno un modulo con gruppo di prezzo (moduli per utente): solo allora si mostrano e si chiedono gli utenti */
@@ -2781,17 +2835,23 @@
   $('#pw-transfer').addEventListener('change', (e) => {
     S.powerTransfer = e.target.value; $('#pw-tref-box').hidden = S.powerTransfer === 'NO';
     if (S.powerTransfer === 'NO') {
-      S.powerTransferRef = ''; $('#pw-tref').value = '';
+      S.powerTransferRef = ''; pwRenderRef();
       S.ibmiProducts.forEach((p) => { delete S.powerProducts[p.id]; });          // di nuovo «— seleziona —»
       renderPowerProducts(); refreshSaveState();
     } else {
       // Transfer / Conversion: tutti i prodotti IBM i risultano «Migrato» (modificabile prodotto per prodotto)
       S.ibmiProducts.forEach((p) => { S.powerProducts[p.id] = 'MIGRATO'; });
       renderPowerProducts(); refreshSaveState();
-      $('#pw-tref').focus();
+      pwHwLoad(); $('#pw-hw').focus();
     }
   });
-  $('#pw-tref').addEventListener('input', (e) => { S.powerTransferRef = e.target.value; });
+  $('#pw-hw').addEventListener('change', (e) => {
+    const c = HW.cards[Number(e.target.value)];
+    if (c) { S.powerTransferRef = trJoin(c.machineType, c.model, c.serial); pwRenderRef(true); CPQ.markDirty('page', root); }
+  });
+  ['#pw-tr-type', '#pw-tr-model', '#pw-tr-serial'].forEach((id) => $(id).addEventListener('input', () => {
+    S.powerTransferRef = trJoin($('#pw-tr-type').value, $('#pw-tr-model').value, $('#pw-tr-serial').value); pwSyncHwSel(); CPQ.markDirty('page', root);
+  }));
   $('#pw-lto8').addEventListener('change', (e) => { S.powerLto8 = e.target.checked; $('#pw-cable-box').hidden = S.powerLto8; if (S.powerLto8) { S.powerCable = ''; $('#pw-cable').value = ''; } renderAmtSummary(); refreshSaveState(); });
   $('#pw-eth10').addEventListener('change', (e) => { S.powerEth10 = e.target.checked; });
   $('#opt-galileo').addEventListener('change', (e) => {

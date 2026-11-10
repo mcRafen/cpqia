@@ -265,7 +265,7 @@ public class OfferDocxService {
             tokens.put("{{PW_MESI_MANUTENZIONE}}", maintPeriodsText(h));
             boolean tr = transferOn(h);
             tokens.put("{{TRANSFER-CONVERSION}}", tr ? ("CONVERSION".equalsIgnoreCase(h.powerTransfer()) ? "Conversion" : "Transfer") : "");
-            tokens.put("{{MACCHINA_DONOR}}", h.powerTransferRef() == null ? "" : h.powerTransferRef().trim());
+            tokens.put("{{MACCHINA_DONOR}}", donorText(h.powerTransferRef()));
             tokens.put("{{SOFTWARE_IBM}}", tr ? migratedSoftware(h.id()) : "");
             tokens.put("{{PW_UTENTI}}", h.powerIbmiUnlimited() ? "ILLIMITATI" : (h.powerIbmiUsers() == null ? "" : String.valueOf(h.powerIbmiUsers())));
         }
@@ -1188,6 +1188,19 @@ public class OfferDocxService {
     // ------------------------------------------------------------------ sezione Power System
     private record PowerRow(String model, String type, int cores, String mounting, String description, String ghz, int cpw, String wordFile,
                             String processorGroup) {
+    }
+
+    /** riferimento Power «tipo|modello|matricola» → «tipo-modello matricola» (i testi liberi vecchi restano com'erano) */
+    private static String donorText(String ref) {
+        if (ref == null) {
+            return "";
+        }
+        if (ref.indexOf('|') < 0) {
+            return ref.trim();
+        }
+        String[] p = ref.split("\\|", -1);
+        String t = p.length > 0 ? p[0].trim() : "", m = p.length > 1 ? p[1].trim() : "", n = p.length > 2 ? p[2].trim() : "";
+        return ((t.isEmpty() ? "" : t + "-") + m + (n.isEmpty() ? "" : " " + n)).trim();
     }
 
     private PowerRow powerModel(long id) {

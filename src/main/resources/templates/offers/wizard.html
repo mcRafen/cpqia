@@ -10,7 +10,7 @@
 
         <div class="pagehead">
             <a class="btn icon" th:href="@{/offers}" title="Torna indietro" aria-label="Torna indietro"><svg class="ic"><use href="#i-back"/></svg></a>
-            <h1 th:text="${offerId == null} ? 'Nuova offerta' : 'Modifica offerta'">Nuova offerta</h1>
+            <h1 th:text="${offerId == null} ? 'Nuova offerta' : 'Modifica offerta - ' + ${offerNumber}">Nuova offerta</h1>
             <span class="grow"></span>
             <a class="btn outlined hd-cancel" th:href="@{/offers}" title="Annulla" aria-label="Annulla"><svg class="ic hd-cancel-ic"><use href="#i-close"/></svg><span class="hd-cancel-txt">Annulla</span></a>
             <span class="hd-sep" aria-hidden="true"></span>
@@ -119,7 +119,7 @@
                 <div class="card pw-model" id="pw-card-model">
                     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
                         <h2 style="margin:0">Selezione del modello</h2>
-                        <button type="button" class="btn tonal sm" id="pw-copy-prod" title="Copia in Power CBU tutte le impostazioni di Power Produzione" hidden><svg class="ic"><use href="#i-copy"/></svg>Copia da Produzione</button>
+                        <button type="button" class="btn tonal sm" id="pw-copy-prod" title="Copia in Power CBU le impostazioni di Power Produzione (esclusi prodotti IBM i, Transfer-Conversion e riferimenti Power)" hidden><svg class="ic"><use href="#i-copy"/></svg>Copia da Produzione</button>
                     </div>
                     <div class="grid c4" style="align-items:start;margin-bottom:6px">
                         <div class="field span3"><select id="sel-power"></select><label for="sel-power" class="on">Modello *</label>
@@ -167,7 +167,14 @@
                             <div class="field"><select id="pw-os"><option value="7.5">7.5</option><option value="7.6">7.6</option></select><label for="pw-os" class="on">Sistema operativo</label></div>
                             <div class="field"><select id="pw-edition"><option value="SOLUTION">Solution</option><option value="EXPRESS">Express</option></select><label for="pw-edition" class="on">Edition</label></div>
                             <div class="field"><select id="pw-transfer"><option value="NO">No</option><option value="TRANSFER">Transfer</option><option value="CONVERSION">Conversion</option></select><label for="pw-transfer" class="on">Transfer-Conversion</label></div>
-                            <div class="field span2" id="pw-tref-box" hidden title="Riferimenti del Power da cui trasferire le licenze"><input type="text" id="pw-tref" maxlength="500" placeholder=" "><label for="pw-tref">Riferimenti Power *</label></div>
+                            <div id="pw-tref-box" hidden style="grid-column:1/-1" title="Riferimenti del Power da cui trasferire le licenze">
+                                <div class="field"><select id="pw-hw"></select><label for="pw-hw" class="on">Riferimenti Power *</label><div class="help" id="pw-hw-help">Schede hardware AS400 del cliente</div></div>
+                                <div class="grid c3" style="align-items:start;margin-top:12px">
+                                    <div class="field"><input type="text" id="pw-tr-type" maxlength="40" placeholder=" "><label for="pw-tr-type">Tipo macchina *</label></div>
+                                    <div class="field"><input type="text" id="pw-tr-model" maxlength="60" placeholder=" "><label for="pw-tr-model">Modello *</label></div>
+                                    <div class="field"><input type="text" id="pw-tr-serial" maxlength="80" placeholder=" "><label for="pw-tr-serial">Matricola *</label></div>
+                                </div>
+                            </div>
                         </div>
                         <div id="pw-prod-wrap">
                         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 8px">

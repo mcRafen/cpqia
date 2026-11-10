@@ -151,6 +151,7 @@ public class OfferSnapshotService {
             put(out, P, "Ethernet 10G", yn(o.get("power_eth10")));
             put(out, P, "Cavo", s(o.get("power_cable")));
             put(out, P, "Transfer / Conversion", s(o.get("power_transfer")));
+            put(out, P, "Riferimenti Power", s(o.get("power_transfer_ref")).replace("|", " | "));
             put(out, P, "Edizione", s(o.get("power_edition")));
             put(out, P, "Sistema operativo", s(o.get("power_os")));
             for (Map<String, Object> m : jdbc.sql("select months, kind, list_price, net_price from offer_power_maint where offer_id = :o order by months, kind desc").param("o", id).query().listOfRows()) {
