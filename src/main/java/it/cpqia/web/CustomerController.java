@@ -104,6 +104,7 @@ public class CustomerController {
     @PreAuthorize("hasAuthority('P_MANAGE_CUSTOMERS')")
     public String create(Model model) {
         model.addAttribute("form", new CustomerForm());
+        model.addAttribute("agents", customers.agents());
         addRateSections(model, null, null);
         model.addAttribute("code", null);
         return "customers/form";
@@ -114,6 +115,7 @@ public class CustomerController {
     public String edit(@PathVariable long id, Model model, Authentication auth) {
         Customer c = customers.findById(id, current.get(auth)).orElseThrow();
         model.addAttribute("form", CustomerForm.from(c));
+        model.addAttribute("agents", customers.agents());
         addRateSections(model, id, null);
         model.addAttribute("geo", customers.geo(id));
         model.addAttribute("code", c.code());
@@ -142,7 +144,13 @@ public class CustomerController {
                 && customers.vatExists(form.getVatNumber().trim().replaceAll("\\s", ""), form.getId())) {
             br.rejectValue("vatNumber", "dup", "Esiste gia' un account con questa partita IVA");
         }
+        // codice agente (solo prospect): deve esistere nella tabella Agenti
+        boolean prospectForm = form.getId() == null || !customers.findById(form.getId()).map(c -> "CLIENTE".equals(c.type())).orElse(false);
+        if (prospectForm && form.getAgentCode() != null && !form.getAgentCode().isBlank() && !customers.agentExists(form.getAgentCode().trim())) {
+            br.rejectValue("agentCode", "agent", "Codice agente non presente nella tabella Agenti");
+        }
         if (br.hasErrors()) {
+            model.addAttribute("agents", customers.agents());
             Map<String, String> typed = new java.util.HashMap<>();
             request.getParameterMap().forEach((k, v) -> {
                 if ((k.startsWith("pr_") || "travelRateId".equals(k)) && v.length > 0) {

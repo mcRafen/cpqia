@@ -111,7 +111,9 @@ public class OfferController {
         model.addAttribute("today", LocalDate.now().toString());
         model.addAttribute("nextProgressive", 1);
         model.addAttribute("offerId", id);
-        model.addAttribute("offerNumber", offers.header(id).number());
+        var hdr = offers.header(id);
+        model.addAttribute("offerNumber", hdr.number());
+        model.addAttribute("offerCustomerName", customers.findById(hdr.customerId()).map(it.cpqia.domain.Customer::companyName).orElse(""));
         model.addAttribute("customerId", null);
         return "offers/wizard";
     }

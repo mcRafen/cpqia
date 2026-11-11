@@ -278,6 +278,11 @@ public class OfferDocxService {
         tokens.put("{{PAG_CAN_PAG}}", termsConfig.payText(terms.payFee(), terms.payFeeOther()));
         tokens.put("{{PAG_ATT_FATT}}", termsConfig.billActText(terms));
         tokens.put("{{PAG_ATT_PAG}}", termsConfig.payText(terms.payAct(), terms.payActOther()));
+        // canone SMIDRI / SMISMP: riga presente solo se l'offerta comprende SMIDRI e/o SMISMP
+        String driLabel = savedDriLabel(h);
+        tokens.put("{{SMIDRI/SMISMP}}", driLabel == null ? "" : driLabel);
+        tokens.put("{{PAG_SMIDRI_SMISMP_FATT}}", termsConfig.billDriText(terms));
+        tokens.put("{{PAG_SMIDRI_SMISMP_PAG}}", termsConfig.payText(terms.payDri(), terms.payDriOther()));
 
         BigDecimal factor = BigDecimal.ONE.subtract(h.discountPct().divide(HUNDRED));
         boolean hasDiscount = h.discountPct().signum() != 0;
@@ -395,6 +400,13 @@ public class OfferDocxService {
                             fillPowerSoftware(part, power, h);
                             replaceEverywhere(part, tokens);
                             elems = part.getBodyElements();
+                        }
+                        case "pagamenti" -> {
+                            if (driLabel == null) {
+                                removeRowsContaining(part, "{{SMIDRI/SMISMP}}");
+                            }
+                            replaceEverywhere(part, tokens);
+                            elems = trimToOwnPart(part.getBodyElements(), idx);
                         }
                         case "servizi-accessori" -> elems = prepareExtraServices(part, extraSel, extraTotals, tokens);
                         case "riepilogo-finale" -> {
@@ -1672,6 +1684,24 @@ public class OfferDocxService {
         tokens.put("{{TOT_LISTINO}}", eur(gross));
         tokens.put("{{TOT_NETTO}}", eur(total));
         return total;
+    }
+
+    /** SMIDRI / SMISMP nell'offerta salvata: «SMIDRI», «SMISMP», «SMIDRI/SMISMP» oppure null */
+    private String savedDriLabel(OfferHeader h) {
+        boolean dri = false, smp = false;
+        Map<String, Object> o = jdbc.sql("select power_kind, power_hadr_solution, power_smidri_smismp from offer where id = :id").param("id", h.id()).query().singleRow();
+        if (h.optPowerSystem() && "HADR".equals(o.get("power_kind")) && "SMIDRI".equals(o.get("power_hadr_solution"))) {
+            dri = true;
+            smp = Boolean.TRUE.equals(o.get("power_smidri_smismp"));
+        }
+        for (String code : jdbc.sql("""
+                select m.code from offer_line_module x join offer_line l on l.id = x.line_id join module m on m.id = x.module_id
+                join application a on a.id = l.application_id
+                where l.offer_id = :id and upper(a.family) = 'SMITECH'""").param("id", h.id()).query(String.class).list()) {
+            dri |= code.toUpperCase().contains("SMIDRI");
+            smp |= code.toUpperCase().contains("SMISMP");
+        }
+        return dri && smp ? "SMIDRI/SMISMP" : dri ? "SMIDRI" : smp ? "SMISMP" : null;
     }
 
     /** documenti agganciati dopo le attivita': Light = appendice; altrimenti «Servizi extra progetto» con conversioni (solo prospect), personalizzazioni e follow up */

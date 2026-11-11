@@ -1160,3 +1160,13 @@ dialog.tiers-dlg { width: min(720px, 94vw); }
 /* icona «scaglioni»: centrata verticalmente sull'intera riga dell'applicazione (non solo sulla riga del nome) */
 table.apps td.name { position: relative; padding-right: 46px; }
 table.apps .tiers-info { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+
+/* colonna sinistra della pagina Power: Opzioni Hardware con, sotto, il box SMIDRI (Opzioni Software resta come prima) */
+.pw-layout > .pw-hwcol { grid-column: span 2; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.pw-hwcol > .card { margin-bottom: 0; min-width: 0; }
+#pw-card-smidri { border-top-color: var(--primary); }
+@media (max-width: 1100px) { .pw-layout > .pw-hwcol { grid-column: auto; } }
+
+/* SMIDRI / SMISMP con SMIDRI: valori al cliente in evidenza (font piu' grande, come i valori di listino accanto) */
+#pw-card-smidri .field input { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; height: 60px; padding-top: 22px; }
+#pw-card-smidri .field label { font-size: 15px; }

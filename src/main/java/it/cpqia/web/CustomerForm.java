@@ -37,6 +37,8 @@ public class CustomerForm {
     private String vatNumber;
     @Size(max = 20)
     private String taxCode;
+    @Size(max = 20)
+    private String agentCode;          // prospect: scelto dall'elenco agenti; cliente: arriva da IBM Power System e non si modifica
 
     public static CustomerForm from(Customer c) {
         CustomerForm f = new CustomerForm();
@@ -51,12 +53,13 @@ public class CustomerForm {
         f.province = c.province();
         f.vatNumber = c.vatNumber();
         f.taxCode = c.taxCode();
+        f.agentCode = c.agentCode();
         return f;
     }
 
     public Customer toCustomer() {
         return new Customer(id, null, type, companyName.trim(), streetType.trim(), streetName.trim(), streetNumber.trim(),
-                postalCode.trim(), city.trim(), province, vatNumber.trim().replaceAll("\\s", ""), taxCode, null, null, null);
+                postalCode.trim(), city.trim(), province, vatNumber.trim().replaceAll("\\s", ""), taxCode, null, null, agentCode == null || agentCode.isBlank() ? null : agentCode.trim());
     }
 
     public Long getId() { return id; }
@@ -81,4 +84,6 @@ public class CustomerForm {
     public void setVatNumber(String vatNumber) { this.vatNumber = vatNumber; }
     public String getTaxCode() { return taxCode; }
     public void setTaxCode(String taxCode) { this.taxCode = taxCode; }
+    public String getAgentCode() { return agentCode; }
+    public void setAgentCode(String agentCode) { this.agentCode = agentCode; }
 }

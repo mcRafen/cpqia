@@ -25,8 +25,14 @@
             <div class="field span3" th:classappend="${#fields.hasErrors('city')} ? 'invalid'"><input type="text" th:field="*{city}" placeholder=" " maxlength="100"><label>Città *</label><div class="err" th:errors="*{city}"></div></div>
             <div class="field"><input type="text" th:field="*{province}" placeholder=" " maxlength="5"><label>Prov.</label><div class="err" th:errors="*{province}"></div></div>
             <div class="field span6"><input type="text" th:field="*{taxCode}" placeholder=" " maxlength="20"><label>Codice fiscale</label><div class="err" th:errors="*{taxCode}"></div></div>
-            <div class="field span2" th:if="${form.id != null}"><input type="text" th:value="${agentCode}" disabled placeholder=" " id="agent-code"><label for="agent-code">Codice agente</label><div class="help">Da IBM Power System</div></div>
-            <div class="field span4" th:if="${form.id != null}"><input type="text" th:value="${agentName}" disabled placeholder=" " id="agent-name"><label for="agent-name">Agente</label></div>
+            <!-- prospect: agente modificabile (elenco della tabella Agenti); cliente: codice da IBM Power System, sola lettura -->
+            <div class="field span6" th:if="${form.type != 'CLIENTE'}" th:classappend="${#fields.hasErrors('agentCode')} ? 'invalid'"><select th:field="*{agentCode}"><option value="">— nessun agente —</option>
+                <option th:each="a : ${agents}" th:value="${a[0]}" th:text="${a[1]} + ' (' + ${a[0]} + ')'"></option></select><label>Agente</label>
+                <div class="err" th:errors="*{agentCode}"></div>
+                <div class="help" th:if="${#lists.isEmpty(agents)}" style="color:var(--error)">La tabella Agenti è vuota: esegui la «Sync Agenti» in Impostazioni &gt; Integrazioni.</div>
+                <div class="help" th:unless="${#lists.isEmpty(agents)}">Compare nell'intestazione dell'offerta e ne fornisce le iniziali per il numero offerta</div></div>
+            <div class="field span2" th:if="${form.id != null and form.type == 'CLIENTE'}"><input type="text" th:value="${agentCode}" disabled placeholder=" " id="agent-code"><label for="agent-code">Codice agente</label><div class="help">Da IBM Power System</div></div>
+            <div class="field span4" th:if="${form.id != null and form.type == 'CLIENTE'}"><input type="text" th:value="${agentName}" disabled placeholder=" " id="agent-name"><label for="agent-name">Agente</label></div>
             <div class="field span2" th:if="${form.id != null and geo != null}"><input type="text" th:value="${geo.get('lat')}" disabled placeholder=" " id="geo-lat"><label for="geo-lat">Latitudine</label><div class="help">Sola lettura</div></div>
             <div class="field span2" th:if="${form.id != null and geo != null}"><input type="text" th:value="${geo.get('lon')}" disabled placeholder=" " id="geo-lon"><label for="geo-lon">Longitudine</label><div class="help">Sola lettura</div></div>
             <div class="field span2" th:if="${form.id != null and geo != null}"><input type="text" th:value="${geo.get('status')}" disabled placeholder=" " id="geo-st"><label for="geo-st">Geolocalizzazione</label><div class="help">Automatica a ogni inserimento / modifica dell'indirizzo</div></div>

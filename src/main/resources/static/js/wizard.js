@@ -23,7 +23,7 @@
     xSel: { services: new Set(), options: {} },
     accountTravelRateId: null, activities: [], actDiscount: 0, actUntil: '', actDetail: false, hoursDetail: false, maintOnNet: true, profiles: [],
     distanceKm: null, nearestSede: '', distMethod: '', distFor: null, travelRateId: null, travelRates: [],
-    terms: null, payTouched: { lic: false, fee: false, act: false },
+    terms: null, payTouched: { lic: false, fee: false, act: false, dri: false },
     lines: [], step: 1, saved: null,
   };
   let catalog = [];
@@ -91,7 +91,9 @@
           S.powerMaintAmt[amtKey(S.powerMaintList[0], 'POWER')] = { list: CPQ.num(h.powerListPrice, 2), net: CPQ.num(h.powerNetPrice || 0, 2) };
         }
         S.powerProducts = {}; (rq.powerProducts || []).forEach((p) => { S.powerProducts[p.productId] = p.value; });
-        S.powerKind = rq.powerKind || 'NEW'; S.pwTab = 'PROD';
+        S.powerKind = rq.powerKind || 'NEW'; S.hadrSolution = rq.powerHadrSolution || 'NONE'; S.pwTab = 'PROD';
+        S.smidriPrice = rq.powerSmidriPrice == null ? '' : CPQ.num(rq.powerSmidriPrice, 2); S.smidriSmismp = !!rq.powerSmidriSmismp;
+        S.smidriSmismpPrice = rq.powerSmidriSmismpPrice == null ? '' : CPQ.num(rq.powerSmidriSmismpPrice, 2);
         S.pwOther = S.powerKind === 'HADR' && rq.powerCbu ? cbuSlotFromRequest(rq.powerCbu) : pwFresh();      // scheda «Power CBU» (HA/DR)
         if (rq.galileo) {
           const g = rq.galileo; S.gal = { profileId: g.profileId, release: g.release || 'V9', users: g.users || '', addUsers: g.addUsers || '', source: g.source || 0, aggiunta: !!g.aggiunta, sel: {}, calc: null };
@@ -104,7 +106,7 @@
         S.distanceKm = rq.distanceKm; S.nearestSede = rq.nearestSede || ''; S.travelRateId = rq.travelRateId || null;
         if (S.distanceKm != null) S.distFor = h.customerId;
         S.lines = C.linesFromRequest(data.request);
-        if (data.request.terms) { S.terms = Object.assign({}, data.request.terms); S.terms.billLicDate = S.terms.billLicDate || ''; S.terms.billFeeDate = S.terms.billFeeDate || ''; S.terms.payLicOther = S.terms.payLicOther || ''; S.terms.payFeeOther = S.terms.payFeeOther || ''; S.terms.payActOther = S.terms.payActOther || ''; S.payTouched = { lic: true, fee: true, act: true }; }
+        if (data.request.terms) { S.terms = Object.assign({}, data.request.terms); S.terms.billLicDate = S.terms.billLicDate || ''; S.terms.billFeeDate = S.terms.billFeeDate || ''; S.terms.payLicOther = S.terms.payLicOther || ''; S.terms.payFeeOther = S.terms.payFeeOther || ''; S.terms.payActOther = S.terms.payActOther || ''; S.terms.billDri = S.terms.billDri || 'INSTALL'; S.terms.billDriDate = S.terms.billDriDate || ''; S.terms.payDri = S.terms.payDri || S.terms.payFee; S.terms.payDriOther = S.terms.payDriOther || ''; S.payTouched = { lic: true, fee: true, act: true, dri: true }; }
         const ex = data.request.extras;
         if (ex) { S.xSel.services = new Set(ex.services || []); (ex.options || []).forEach((o) => { S.xSel.options[o.optionId] = o.qty; }); }
         S.lines.forEach((l) => expanded.add(l.applicationId));
@@ -611,6 +613,7 @@
   const pwPick = () => { const o = {}; PW_KEYS.forEach((k) => { o[k] = S[k]; }); return o; };
   const pwLoad = (o) => { PW_KEYS.forEach((k) => { S[k] = o[k]; }); };
   S.powerKind = 'NEW'; S.pwTab = 'PROD'; S.pwOther = pwFresh();
+  S.hadrSolution = 'NONE'; S.smidriPrice = ''; S.smidriSmismp = false; S.smidriSmismpPrice = '';
   const pwIsCbu = () => S.pwTab === 'CBU';
   function pwSwap() { const cur = pwPick(); pwLoad(S.pwOther); S.pwOther = cur; S.pwTab = S.pwTab === 'PROD' ? 'CBU' : 'PROD'; }
   /** esegue fn con i dati di produzione attivi (salvataggio, calcolo): la scheda CBU, se aperta, viene scambiata e poi ripristinata */
@@ -672,10 +675,51 @@
     closeMaintPanel(); pwSwap();
     if (render !== false) { renderPower(); renderPwKind(); }
   }
+  /** SMIDRI (soluzione HA/DR): listino per gruppo processore del Power di Produzione, valore al cliente e SMISMP abbinato */
+  function smidriListino() {
+    const app = smitechApp(), prodId = pwIsCbu() ? S.pwOther.powerModelId : S.powerModelId;
+    const cls = String((powerModelOf(prodId) || {}).processorGroup || '').toUpperCase();
+    const norm = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const mods = app ? app.modules.filter((m) => m.active !== false) : [];
+    const byCode = (...codes) => { for (const c of codes) { const m = mods.find((x) => norm(x.code) === norm(c)); if (m) return m; } return null; };
+    // SMIDRI: solo il modulo «SMIDRI»
+    const mDri = mods.find((x) => String(x.code).trim() === 'SMIDRI') || null;          // codice esatto
+    // SMISMP abbinato a SMIDRI: solo il modulo con codice esatto «SMISMP-SMIDRI»
+    const mSm = mods.find((x) => String(x.code).trim() === 'SMISMP-SMIDRI') || null;          // codice esatto
+    const price = (m) => { if (!m || !cls) return null; const p = m.prices || {}; return p[cls] != null ? p[cls] : (p.STD != null && p.STD > 0 ? p.STD : null); };
+    return { cls: cls, smidri: price(mDri), smismp: price(mSm), dri: mDri ? mDri.code : null, sm: mSm ? mSm.code : null };
+  }
+  function renderSmidri() {
+    const on = S.optPower && S.powerKind === 'HADR' && S.hadrSolution === 'SMIDRI' && !pwIsCbu();          // solo nella pagina «Power Produzione»
+    const card = $('#pw-card-smidri'); if (!card) return;
+    card.hidden = !on;
+    if (!on) return;
+    const L = smidriListino();
+    $('#smidri-class').textContent = L.cls ? '(gruppo processore ' + L.cls + ')' : '';
+    $('#smidri-list').textContent = L.smidri != null ? CPQ.eur(L.smidri) : '—';
+    $('#smidri-list-note').textContent = !L.cls ? 'Scegli prima il modello Power di Produzione'
+      : (L.smidri != null ? 'Modulo SMITECH ' + L.dri : (L.dri ? 'Modulo ' + L.dri + ': nessun prezzo per ' + L.cls : 'Modulo SMIDRI non trovato nell\'applicazione SMITECH'));
+    $('#smidri-sm-list').textContent = L.smismp != null ? CPQ.eur(L.smismp) : '—';
+    $('#smidri-sm-note').textContent = !L.cls ? '' : (L.smismp != null ? 'Modulo SMITECH ' + L.sm : (L.sm ? 'Modulo ' + L.sm + ': nessun prezzo per ' + L.cls : 'Modulo SMISMP con SMIDRI non trovato nell\'applicazione SMITECH'));
+    if (!S.smidriPrice && L.smidri != null) S.smidriPrice = CPQ.num(L.smidri, 2);          // proposto il listino, modificabile
+    if (S.smidriSmismp && !S.smidriSmismpPrice && L.smismp != null) S.smidriSmismpPrice = CPQ.num(L.smismp, 2);
+    if (document.activeElement !== $('#smidri-price')) $('#smidri-price').value = S.smidriPrice || '';
+    $('#smidri-smismp').checked = !!S.smidriSmismp;
+    $('#smidri-sm-box').hidden = !S.smidriSmismp;
+    if (document.activeElement !== $('#smidri-sm-price')) $('#smidri-sm-price').value = S.smidriSmismpPrice || '';
+  }
+
   /** menu «Tipo di Power», schede e sezione «Prodotti IBM i» (assente nella scheda CBU) */
   function renderPwKind() {
     $('#power-kind-box').hidden = !S.optPower;
     $('#sel-power-kind').value = S.powerKind;
+    $('#hadr-sol-box').hidden = !(S.optPower && S.powerKind === 'HADR');
+    // con Power HA/DR il flag «Servizi SMITECH» non c'e' (e i servizi eventualmente scelti vengono tolti)
+    const hadrOn = S.optPower && S.powerKind === 'HADR', smW = $('#opt-smitech').closest('label');
+    if (smW) smW.hidden = hadrOn;
+    if (hadrOn && S.optSmitech) { const a = smitechApp(), l = a && lineOf(a.id); S.optSmitech = false; $('#opt-smitech').checked = false; if (l) { S.lines = S.lines.filter((x) => x !== l); scheduleCalc(); } refreshStepper(); }          // «Soluzione HA/DR» sulla destra, solo con Power HA/DR
+    $('#sel-hadr-sol').value = S.hadrSolution || 'NONE';
+    renderSmidri();
     const hadr = S.optPower && S.powerKind === 'HADR';
     $('#pw-tabs').hidden = !hadr;
     $$('.pw-tab').forEach((b) => { const on = b.dataset.pwtab === S.pwTab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
@@ -887,9 +931,10 @@
     const auto = pwIsCbu() ? cbuAutoUsers() : null;
     const linked = auto == null && !pwIsCbu() && galUsersLinked();
     if (auto != null) { S.powerUsers = String(auto); S.powerUnlimited = false; u.value = S.powerUsers; un.checked = false; }
-    else if (linked) { S.powerUsers = String(Number(S.gal.users)); S.powerUnlimited = false; u.value = S.powerUsers; un.checked = false; }
-    u.disabled = linked || auto != null || S.powerUnlimited; un.disabled = linked || auto != null;
-    if (h) { h.hidden = !linked && auto == null; h.textContent = auto != null ? 'Utenti minimi - Gli altri sono ereditati da Power Produzione' : 'Collegato agli utenti di Galileo'; }
+    else if (linked && S.powerUnlimited) { S.powerUsers = ''; u.value = ''; un.checked = true; }          // ILLIMITATI sempre selezionabile, anche con gli utenti di Galileo
+    else if (linked) { S.powerUsers = String(Number(S.gal.users)); u.value = S.powerUsers; un.checked = false; }
+    u.disabled = linked || auto != null || S.powerUnlimited; un.disabled = auto != null;          // solo nella scheda CBU gli utenti ILLIMITATI non esistono
+    if (h) { h.hidden = (!linked && auto == null) || (linked && S.powerUnlimited); h.textContent = auto != null ? 'Utenti minimi - Gli altri sono ereditati da Power Produzione' : 'Collegato agli utenti di Galileo'; }
     refreshPowerModelList(!!userChange);
     updatePowerLock();
     smitechUsersChanged();
@@ -940,6 +985,11 @@
       if (noProd) add('#pw-products select[data-pid="' + noProd.id + '"]', 'Power System: seleziona il valore di ogni prodotto IBM i');
       if (!S.powerMaintList.length) add('#pw-maint-btn', 'Power System: seleziona la manutenzione SW/HW');
       else if (!maintComplete()) add('#pw-amt-open', 'Power System: indica gli importi (listino e netto scontato) di ogni periodo di manutenzione SW/HW');
+      // SMIDRI (solo Power Produzione): valore al cliente obbligatorio, anche per SMISMP se attivato
+      if (tab === 'PROD' && S.hadrSolution === 'SMIDRI') {
+        if (C.parseMoney(S.smidriPrice) == null) add('#smidri-price', 'Power System: indica il valore al cliente di SMIDRI');
+        if (S.smidriSmismp && C.parseMoney(S.smidriSmismpPrice) == null) add('#smidri-sm-price', 'Power System: indica il valore al cliente di SMISMP con SMIDRI');
+      }
       // Power CBU: il riferimento (tipo macchina, modello, matricola) non puo' essere quello della Produzione
       if (tab === 'CBU' && S.powerTransfer !== 'NO' && S.pwOther && S.pwOther.powerTransfer !== 'NO') {
         const a = trParse(S.powerTransferRef), b = trParse(S.pwOther.powerTransferRef), n = (x) => x.trim().toLowerCase();
@@ -1026,8 +1076,9 @@
     // modalita' di fatturazione e pagamento
     const TS = [['Fatturazione licenze', '#t-bill-lic-date'], ['Fatturazione canoni', '#t-bill-fee-date'],
       ['Pagamento licenze: "Solito', '#t-pay-lic'], ['Pagamento canoni: "Solito', '#t-pay-fee'], ['Pagamento attività sistemistiche: "Solito', '#t-pay-act'],
+      ['Fatturazione canone SMIDRI', '#t-bill-dri-date'], ['Pagamento canone SMIDRI/SMISMP: "Solito', '#t-pay-dri'], ['Pagamento canone SMIDRI/SMISMP: scrivi', '#t-pay-dri-other'],
       ['Pagamento licenze: scrivi', '#t-pay-lic-other'], ['Pagamento canoni: scrivi', '#t-pay-fee-other'], ['Pagamento attività sistemistiche: scrivi', '#t-pay-act-other']];
-    (termsCfg ? C.termsErrors(termsCfg, S.terms, custType()) : []).forEach((m) => {
+    (termsCfg ? C.termsErrors(termsCfg, S.terms, custType(), !!driLabel()) : []).forEach((m) => {
       const t = TS.find((x) => m.indexOf(x[0]) === 0);
       add(4, 'terms', t ? t[1] : '#terms-body', m);
     });
@@ -1622,7 +1673,23 @@
       '<div class="rowlabel">Attività sistemistiche</div>' +
       '<div class="tcell"><span class="mlabel">Fatturazione</span><select id="t-bill-act">' + optionsHtml(termsCfg.actBill, t.billAct) + '</select></div>' +
       '<div class="tcell"><span class="mlabel">Pagamento</span><select id="t-pay-act">' + payOptionsHtml(C.allowedPay(termsCfg, 'act', t.billAct, custType()), t.payAct) + '</select>' + (isFree(t.payAct) ? otherIn('t-pay-act-other', t.payActOther) : '') + '</div>' +
+      // canone SMIDRI / SMISMP: solo se l'offerta comprende SMIDRI e/o SMISMP
+      (driLabel() ? '<div class="rowlabel">Canone ' + esc(driLabel()) + '</div>' +
+        '<div class="tcell"><span class="mlabel">Fatturazione</span><select id="t-bill-dri">' + optionsHtml(termsCfg.driBill, t.billDri) + '</select>' + (isDate(termsCfg.driBill, t.billDri) ? dateIn('t-bill-dri-date', t.billDriDate) : '') + '</div>' +
+        '<div class="tcell"><span class="mlabel">Pagamento</span><select id="t-pay-dri">' + payOptionsHtml(C.allowedPay(termsCfg, 'dri', null, custType()), t.payDri) + '</select>' + (isFree(t.payDri) ? otherIn('t-pay-dri-other', t.payDriOther) : '') + '</div>' : '') +
       '</div>';
+  }
+
+  /** SMIDRI / SMISMP presenti in offerta: «SMIDRI», «SMISMP», «SMIDRI/SMISMP» oppure '' (nessuno) */
+  function driLabel() {
+    let dri = false, smp = false;
+    if (S.optPower && S.powerKind === 'HADR' && S.hadrSolution === 'SMIDRI') { dri = true; smp = !!S.smidriSmismp; }
+    const app = smitechApp();
+    if (app && S.optSmitech !== false) {
+      const l = lineOf(app.id);
+      if (l) app.modules.forEach((m) => { if (l.modules[m.id] > 0) { const c = String(m.code).toUpperCase(); dri = dri || c.indexOf('SMIDRI') >= 0; smp = smp || c.indexOf('SMISMP') >= 0; } });
+    }
+    return dri && smp ? 'SMIDRI/SMISMP' : (dri ? 'SMIDRI' : (smp ? 'SMISMP' : ''));
   }
 
   function bindTerms() {
@@ -1638,6 +1705,9 @@
       else if (id === 't-pay-lic') { t.payLic = v; S.payTouched.lic = true; }
       else if (id === 't-pay-fee') { t.payFee = v; S.payTouched.fee = true; }
       else if (id === 't-pay-act') { t.payAct = v; S.payTouched.act = true; }
+      else if (id === 't-bill-dri') t.billDri = v;
+      else if (id === 't-bill-dri-date') t.billDriDate = v;
+      else if (id === 't-pay-dri') { t.payDri = v; S.payTouched.dri = true; }
       else return;
       renderTerms(); refreshSaveState();
     });
@@ -1646,6 +1716,7 @@
       if (id === 't-pay-lic-other') { t.payLicOther = v; S.payTouched.lic = true; }
       else if (id === 't-pay-fee-other') { t.payFeeOther = v; S.payTouched.fee = true; }
       else if (id === 't-pay-act-other') { t.payActOther = v; S.payTouched.act = true; }
+      else if (id === 't-pay-dri-other') { t.payDriOther = v; S.payTouched.dri = true; }
       else return;
       e.target.classList.toggle('bad', !v.trim()); refreshSaveState();
     });
@@ -2735,7 +2806,7 @@
   function refreshSaveState() {
     const errs = violationList().filter((v) => v.severity === 'ERROR');
     const miss = validateStep1();
-    const terr = termsCfg ? C.termsErrors(termsCfg, S.terms, custType()) : [];
+    const terr = termsCfg ? C.termsErrors(termsCfg, S.terms, custType(), !!driLabel()) : [];
     const aerr = C.activityErrors(S.activities, S.lines);
     $('#btn-save').disabled = !!S.readOnly;         // gli errori si segnalano sul campo, con un popup, al click; revisione superata: sola lettura
     $('#btn-save-docx').disabled = root.dataset.docx === 'false';
@@ -2806,12 +2877,22 @@
     renderPwKind();
     refreshStepper(); syncSmitechMode(true);
   });
-  $('#sel-power-kind').addEventListener('change', (e) => {
+  $('#sel-power-kind').addEventListener('change', async (e) => {
     const k = e.target.value;
+    if (k === 'HADR' && S.optSmitech) {
+      const a = smitechApp(), l = a && lineOf(a.id);
+      if (l && Object.keys(l.modules).length && !(await CPQ.confirm('Con Power HA/DR i servizi SMITECH non sono previsti: quelli selezionati vengono tolti dall\'offerta. Continuare?', { title: 'Power HA/DR', yes: 'Sì, togli', no: 'No', danger: true }))) { e.target.value = S.powerKind; return; }
+    }
     if (k !== 'HADR' && pwIsCbu()) pwSwap();                // si esce da HA/DR: resta la configurazione di produzione
     S.powerKind = k;                                        // la scheda CBU resta in memoria (non viene inviata se il tipo non è HA/DR)
     renderPower(); CPQ.markDirty('page', root); refreshSaveState();
   });
+  $('#sel-hadr-sol').addEventListener('change', (e) => { S.hadrSolution = e.target.value; renderSmidri(); CPQ.markDirty('page', root); });
+  $('#smidri-price').addEventListener('input', (e) => { S.smidriPrice = e.target.value; CPQ.markDirty('page', root); });
+  $('#smidri-price').addEventListener('blur', (e) => { const v = C.parseMoney(e.target.value); if (v != null) { S.smidriPrice = CPQ.num(v, 2); e.target.value = S.smidriPrice; } });
+  $('#smidri-smismp').addEventListener('change', (e) => { S.smidriSmismp = e.target.checked; renderSmidri(); CPQ.markDirty('page', root); });
+  $('#smidri-sm-price').addEventListener('input', (e) => { S.smidriSmismpPrice = e.target.value; CPQ.markDirty('page', root); });
+  $('#smidri-sm-price').addEventListener('blur', (e) => { const v = C.parseMoney(e.target.value); if (v != null) { S.smidriSmismpPrice = CPQ.num(v, 2); e.target.value = S.smidriSmismpPrice; } });
   $('#pw-copy-prod').addEventListener('click', copyProdToCbu);
   $$('.pw-tab').forEach((b) => b.addEventListener('click', () => { pwSwitchTab(b.dataset.pwtab); CPQ.markDirty('page', root); }));
   $('#sel-power').addEventListener('change', (e) => { S.powerModelId = e.target.value ? Number(e.target.value) : null; renderPower(); refreshStepper(); syncSmitechMode(true); });
@@ -2819,7 +2900,12 @@
   $('#pw-disks').addEventListener('input', (e) => { S.powerDisks = e.target.value.replace(/\D/g, ''); updatePowerLock(); });
   $('#pw-disk').addEventListener('change', (e) => { S.powerDisk = e.target.value; updatePowerLock(); });
   $('#pw-users').addEventListener('input', (e) => { const v = e.target.value.replace(/\D/g, ''); S.powerUsers = v; refreshPowerModelList(true); updatePowerLock(); smitechUsersChanged(); });
-  $('#pw-unlimited').addEventListener('change', (e) => { S.powerUnlimited = e.target.checked; setTimeout(updatePowerLock, 0); $('#pw-users').disabled = S.powerUnlimited; if (S.powerUnlimited) { S.powerUsers = ''; $('#pw-users').value = ''; } refreshPowerModelList(true); smitechUsersChanged(); });
+  $('#pw-unlimited').addEventListener('change', (e) => {
+    S.powerUnlimited = e.target.checked;
+    if (S.powerUnlimited) { S.powerUsers = ''; $('#pw-users').value = ''; }
+    syncPowerUsers(true);                                   // deselezionando, con Galileo tornano gli utenti di Galileo
+    setTimeout(updatePowerLock, 0); CPQ.markDirty('page', root);
+  });
   // LTO8 e cavo di collegamento (LTO6/LTO7) sono alternativi: scegliendone uno l'altro si disattiva
   $('#pw-cable').addEventListener('change', (e) => { S.powerCable = e.target.value; if (S.powerCable) { S.powerLto8 = false; $('#pw-lto8').checked = false; renderAmtSummary(); } });
   bindAmtDialog();

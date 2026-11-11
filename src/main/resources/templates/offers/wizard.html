@@ -10,7 +10,7 @@
 
         <div class="pagehead">
             <a class="btn icon" th:href="@{/offers}" title="Torna indietro" aria-label="Torna indietro"><svg class="ic"><use href="#i-back"/></svg></a>
-            <h1 th:text="${offerId == null} ? 'Nuova offerta' : 'Modifica offerta - ' + ${offerNumber}">Nuova offerta</h1>
+            <h1 th:text="${offerId == null} ? 'Nuova offerta' : 'Modifica offerta - ' + ${offerNumber} + (${offerCustomerName != null and offerCustomerName != ''} ? ' - ' + ${offerCustomerName} : '')">Nuova offerta</h1>
             <span class="grow"></span>
             <a class="btn outlined hd-cancel" th:href="@{/offers}" title="Annulla" aria-label="Annulla"><svg class="ic hd-cancel-ic"><use href="#i-close"/></svg><span class="hd-cancel-txt">Annulla</span></a>
             <span class="hd-sep" aria-hidden="true"></span>
@@ -91,6 +91,7 @@
                     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
                         <label class="check"><input type="checkbox" id="opt-power"> Power System</label>
                         <div class="field" id="power-kind-box" style="min-width:240px;flex:0 1 280px" hidden><select id="sel-power-kind"><option value="NEW">Nuovo Power</option><option value="HADR">Power HA/DR</option></select><label for="sel-power-kind" class="on">Configurazione</label></div>
+                        <div class="field" id="hadr-sol-box" style="min-width:240px;flex:0 1 280px" hidden><select id="sel-hadr-sol"><option value="NONE">Nessuno</option><option value="SMIDRI">SMIDRI</option><option value="QUICK-EDD">QUICK-EDD</option></select><label for="sel-hadr-sol" class="on">Soluzione HA/DR</label></div>
                     </div>
                     <label class="check"><input type="checkbox" id="opt-smitech"> Servizi SMITECH <span class="hint">(SMISMP, SMIDRI, ecc: si configurano in un passo dedicato)</span></label>
                     <label class="check"><input type="checkbox" id="opt-dept"> Dipartimentali</label>
@@ -146,16 +147,31 @@
                     </fieldset>
                 </div>
 
-                <div class="card pw-opt locked" id="pw-card-hw">
-                    <h2>Opzioni Hardware <span class="pw-lock" title="Si abilita dopo aver compilato «Selezione del modello»">🔒</span></h2>
-                    <div class="pw-lockmsg">Compila prima la sezione «Selezione del modello»</div>
-                    <fieldset class="pw-fs" disabled>
-                        <div class="pw-stack">
-                            <label class="check"><input type="checkbox" id="pw-eth10"> Scheda ethernet 10 gbit</label>
-                            <label class="check"><input type="checkbox" id="pw-lto8"> LTO8</label>
-                            <div class="field" id="pw-cable-box"><select id="pw-cable"><option value="">— nessuno —</option><option value="LTO6">LTO6</option><option value="LTO7">LTO7</option></select><label for="pw-cable" class="on">Cavo di collegamento</label></div>
+                <div class="pw-hwcol">
+                    <div class="card pw-opt locked" id="pw-card-hw">
+                        <h2>Opzioni Hardware <span class="pw-lock" title="Si abilita dopo aver compilato «Selezione del modello»">🔒</span></h2>
+                        <div class="pw-lockmsg">Compila prima la sezione «Selezione del modello»</div>
+                        <fieldset class="pw-fs" disabled>
+                            <div class="pw-stack">
+                                <label class="check"><input type="checkbox" id="pw-eth10"> Scheda ethernet 10 gbit</label>
+                                <label class="check"><input type="checkbox" id="pw-lto8"> LTO8</label>
+                                <div class="field" id="pw-cable-box"><select id="pw-cable"><option value="">— nessuno —</option><option value="LTO6">LTO6</option><option value="LTO7">LTO7</option></select><label for="pw-cable" class="on">Cavo di collegamento</label></div>
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <div class="card pw-opt" id="pw-card-smidri" hidden>
+                        <h2>SMIDRI <span class="hint" id="smidri-class"></span></h2>
+                        <div class="grid c2" style="align-items:start">
+                            <div class="kv-box"><small>Listino SMIDRI (canone annuo)</small><b id="smidri-list">—</b><span class="note" id="smidri-list-note"></span></div>
+                            <div class="field"><input type="text" id="smidri-price" inputmode="decimal" placeholder=" " autocomplete="off"><label for="smidri-price">Valore al cliente (€) *</label><div class="help">Canone annuo SMIDRI proposto al cliente</div></div>
                         </div>
-                    </fieldset>
+                        <label class="check" style="margin-top:12px"><input type="checkbox" id="smidri-smismp"> Attiva SMISMP con SMIDRI</label>
+                        <div class="grid c2" id="smidri-sm-box" style="align-items:start;margin-top:10px" hidden>
+                            <div class="kv-box"><small>Listino SMIDRI-SMISMP (canone annuo)</small><b id="smidri-sm-list">—</b><span class="note" id="smidri-sm-note"></span></div>
+                            <div class="field"><input type="text" id="smidri-sm-price" inputmode="decimal" placeholder=" " autocomplete="off"><label for="smidri-sm-price">Valore al cliente (€) *</label><div class="help">Canone annuo SMISMP abbinato a SMIDRI</div></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="card pw-opt locked" id="pw-card-sw">

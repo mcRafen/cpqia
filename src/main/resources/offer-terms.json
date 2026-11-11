@@ -7,6 +7,10 @@
     { "code": "NEXT_MONTH", "label": "Entro il mese successivo della data di fatturazione delle licenze software" },
     { "code": "DATE", "label": "Data", "date": true }
   ],
+  "driBill": [
+    { "code": "INSTALL", "label": "Mese di installazione" },
+    { "code": "DATE", "label": "Data", "date": true }
+  ],
   "actBill": [
     { "code": "CONSUNTIVO", "label": "A consuntivo" },
     { "code": "PACCHETTO", "label": "A pacchetto" }
@@ -24,12 +28,13 @@
   ],
   "payLic": ["USUAL", "RIBA30", "IVA_30_60", "IVA_30_60_90", "IVA_60_90", "IVA_60_90_120", "IVA_60_90_120_150", "IVA_60_90_120_150_180", "OTHER"],
   "payFee": ["USUAL", "RIBA30", "IVA_30_60", "IVA_30_60_90", "IVA_60_90", "IVA_60_90_120", "IVA_60_90_120_150", "IVA_60_90_120_150_180", "OTHER"],
+  "payDri": ["USUAL", "RIBA30", "IVA_30_60", "IVA_30_60_90", "IVA_60_90", "IVA_60_90_120", "IVA_60_90_120_150", "IVA_60_90_120_150_180", "OTHER"],
   "payAct": {
     "CONSUNTIVO": ["USUAL", "RIBA30", "IVA_30_60", "OTHER"],
     "PACCHETTO": ["USUAL", "IVA_30_60", "IVA_30_60_90", "IVA_60_90", "IVA_60_90_120", "IVA_60_90_120_150", "OTHER"]
   },
   "defaults": {
-    "billLic": "DAYS30", "billFee": "NEXT_MONTH", "billAct": "CONSUNTIVO",
+    "billLic": "DAYS30", "billFee": "NEXT_MONTH", "billAct": "CONSUNTIVO", "billDri": "INSTALL",
     "payProspect": "RIBA30", "payCustomer": "USUAL"
   }
 }

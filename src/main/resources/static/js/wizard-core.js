@@ -156,20 +156,21 @@
   function defaultTerms(cfg, customerType) {
     const pay = customerType === 'CLIENTE' ? cfg.defaults.payCustomer : cfg.defaults.payProspect;
     return { billLic: cfg.defaults.billLic, billLicDate: '', billFee: cfg.defaults.billFee, billFeeDate: '', feeSemiannual: false,
-      billAct: cfg.defaults.billAct, payLic: pay, payLicOther: '', payFee: pay, payFeeOther: '', payAct: pay, payActOther: '' };
+      billAct: cfg.defaults.billAct, payLic: pay, payLicOther: '', payFee: pay, payFeeOther: '', payAct: pay, payActOther: '',
+      billDri: cfg.defaults.billDri || 'INSTALL', billDriDate: '', payDri: pay, payDriOther: '' };
   }
 
   const payDefault = (cfg, type) => (type === 'CLIENTE' ? cfg.defaults.payCustomer : cfg.defaults.payProspect);
 
   /** codici di pagamento ammessi per categoria ('lic' | 'fee' | 'act'); "Solito in uso" solo per i clienti, mai per i prospect */
   function allowedPay(cfg, cat, billAct, type) {
-    const list = cat === 'lic' ? cfg.payLic : (cat === 'fee' ? cfg.payFee : (cfg.payAct[billAct] || []));
+    const list = cat === 'lic' ? cfg.payLic : (cat === 'fee' ? cfg.payFee : (cat === 'dri' ? (cfg.payDri || cfg.payFee) : (cfg.payAct[billAct] || [])));
     return type === 'CLIENTE' ? list : list.filter((c) => c !== 'USUAL');
   }
 
   /** riporta al predefinito (o alla prima opzione ammessa) i pagamenti non piu' validi: cambio di fatturazione o di tipo account */
   function normalizePay(cfg, t, type) {
-    [['lic', 'payLic', 'payLicOther'], ['fee', 'payFee', 'payFeeOther'], ['act', 'payAct', 'payActOther']].forEach(([cat, k, other]) => {
+    [['lic', 'payLic', 'payLicOther'], ['fee', 'payFee', 'payFeeOther'], ['act', 'payAct', 'payActOther'], ['dri', 'payDri', 'payDriOther']].forEach(([cat, k, other]) => {
       const al = allowedPay(cfg, cat, t.billAct, type);
       if (!al.includes(t[k])) {
         const d = payDefault(cfg, type);
@@ -194,15 +195,17 @@
     if (!touched.lic) { t.payLic = d.payLic; t.payLicOther = ''; }
     if (!touched.fee) { t.payFee = d.payFee; t.payFeeOther = ''; }
     if (!touched.act) { t.payAct = d.payAct; t.payActOther = ''; }
+    if (!touched.dri) { t.payDri = d.payDri; t.payDriOther = ''; }
     return normalizePay(cfg, t, customerType);
   }
 
-  function termsErrors(cfg, t, type) {
+  function termsErrors(cfg, t, type, dri) {
     const e = [];
     const bill = (list, code) => list.find((o) => o.code === code);
     const lic = bill(cfg.licBill, t.billLic); if (lic && lic.date && !t.billLicDate) e.push('Fatturazione licenze: indica la data');
     const fee = bill(cfg.feeBill, t.billFee); if (fee && fee.date && !t.billFeeDate) e.push('Fatturazione canoni: indica la data');
-    [['lic', 'licenze', t.payLic, t.payLicOther], ['fee', 'canoni', t.payFee, t.payFeeOther], ['act', 'attività sistemistiche', t.payAct, t.payActOther]].forEach(([cat, name, code, other]) => {
+    if (dri) { const d = bill(cfg.driBill || [], t.billDri); if (d && d.date && !t.billDriDate) e.push('Fatturazione canone SMIDRI/SMISMP: indica la data'); }
+    [['lic', 'licenze', t.payLic, t.payLicOther], ['fee', 'canoni', t.payFee, t.payFeeOther], ['act', 'attività sistemistiche', t.payAct, t.payActOther]].concat(dri ? [['dri', 'canone SMIDRI/SMISMP', t.payDri, t.payDriOther]] : []).forEach(([cat, name, code, other]) => {
       if (code === 'USUAL' && type !== 'CLIENTE') e.push('Pagamento ' + name + ': "Solito in uso" non è ammesso per un prospect');
       const o = cfg.pay.find((x) => x.code === code);
       if (o && o.free && !(other || '').trim()) e.push('Pagamento ' + name + ': scrivi la modalità');
@@ -226,7 +229,7 @@
       projectTitle: state.title || null,
       contactRef: state.contactRef || null,
       discountPct: Number(state.discountPct || 0),
-      terms: state.terms ? Object.assign({}, state.terms, { billLicDate: state.terms.billLicDate || null, billFeeDate: state.terms.billFeeDate || null }) : null,
+      terms: state.terms ? Object.assign({}, state.terms, { billLicDate: state.terms.billLicDate || null, billFeeDate: state.terms.billFeeDate || null, billDriDate: state.terms.billDriDate || null }) : null,
       optMaintenanceAdditional: !!state.optMaint,
       optExtraServices: !!state.optServices,
       optFinalSummary: !!state.optSummary,
@@ -245,6 +248,10 @@
       maintOnNet: state.maintOnNet !== false,
       optPowerSystem: !!state.optPower,
       powerKind: state.optPower ? (state.powerKind || 'NEW') : 'NEW',
+      powerHadrSolution: state.optPower && state.powerKind === 'HADR' ? (state.hadrSolution || 'NONE') : 'NONE',
+      powerSmidriPrice: state.optPower && state.powerKind === 'HADR' && state.hadrSolution === 'SMIDRI' ? parseMoney(state.smidriPrice) : null,
+      powerSmidriSmismp: !!(state.optPower && state.powerKind === 'HADR' && state.hadrSolution === 'SMIDRI' && state.smidriSmismp),
+      powerSmidriSmismpPrice: state.optPower && state.powerKind === 'HADR' && state.hadrSolution === 'SMIDRI' && state.smidriSmismp ? parseMoney(state.smidriSmismpPrice) : null,
       powerModelId: state.optPower ? (state.powerModelId || null) : null,
       powerRamGb: state.optPower && state.powerRam ? Number(state.powerRam) : null,
       powerDisk: state.optPower && state.powerDisk ? state.powerDisk : null,

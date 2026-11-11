@@ -36,7 +36,8 @@ public final class OfferDtos {
                                List<PowerProductSel> powerProducts, Integer powerDiskCount, Boolean optUseRfq, Boolean optServicesDays, String appTotalsMode, BigDecimal rfqSheetTotal,
                                it.cpqia.galileo.GalileoService.Request galileo, String servicesMode,
                                List<ProfileRateReq> profileRates, List<PowerMaintReq> powerMaint, Boolean optHoursDetail,
-                               LocalDate activityDiscountUntil, String powerKind, PowerCbuReq powerCbu) {
+                               LocalDate activityDiscountUntil, String powerKind, PowerCbuReq powerCbu, String powerHadrSolution,
+                               BigDecimal powerSmidriPrice, Boolean powerSmidriSmismp, BigDecimal powerSmidriSmismpPrice) {
     }
 
     /** scheda «Power CBU» di un Power HA/DR: gli stessi campi della scheda Produzione, senza i prodotti IBM i */

@@ -150,6 +150,9 @@ public class OfferSnapshotService {
             put(out, P, "LTO8", yn(o.get("power_lto8")));
             put(out, P, "Ethernet 10G", yn(o.get("power_eth10")));
             put(out, P, "Cavo", s(o.get("power_cable")));
+            put(out, P, "Soluzione HA/DR", s(o.get("power_hadr_solution")));
+            put(out, P, "SMIDRI – valore al cliente", money(o.get("power_smidri_price")));
+            put(out, P, "SMISMP con SMIDRI", Boolean.TRUE.equals(o.get("power_smidri_smismp")) ? money(o.get("power_smidri_smismp_price")) : "No");
             put(out, P, "Transfer / Conversion", s(o.get("power_transfer")));
             put(out, P, "Riferimenti Power", s(o.get("power_transfer_ref")).replace("|", " | "));
             put(out, P, "Edizione", s(o.get("power_edition")));

@@ -37,11 +37,17 @@ public class TermsConfig {
     public PaymentTerms defaultsFor(String customerType) {
         String pay = "CLIENTE".equals(customerType) ? config.defaults().get("payCustomer") : config.defaults().get("payProspect");
         return new PaymentTerms(config.defaults().get("billLic"), null, config.defaults().get("billFee"), null, false,
-                config.defaults().get("billAct"), pay, null, pay, null, pay, null);
+                config.defaults().get("billAct"), pay, null, pay, null, pay, null,
+                config.defaults().get("billDri"), null, pay, null);
     }
 
     /** errori di compilazione (vuota = valido); "Solito in uso" e' ammesso solo per i clienti, mai per i prospect */
     public List<String> validate(PaymentTerms t, String customerType) {
+        return validate(t, customerType, false);
+    }
+
+    /** dri = l'offerta comprende SMIDRI e/o SMISMP: serve anche la modalita' del relativo canone */
+    public List<String> validate(PaymentTerms t, String customerType, boolean dri) {
         List<String> e = new ArrayList<>();
         BillOption lic = find(config.licBill(), t.billLic());
         if (lic == null) {
@@ -62,6 +68,15 @@ public class TermsConfig {
         checkPay(e, "canoni", t.payFee(), t.payFeeOther(), allowedFor(config.payFee(), customerType));
         List<String> actAllowed = config.payAct().get(t.billAct() == null ? "" : t.billAct());
         checkPay(e, "attività sistemistiche", t.payAct(), t.payActOther(), allowedFor(actAllowed == null ? List.of() : actAllowed, customerType));
+        if (dri) {
+            BillOption d = find(config.driBill(), t.billDri());
+            if (d == null) {
+                e.add("Modalità di fatturazione del canone SMIDRI/SMISMP non valida");
+            } else if (d.date() && t.billDriDate() == null) {
+                e.add("Fatturazione canone SMIDRI/SMISMP: indicare la data");
+            }
+            checkPay(e, "canone SMIDRI/SMISMP", t.payDri(), t.payDriOther(), allowedFor(config.payDri(), customerType));
+        }
         return e;
     }
 
@@ -95,6 +110,11 @@ public class TermsConfig {
     public String billFeeText(PaymentTerms t) {
         String base = billText(config.feeBill(), t.billFee(), t.billFeeDate());
         return t.feeSemiannual() ? base + " – fatturazione semestrale" : base;
+    }
+
+    /** cella FATTURAZIONE del canone SMIDRI/SMISMP: «Mese di installazione» o «In data gg/mm/aaaa» */
+    public String billDriText(PaymentTerms t) {
+        return billText(config.driBill(), t.billDri(), t.billDriDate());
     }
 
     public String billActText(PaymentTerms t) {

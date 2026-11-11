@@ -258,7 +258,7 @@ public class OfferService {
         if (terms == null) {
             terms = termsConfig.defaultsFor(customerType);
         }
-        List<String> termErrors = termsConfig.validate(terms, customerType);
+        List<String> termErrors = termsConfig.validate(terms, customerType, driLabel(req) != null);
         if (!termErrors.isEmpty()) {
             throw new IllegalArgumentException(String.join("; ", termErrors));
         }
@@ -349,10 +349,21 @@ public class OfferService {
         }
         jdbc.sql("update offer set opt_hours_detail = :f, activity_discount_until = :u where id = :id").param("f", flag(req.optHoursDetail()))
                 .param("u", actDiscount(req).signum() > 0 ? req.activityDiscountUntil() : null).param("id", offerId).update();
-        jdbc.sql("update offer set power_kind = :k where id = :id").param("k", powerKind(req)).param("id", offerId).update();
+        jdbc.sql("update offer set power_kind = :k, power_hadr_solution = :s, power_smidri_price = :sp, power_smidri_smismp = :sm, power_smidri_smismp_price = :smp where id = :id")
+                .param("k", powerKind(req)).param("s", "HADR".equals(powerKind(req)) ? hadrSolution(req) : "NONE")
+                .param("sp", smidriOn(req) ? req.powerSmidriPrice() : null).param("sm", smidriOn(req) && flag(req.powerSmidriSmismp()))
+                .param("smp", smidriOn(req) && flag(req.powerSmidriSmismp()) ? req.powerSmidriSmismpPrice() : null).param("id", offerId).update();
         checkGalileo(req.galileoApplicationId());
         checkPower(req);
         checkPowerCbu(req);
+        if (smidriOn(req)) {
+            if (req.powerSmidriPrice() == null || req.powerSmidriPrice().signum() < 0) {
+                throw new IllegalArgumentException("Power HA/DR – SMIDRI: indicare il valore al cliente");
+            }
+            if (flag(req.powerSmidriSmismp()) && (req.powerSmidriSmismpPrice() == null || req.powerSmidriSmismpPrice().signum() < 0)) {
+                throw new IllegalArgumentException("Power HA/DR – SMISMP con SMIDRI: indicare il valore al cliente");
+            }
+        }
         savePowerCbu(offerId, req);
         termsRepo.save(offerId, terms);
         extraRepo.saveSelection(offerId, Boolean.TRUE.equals(req.optExtraServices()) ? req.extras() : null);
@@ -519,6 +530,45 @@ public class OfferService {
     }
 
     /** configurazione Power: NEW (Nuovo Power) o HADR (Power HA/DR); senza la sezione Power e' sempre NEW */
+    /**
+     * Servizi SMIDRI / SMISMP presenti nell'offerta (soluzione HA/DR SMIDRI con eventuale SMISMP, moduli SMITECH con SMIDRI / SMISMP nel codice):
+     * «SMIDRI», «SMISMP» oppure «SMIDRI/SMISMP»; null = nessuno (la riga del canone nelle modalita' di pagamento non c'e')
+     */
+    private String driLabel(OfferRequest req) {
+        boolean dri = false, smp = false;
+        if (smidriOn(req)) {
+            dri = true;
+            smp = flag(req.powerSmidriSmismp());
+        }
+        if (req.lines() != null) {
+            for (LineRequest l : req.lines()) {
+                App app = catalog.find(l.applicationId()).orElse(null);
+                if (app == null || !"SMITECH".equalsIgnoreCase(app.family()) || l.modules() == null) {
+                    continue;
+                }
+                for (ModuleQty mq : l.modules()) {
+                    Module m = mq.moduleId() == null || mq.qty() == null || mq.qty() <= 0 ? null : app.module(mq.moduleId());
+                    if (m != null) {
+                        dri |= m.code().toUpperCase().contains("SMIDRI");
+                        smp |= m.code().toUpperCase().contains("SMISMP");
+                    }
+                }
+            }
+        }
+        return dri && smp ? "SMIDRI/SMISMP" : dri ? "SMIDRI" : smp ? "SMISMP" : null;
+    }
+
+    /** Power HA/DR con soluzione SMIDRI */
+    private static boolean smidriOn(OfferRequest req) {
+        return "HADR".equals(powerKind(req)) && "SMIDRI".equals(hadrSolution(req));
+    }
+
+    /** soluzione HA/DR: NONE, SMIDRI o QUICK-EDD (solo con Power HA/DR) */
+    private static String hadrSolution(OfferRequest req) {
+        String s = req.powerHadrSolution() == null ? "NONE" : req.powerHadrSolution().trim().toUpperCase();
+        return List.of("NONE", "SMIDRI", "QUICK-EDD").contains(s) ? s : "NONE";
+    }
+
     private static String powerKind(OfferRequest req) {
         String k = req.powerKind() == null ? "NEW" : req.powerKind().trim().toUpperCase();
         return powerOn(req) && List.of("NEW", "HADR").contains(k) ? k : "NEW";
@@ -902,7 +952,11 @@ public class OfferService {
                 h.powerModelId(), h.powerRamGb(), h.powerDisk(), h.powerLto8(), h.powerEth10(), h.powerIbmiUsers(), h.powerIbmiUnlimited(),
                 h.powerCable(), h.powerTransfer(), h.powerTransferRef(), h.powerEdition(), h.powerOs(), h.powerMaintMonths(), h.powerListPrice(), h.powerNetPrice(), loadPowerProducts(id), h.powerDiskCount(), h.optUseRfq(), h.optServicesDays(), h.appTotalsMode(), h.rfqSheetTotal(), galileo.load(id), h.servicesMode(), loadProfileRates(id), loadPowerMaint(id), jdbc.sql("select opt_hours_detail from offer where id = :id").param("id", id).query(Boolean.class).optional().orElse(false),
                 jdbc.sql("select activity_discount_until from offer where id = :id").param("id", id).query((rs, n) -> rs.getObject(1, java.time.LocalDate.class)).optional().orElse(null),
-                jdbc.sql("select power_kind from offer where id = :id").param("id", id).query(String.class).optional().orElse("NEW"), loadPowerCbu(id));
+                jdbc.sql("select power_kind from offer where id = :id").param("id", id).query(String.class).optional().orElse("NEW"), loadPowerCbu(id),
+                jdbc.sql("select power_hadr_solution from offer where id = :id").param("id", id).query(String.class).optional().orElse("NONE"),
+                jdbc.sql("select power_smidri_price from offer where id = :id").param("id", id).query(BigDecimal.class).optional().orElse(null),
+                jdbc.sql("select power_smidri_smismp from offer where id = :id").param("id", id).query(Boolean.class).optional().orElse(false),
+                jdbc.sql("select power_smidri_smismp_price from offer where id = :id").param("id", id).query(BigDecimal.class).optional().orElse(null));
     }
 
     private List<OfferDtos.ActivityReq> loadActivities(long offerId) {

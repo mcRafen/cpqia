@@ -64,14 +64,14 @@ public class CustomerRepository {
     public long insert(Customer c, long userId) {
         return jdbc.sql("""
                 insert into account (code, type, company_name, street_type, street_name, street_number, postal_code,
-                    city, province, vat_number, tax_code, created_by)
+                    city, province, vat_number, tax_code, agent_code, created_by)
                 values ('C' || lpad(nextval('account_code_seq')::text, 6, '0'), :type, :name, :st, :sn, :num, :cap,
-                    :city, :prov, :vat, :cf, :by)
+                    :city, :prov, :vat, :cf, :ag, :by)
                 returning id""")
                 .param("type", c.type()).param("name", c.companyName()).param("st", c.streetType())
                 .param("sn", c.streetName()).param("num", c.streetNumber()).param("cap", c.postalCode())
                 .param("city", c.city()).param("prov", blankToNull(c.province())).param("vat", c.vatNumber())
-                .param("cf", blankToNull(c.taxCode())).param("by", userId)
+                .param("cf", blankToNull(c.taxCode())).param("ag", blankToNull(c.agentCode())).param("by", userId)
                 .query(Long.class).single();
     }
 
@@ -79,17 +79,27 @@ public class CustomerRepository {
         jdbc.sql("""
                 update account set type = :type, company_name = :name, street_type = :st, street_name = :sn,
                     street_number = :num, postal_code = :cap, city = :city, province = :prov, vat_number = :vat,
-                    tax_code = :cf where id = :id""")
+                    tax_code = :cf, agent_code = :ag where id = :id""")
                 .param("type", c.type()).param("name", c.companyName()).param("st", c.streetType())
                 .param("sn", c.streetName()).param("num", c.streetNumber()).param("cap", c.postalCode())
                 .param("city", c.city()).param("prov", blankToNull(c.province())).param("vat", c.vatNumber())
-                .param("cf", blankToNull(c.taxCode())).param("id", c.id()).update();
+                .param("cf", blankToNull(c.taxCode())).param("ag", blankToNull(c.agentCode())).param("id", c.id()).update();
     }
 
     /** {codice agente, descrizione decodificata dalla tabella agent} dell'account (stringhe vuote se assenti) */
     public String[] agentInfo(long accountId) {
         return jdbc.sql("select coalesce(c.agent_code, ''), coalesce(a.description, '') from account c left join agent a on a.code = c.agent_code where c.id = :id")
                 .param("id", accountId).query((rs, n) -> new String[]{rs.getString(1), rs.getString(2)}).optional().orElse(new String[]{"", ""});
+    }
+
+    /** agenti (codice, descrizione) per la scelta del codice agente di un prospect */
+    public java.util.List<String[]> agents() {
+        return jdbc.sql("select code, description from agent order by lower(description), code")
+                .query((rs, n) -> new String[]{rs.getString(1), rs.getString(2)}).list();
+    }
+
+    public boolean agentExists(String code) {
+        return jdbc.sql("select count(*) from agent where code = :c").param("c", code).query(Long.class).single() > 0;
     }
 
     public boolean hasOffers(long id) {
