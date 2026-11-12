@@ -14,11 +14,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TemplatesPackagedTest {
 
     private static final List<String> REQUIRED = List.of("offer-template.docx", "licenze.docx", "attivita.docx", "attivita-light.docx", "attivita-appendice.docx", "attivita-conversioni.docx", "attivita-personalizzazioni.docx", "attivita-followup.docx", "licenze-elenco-semplice.docx", "moduli.docx", "manutenzione.docx",
-            "servizi-accessori.docx", "riepilogo-finale.docx", "riepilogo-finale-servizi-accessori.docx", "varie.docx", "pagamenti.docx", "condizioni-gdpr.docx",
+            "servizi-accessori.docx", "riepilogo-finale.docx", "riepilogo-finale-servizi-accessori.docx", "riepilogo-finale-servizi-smitech.docx", "varie.docx", "pagamenti.docx", "condizioni-gdpr.docx",
             "Power/tabelle-power-hardware.docx", "Power/tabelle-power-software.docx", "Power/tabelle-power-manutenzione.docx", "Power/tabelle-power-chiavi di licenza.docx",
             "Power/tabelle-power-solution edition.docx", "Power/tabelle-power-migrazione programmi.docx", "Power/tabelle-power-transfer.docx",
             "Power/tabelle-power-caratteristiche nvme.docx", "Power/tabelle-power-smaltimento.docx",
-            "Smitech/SMINGF.docx", "Smitech/SMISEP.docx", "Smitech/SMIACR.docx", "Smitech/SMISMP.docx", "Smitech/SMIMGT.docx", "Smitech/SMICAI.docx");
+            "Smitech/SMIDRI.docx", "Smitech/SMISMP.docx", "Smitech/SMISMP-TOTALI-CON-SMIDRI.docx", "Smitech/SMINGF.docx", "Smitech/SMISEP.docx", "Smitech/SMIACR.docx", "Smitech/SMISMP.docx", "Smitech/SMIMGT.docx", "Smitech/SMICAI.docx");
 
     @Test
     void requiredTemplatesAreOnTheClasspath() throws Exception {

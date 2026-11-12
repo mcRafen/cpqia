@@ -139,11 +139,44 @@ public class OfferService {
     }
 
     // --------------------------------------------------------------------- calcolo
+    /** prezzi unitari modificati a mano dei moduli scelti della riga: listOv = listino, custOv = a cliente (solo dove indicato esplicitamente o derivato dal listino modificato) */
+    static void collectPriceOverrides(LineRequest l, Map<Long, Integer> sel, Map<Long, BigDecimal> listOv, Map<Long, BigDecimal> custOv) {
+        if (l.modules() == null) {
+            return;
+        }
+        for (ModuleQty mq : l.modules()) {
+            if (mq.moduleId() == null || !sel.containsKey(mq.moduleId())) {
+                continue;
+            }
+            if (mq.listPrice() != null) {
+                if (mq.listPrice().signum() < 0) {
+                    throw new IllegalArgumentException("Il prezzo di listino di un modulo non può essere negativo");
+                }
+                listOv.put(mq.moduleId(), mq.listPrice());
+            }
+            if (mq.customerPrice() != null) {
+                if (mq.customerPrice().signum() < 0) {
+                    throw new IllegalArgumentException("L'importo a cliente di un modulo non può essere negativo");
+                }
+                custOv.put(mq.moduleId(), mq.customerPrice());
+            }
+        }
+    }
+
+    /** prezzi a cliente effettivi: quelli indicati, altrimenti il listino modificato (i moduli senza modifiche usano il catalogo) */
+    static Map<Long, BigDecimal> mergeOverrides(Map<Long, BigDecimal> listOv, Map<Long, BigDecimal> custOv) {
+        Map<Long, BigDecimal> m = new java.util.HashMap<>(listOv);
+        m.putAll(custOv);
+        return m;
+    }
+
     public CalcResponse calculate(OfferRequest req) {
         List<LineSelection> selections = new ArrayList<>();
         List<LineResult> results = new ArrayList<>();
         BigDecimal totLic = BigDecimal.ZERO;
         BigDecimal totMan = BigDecimal.ZERO;
+        BigDecimal custMan = BigDecimal.ZERO;
+        BigDecimal custLic = BigDecimal.ZERO;                 // licenze calcolate con i prezzi a cliente dei moduli (base su cui si applica lo sconto)
         if (req.lines() != null) {
             for (LineRequest l : req.lines()) {
                 App app = catalog.find(l.applicationId()).orElseThrow(
@@ -159,12 +192,18 @@ public class OfferService {
                 }
                 // utenti / macchine contano solo se e' selezionato almeno un modulo con gruppo di prezzo (moduli per utente); solo moduli a prezzo fisso: vale il prezzo
                 Map<Long, Integer> drv = l.drivers() == null || !perUserSelected(app, l) ? Map.of() : l.drivers();
-                Result r = pricing.calculate(app, mode, sel, drv);
+                Map<Long, BigDecimal> listOv = new java.util.HashMap<>(), custOv = new java.util.HashMap<>();
+                collectPriceOverrides(l, sel, listOv, custOv);
+                // totale della riga e relativa manutenzione sull'importo a cliente (uguale al listino, eventualmente modificato, finche' non indicato)
+                Result r = pricing.calculate(app, mode, sel, drv, mergeOverrides(listOv, custOv));
                 selections.add(new LineSelection(app, mode, sel, drv));
                 BigDecimal licTot = r.licenseWithOnetime();
-                results.add(new LineResult(app.id(), r.license(), r.onetime(), licTot, r.maintenance(), r.rentMonthly(), r.rows(), r.annual()));
+                results.add(new LineResult(app.id(), r.license(), r.onetime(), licTot, r.maintenance(), r.rentMonthly(), r.rows(), r.annual(),
+                        licTot, r.maintenance()));
                 totLic = totLic.add(licTot);
                 totMan = totMan.add(r.maintenance());
+                custLic = custLic.add(licTot);
+                custMan = custMan.add(r.maintenance());
             }
         }
         BigDecimal disc = req.discountPct() == null ? BigDecimal.ZERO : req.discountPct();
@@ -173,9 +212,9 @@ public class OfferService {
         }
         BigDecimal factor = BigDecimal.ONE.subtract(disc.divide(HUNDRED));
         List<Violation> violations = rules.check(selections);
-        BigDecimal netLic = PricingService.round(totLic.multiply(factor));
+        BigDecimal netLic = PricingService.round(custLic.multiply(factor));
         // «Manutenzione su netto scontato» (flag dell'offerta): la manutenzione segue lo sconto; altrimenti resta sul listino
-        BigDecimal netMan = !Boolean.FALSE.equals(req.maintOnNet()) ? PricingService.round(totMan.multiply(factor)) : totMan;
+        BigDecimal netMan = !Boolean.FALSE.equals(req.maintOnNet()) ? PricingService.round(custMan.multiply(factor)) : totMan;
         // margine commerciale = netto licenze software + netto manutenzione software
         // servizi accessori (solo se richiesti): importi una tantum / canone e scelte mancanti
         ExtraModel.Totals extraTotals = null;
@@ -316,7 +355,7 @@ public class OfferService {
                             opt_smitech_services = :sm, opt_departmental = :dep,
                             power_model_id = :pm, power_ram_gb = :pram, power_disk = :pdisk, power_lto8 = :plto, power_eth10 = :peth, power_ibmi_users = :pusr, power_ibmi_unlimited = :punl,
                             power_cable = :pcab, power_transfer = :ptr, power_transfer_ref = :ptref, power_edition = :ped, power_os = :pos, power_maint_months = :pmm, power_list_price = :plp, power_net_price = :pnp, power_disk_count = :pdc, services_mode = :svm, opt_use_rfq = :rfq, opt_services_days = :sdy, app_totals_mode = :apt, rfq_sheet_total = :rst,
-                            updated_at = now() where id = :id""")
+                            updated_at = now(), updated_by = :uby where id = :id""")
                         .param("num", number).param("dt", req.offerDate()).param("prog", req.progressive())
                         .param("cust", req.customerId()).param("title", req.projectTitle())
                         .param("ref", blankToNull(req.contactRef())).param("disc", calc.discountPct())
@@ -336,7 +375,7 @@ public class OfferService {
                         .param("plp", powerOn(req) ? maintTotal(req, true) : null).param("pnp", powerOn(req) ? maintTotal(req, false) : null)
                         .param("pdc", powerOn(req) ? diskCount(req) : 2).param("rfq", rfq(req)).param("sdy", !Boolean.FALSE.equals(req.optServicesDays()))
                         .param("apt", totalsMode(req)).param("svm", servicesMode(req)).param("rst", rfq(req) ? req.rfqSheetTotal() : null)
-                        .param("id", offerId).update();
+                        .param("uby", user.id()).param("id", offerId).update();
                 jdbc.sql("delete from offer_line where offer_id = :id").param("id", offerId).update();
                 jdbc.sql("delete from offer_activity where offer_id = :id").param("id", offerId).update();
                 jdbc.sql("delete from offer_profile_rate where offer_id = :id").param("id", offerId).update();
@@ -353,6 +392,7 @@ public class OfferService {
                 .param("k", powerKind(req)).param("s", "HADR".equals(powerKind(req)) ? hadrSolution(req) : "NONE")
                 .param("sp", smidriOn(req) ? req.powerSmidriPrice() : null).param("sm", smidriOn(req) && flag(req.powerSmidriSmismp()))
                 .param("smp", smidriOn(req) && flag(req.powerSmidriSmismp()) ? req.powerSmidriSmismpPrice() : null).param("id", offerId).update();
+        jdbc.sql("update offer set power_ts4300 = :t where id = :id").param("t", powerOn(req) && Boolean.TRUE.equals(req.powerTs4300())).param("id", offerId).update();
         checkGalileo(req.galileoApplicationId());
         checkPower(req);
         checkPowerCbu(req);
@@ -375,10 +415,12 @@ public class OfferService {
             App app = catalog.find(l.applicationId()).orElseThrow();
             String mode = l.modeCode() != null ? l.modeCode() : app.defaultMode();
             long lineId = jdbc.sql("""
-                    insert into offer_line (offer_id, application_id, mode_code, sort_order, license_amount, maintenance_amount)
-                    values (:o, :a, :m, :s, :la, :ma) returning id""")
+                    insert into offer_line (offer_id, application_id, mode_code, sort_order, license_amount, maintenance_amount,
+                        customer_license_amount, customer_maintenance_amount)
+                    values (:o, :a, :m, :s, :la, :ma, :cla, :cma) returning id""")
                     .param("o", offerId).param("a", app.id()).param("m", mode).param("s", sort += 10)
-                    .param("la", lr.licenseTotal()).param("ma", lr.maintenance()).query(Long.class).single();
+                    .param("la", lr.licenseTotal()).param("ma", lr.maintenance())
+                    .param("cla", lr.customerLicenseTotal()).param("cma", lr.customerMaintenance()).query(Long.class).single();
             if (l.drivers() != null && perUserSelected(app, l)) {
                 for (Map.Entry<Long, Integer> e : l.drivers().entrySet()) {
                     if (e.getValue() != null && e.getValue() > 0) {
@@ -396,9 +438,13 @@ public class OfferService {
                     if (m == null || "LINK".equals(m.section())) {
                         continue;
                     }
-                    jdbc.sql("insert into offer_line_module (line_id, module_id, qty, unit_price) values (:l, :m, :q, :p)")
+                    BigDecimal catalogPrice = PricingService.priceOf(m, mode);
+                    BigDecimal listPrice = mq.listPrice() != null && mq.listPrice().compareTo(catalogPrice) != 0 ? mq.listPrice() : null;      // solo se diverso dal catalogo
+                    BigDecimal effList = listPrice != null ? listPrice : catalogPrice;
+                    BigDecimal custPrice = mq.customerPrice() != null && mq.customerPrice().compareTo(effList) != 0 ? mq.customerPrice() : null;   // solo se diverso dal listino
+                    jdbc.sql("insert into offer_line_module (line_id, module_id, qty, unit_price, list_price, customer_price) values (:l, :m, :q, :p, :lp, :cp)")
                             .param("l", lineId).param("m", m.id()).param("q", m.qtyEnabled() ? mq.qty() : 1)
-                            .param("p", PricingService.priceOf(m, mode)).update();
+                            .param("p", catalogPrice).param("lp", listPrice).param("cp", custPrice).update();
                 }
             }
         }
@@ -465,13 +511,14 @@ public class OfferService {
             throw new IllegalArgumentException("Power System: seleziona la manutenzione SW/HW e indica gli importi");
         }
         boolean lto = Boolean.TRUE.equals(req.powerLto8());
+        boolean ts = Boolean.TRUE.equals(req.powerTs4300());
         java.util.Set<String> seen = new java.util.HashSet<>();
         java.util.Set<Integer> periods = new java.util.TreeSet<>();
         for (OfferDtos.PowerMaintReq m : ls) {
             if (m == null || m.months() == null || !List.of(36, 48, 60).contains(m.months())) {
                 throw new IllegalArgumentException("Power System: la manutenzione SW/HW può essere di 36, 48 o 60 mesi");
             }
-            if (m.kind() == null || !List.of("POWER", "LTO8").contains(m.kind()) || ("LTO8".equals(m.kind()) && !lto)) {
+            if (m.kind() == null || !List.of("POWER", "LTO8", "TS4300").contains(m.kind()) || ("LTO8".equals(m.kind()) && !lto) || ("TS4300".equals(m.kind()) && !ts)) {
                 throw new IllegalArgumentException("Power System: sezione di manutenzione non valida");
             }
             if (m.listPrice() == null || m.netPrice() == null) {
@@ -486,7 +533,7 @@ public class OfferService {
             periods.add(m.months());
         }
         // il prezzo (listino e netto scontato) di un periodo piu' breve non puo' superare quello di un periodo piu' lungo (per Power e per LTO8)
-        for (String kind : List.of("POWER", "LTO8")) {
+        for (String kind : List.of("POWER", "LTO8", "TS4300")) {
             for (boolean list : new boolean[]{true, false}) {
                 java.util.TreeMap<Integer, java.math.BigDecimal> byMonths = new java.util.TreeMap<>();
                 for (OfferDtos.PowerMaintReq m : ls) {
@@ -498,7 +545,7 @@ public class OfferService {
                 java.math.BigDecimal prevP = null;
                 for (var e : byMonths.entrySet()) {
                     if (prevP != null && prevP.compareTo(e.getValue()) > 0) {
-                        throw new IllegalArgumentException("Power System: manutenzione " + ("LTO8".equals(kind) ? "LTO8" : "Power") + ": il prezzo " + (list ? "di listino" : "netto scontato")
+                        throw new IllegalArgumentException("Power System: manutenzione " + ("LTO8".equals(kind) ? "LTO8" : "TS4300".equals(kind) ? "TS4300" : "Power") + ": il prezzo " + (list ? "di listino" : "netto scontato")
                                 + " a " + prevM + " mesi non può essere maggiore di quello a " + e.getKey() + " mesi");
                     }
                     prevM = e.getKey();
@@ -507,8 +554,8 @@ public class OfferService {
             }
         }
         for (Integer p : periods) {
-            if (!seen.contains(p + "POWER") || (lto && !seen.contains(p + "LTO8"))) {
-                throw new IllegalArgumentException("Power System: per la manutenzione " + p + " mesi indica gli importi di tutte le sezioni (Power" + (lto ? " e LTO8" : "") + ")");
+            if (!seen.contains(p + "POWER") || (lto && !seen.contains(p + "LTO8")) || (ts && !seen.contains(p + "TS4300"))) {
+                throw new IllegalArgumentException("Power System: per la manutenzione " + p + " mesi indica gli importi di tutte le sezioni (Power" + (lto ? ", LTO8" : "") + (ts ? ", TS4300" : "") + ")");
             }
         }
     }
@@ -525,7 +572,7 @@ public class OfferService {
     }
 
     private List<OfferDtos.PowerMaintReq> loadPowerMaint(long offerId) {
-        return jdbc.sql("select months, kind, list_price, net_price from offer_power_maint where offer_id = :id order by months, kind desc").param("id", offerId)
+        return jdbc.sql("select months, kind, list_price, net_price from offer_power_maint where offer_id = :id order by months, case kind when 'POWER' then 0 when 'LTO8' then 1 else 2 end").param("id", offerId)
                 .query((rs, n) -> new OfferDtos.PowerMaintReq(rs.getInt("months"), rs.getString("kind"), rs.getBigDecimal("list_price"), rs.getBigDecimal("net_price"))).list();
     }
 
@@ -620,13 +667,14 @@ public class OfferService {
             throw new IllegalArgumentException("Power CBU: seleziona la manutenzione SW/HW e indica gli importi");
         }
         boolean lto = Boolean.TRUE.equals(c.lto8());
+        boolean ts = Boolean.TRUE.equals(c.ts4300());
         java.util.Set<String> seen = new java.util.HashSet<>();
         java.util.Set<Integer> periods = new java.util.TreeSet<>();
         for (OfferDtos.PowerMaintReq m : ms) {
             if (m == null || m.months() == null || !List.of(36, 48, 60).contains(m.months())) {
                 throw new IllegalArgumentException("Power CBU: la manutenzione SW/HW può essere di 36, 48 o 60 mesi");
             }
-            if (m.kind() == null || !List.of("POWER", "LTO8").contains(m.kind()) || ("LTO8".equals(m.kind()) && !lto)) {
+            if (m.kind() == null || !List.of("POWER", "LTO8", "TS4300").contains(m.kind()) || ("LTO8".equals(m.kind()) && !lto) || ("TS4300".equals(m.kind()) && !ts)) {
                 throw new IllegalArgumentException("Power CBU: sezione di manutenzione non valida");
             }
             if (m.listPrice() == null || m.netPrice() == null || m.listPrice().signum() < 0 || m.netPrice().signum() < 0) {
@@ -638,8 +686,8 @@ public class OfferService {
             periods.add(m.months());
         }
         for (Integer p : periods) {
-            if (!seen.contains(p + "POWER") || (lto && !seen.contains(p + "LTO8"))) {
-                throw new IllegalArgumentException("Power CBU: per la manutenzione " + p + " mesi indica gli importi di tutte le sezioni (Power" + (lto ? " e LTO8" : "") + ")");
+            if (!seen.contains(p + "POWER") || (lto && !seen.contains(p + "LTO8")) || (ts && !seen.contains(p + "TS4300"))) {
+                throw new IllegalArgumentException("Power CBU: per la manutenzione " + p + " mesi indica gli importi di tutte le sezioni (Power" + (lto ? ", LTO8" : "") + (ts ? ", TS4300" : "") + ")");
             }
         }
     }
@@ -656,14 +704,14 @@ public class OfferService {
         boolean unl = false;                                   // la scheda CBU non prevede gli utenti ILLIMITATI
         jdbc.sql("""
                 insert into offer_power_cbu (offer_id, power_model_id, power_ram_gb, power_disk, power_disk_count, power_lto8, power_eth10,
-                    power_ibmi_users, power_ibmi_unlimited, power_cable, power_transfer, power_transfer_ref, power_edition, power_os)
-                values (:o, :m, :ram, :disk, :dc, :lto, :eth, :usr, :unl, :cab, :tr, :tref, :ed, :os)""")
+                    power_ibmi_users, power_ibmi_unlimited, power_cable, power_transfer, power_transfer_ref, power_edition, power_os, power_ts4300)
+                values (:o, :m, :ram, :disk, :dc, :lto, :eth, :usr, :unl, :cab, :tr, :tref, :ed, :os, :ts)""")
                 .param("o", offerId).param("m", c.modelId()).param("ram", c.ramGb()).param("disk", c.disk()).param("dc", c.diskCount())
                 .param("lto", Boolean.TRUE.equals(c.lto8())).param("eth", Boolean.TRUE.equals(c.eth10()))
                 .param("usr", unl ? null : c.ibmiUsers()).param("unl", unl)
                 .param("cab", Boolean.TRUE.equals(c.lto8()) ? null : blankToNull(c.cable())).param("tr", tr)
                 .param("tref", "NO".equals(tr) ? null : blankToNull(c.transferRef()))
-                .param("ed", nz(c.edition(), "SOLUTION").toUpperCase()).param("os", nz(c.os(), "7.5")).update();
+                .param("ed", nz(c.edition(), "SOLUTION").toUpperCase()).param("os", nz(c.os(), "7.5")).param("ts", Boolean.TRUE.equals(c.ts4300())).update();
         for (OfferDtos.PowerMaintReq m : c.maint()) {
             jdbc.sql("insert into offer_power_cbu_maint (offer_id, months, kind, list_price, net_price) values (:o, :m, :k, :l, :n)")
                     .param("o", offerId).param("m", m.months()).param("k", m.kind())
@@ -672,12 +720,12 @@ public class OfferService {
     }
 
     private OfferDtos.PowerCbuReq loadPowerCbu(long offerId) {
-        List<OfferDtos.PowerMaintReq> maint = jdbc.sql("select months, kind, list_price, net_price from offer_power_cbu_maint where offer_id = :id order by months, kind desc")
+        List<OfferDtos.PowerMaintReq> maint = jdbc.sql("select months, kind, list_price, net_price from offer_power_cbu_maint where offer_id = :id order by months, case kind when 'POWER' then 0 when 'LTO8' then 1 else 2 end")
                 .param("id", offerId).query((rs, n) -> new OfferDtos.PowerMaintReq(rs.getInt("months"), rs.getString("kind"), rs.getBigDecimal("list_price"), rs.getBigDecimal("net_price"))).list();
         return jdbc.sql("select * from offer_power_cbu where offer_id = :id").param("id", offerId)
                 .query((rs, n) -> new OfferDtos.PowerCbuReq(rs.getLong("power_model_id"), rs.getInt("power_ram_gb"), rs.getString("power_disk"), rs.getInt("power_disk_count"),
                         rs.getBoolean("power_lto8"), rs.getBoolean("power_eth10"), (Integer) rs.getObject("power_ibmi_users"), rs.getBoolean("power_ibmi_unlimited"),
-                        rs.getString("power_cable"), rs.getString("power_transfer"), rs.getString("power_transfer_ref"), rs.getString("power_edition"), rs.getString("power_os"), maint))
+                        rs.getString("power_cable"), rs.getString("power_transfer"), rs.getString("power_transfer_ref"), rs.getString("power_edition"), rs.getString("power_os"), maint, rs.getBoolean("power_ts4300")))
                 .optional().orElse(null);
     }
 
@@ -765,8 +813,8 @@ public class OfferService {
         if (!opts[1].isBlank() && !List.of(opts[1].split(",")).contains(req.powerDisk())) {
             throw new IllegalArgumentException("Power System: il modello scelto non supporta il disco " + req.powerDisk());
         }
-        if (Boolean.TRUE.equals(req.powerLto8()) && req.powerCable() != null && !req.powerCable().isBlank()) {
-            throw new IllegalArgumentException("Power System: LTO8 e cavo di collegamento sono alternativi");
+        if ((Boolean.TRUE.equals(req.powerLto8()) || Boolean.TRUE.equals(req.powerTs4300())) && req.powerCable() != null && !req.powerCable().isBlank()) {
+            throw new IllegalArgumentException("Power System: TAPE (LTO8 / TS4300) e cavo di collegamento sono alternativi");
         }
         if (req.powerCable() != null && !req.powerCable().isBlank() && !List.of("LTO6", "LTO7").contains(req.powerCable())) {
             throw new IllegalArgumentException("Power System: cavo di collegamento non valido");
@@ -922,7 +970,7 @@ public class OfferService {
     private record DrvRow(long lineId, long driverId, int qty) {
     }
 
-    private record ModRow(long lineId, long moduleId, int qty) {
+    private record ModRow(long lineId, long moduleId, int qty, BigDecimal listPrice, BigDecimal customerPrice) {
     }
 
     /** ricostruisce la richiesta (per riaprire l'offerta nel wizard) */
@@ -938,9 +986,9 @@ public class OfferService {
                 drivers.put(d.driverId(), d.qty());
             }
             List<ModuleQty> mods = new ArrayList<>();
-            for (ModRow m : jdbc.sql("select line_id, module_id, qty from offer_line_module where line_id = :l")
+            for (ModRow m : jdbc.sql("select line_id, module_id, qty, list_price, customer_price from offer_line_module where line_id = :l")
                     .param("l", l.id()).query(ModRow.class).list()) {
-                mods.add(new ModuleQty(m.moduleId(), m.qty()));
+                mods.add(new ModuleQty(m.moduleId(), m.qty(), m.listPrice(), m.customerPrice()));
             }
             out.add(new LineRequest(l.applicationId(), l.modeCode(), drivers, mods));
         }
@@ -956,7 +1004,8 @@ public class OfferService {
                 jdbc.sql("select power_hadr_solution from offer where id = :id").param("id", id).query(String.class).optional().orElse("NONE"),
                 jdbc.sql("select power_smidri_price from offer where id = :id").param("id", id).query(BigDecimal.class).optional().orElse(null),
                 jdbc.sql("select power_smidri_smismp from offer where id = :id").param("id", id).query(Boolean.class).optional().orElse(false),
-                jdbc.sql("select power_smidri_smismp_price from offer where id = :id").param("id", id).query(BigDecimal.class).optional().orElse(null));
+                jdbc.sql("select power_smidri_smismp_price from offer where id = :id").param("id", id).query(BigDecimal.class).optional().orElse(null),
+                jdbc.sql("select power_ts4300 from offer where id = :id").param("id", id).query(Boolean.class).optional().orElse(false));
     }
 
     private List<OfferDtos.ActivityReq> loadActivities(long offerId) {
@@ -964,6 +1013,21 @@ public class OfferService {
                 .param("id", offerId).query((rs, n) -> new OfferDtos.ActivityReq(rs.getLong("application_id"), rs.getString("description"),
                         rs.getLong("profile_id"), rs.getBigDecimal("hours"), rs.getBigDecimal("rate"), rs.getString("profile_name"),
                         rs.getString("rfq_group"), rs.getBoolean("rfq_import"), rs.getBigDecimal("days"))).list();
+    }
+
+    /** voce del menu «Ultime offerte gestite» */
+    public record RecentOffer(long id, String number, String customer) {
+    }
+
+    /** ultime offerte toccate (salvate) dall'utente, una per offerta (la revisione piu' recente), dalla piu' recente */
+    public List<RecentOffer> recentOffers(AppUser user, int limit) {
+        return jdbc.sql("""
+                select o.id, o.number, c.company_name from offer o join account c on c.id = o.customer_id
+                where o.deleted_at is null and coalesce(o.updated_by, o.created_by) = :u
+                  and not exists (select 1 from offer n where n.deleted_at is null and n.revision > o.revision
+                                  and coalesce(n.revision_of, n.id) = coalesce(o.revision_of, o.id))
+                order by o.updated_at desc, o.id desc limit :n""")
+                .param("u", user.id()).param("n", limit).query((rs, n) -> new RecentOffer(rs.getLong(1), rs.getString(2), rs.getString(3))).list();
     }
 
     public List<OfferSummary> list(AppUser user) {

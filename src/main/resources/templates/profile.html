@@ -6,16 +6,17 @@
 <main class="content"><div class="inner" style="max-width:720px">
     <div class="pagehead"><h1>Il mio profilo</h1></div>
     <div th:replace="~{fragments/layout :: flash}"></div>
-    <form class="card" th:action="@{/profile}" method="post" th:if="${me != null}">
-        <p class="muted" style="margin-top:0">Le iniziali di nome e cognome sono accodate al numero dell'offerta (es. <span class="mono">20261022.3<b>ER</b></span>).</p>
+    <div class="card" th:if="${me != null}">
+        <p class="muted" style="margin-top:0">I dati del profilo arrivano dalla configurazione utente gestita dall'amministratore e non sono modificabili da qui.</p>
         <div class="grid c2">
-            <div class="field"><input type="text" name="firstName" th:value="${me.firstName}" placeholder=" " maxlength="100"><label>Nome</label></div>
-            <div class="field"><input type="text" name="lastName" th:value="${me.lastName}" placeholder=" " maxlength="100"><label>Cognome</label></div>
-            <div class="field"><input type="text" name="initials" th:value="${me.initials}" placeholder=" " maxlength="6" required style="text-transform:uppercase"><label>Iniziali *</label></div>
-            <div class="field"><input type="text" th:value="${me.email}" disabled placeholder=" "><label>Email</label></div>
+            <div class="field"><input type="text" th:value="${me.firstName}" disabled placeholder=" "><label class="on">Nome</label></div>
+            <div class="field"><input type="text" th:value="${me.lastName}" disabled placeholder=" "><label class="on">Cognome</label></div>
+            <div class="field"><input type="text" th:value="${me.initials}" disabled placeholder=" " style="text-transform:uppercase"><label class="on">Iniziali</label></div>
+            <div class="field"><input type="text" th:value="${me.email}" disabled placeholder=" "><label class="on">Email</label></div>
+            <div class="field"><input type="text" th:value="${me.administrator} ? 'Administrator' : 'Utente'" disabled placeholder=" "><label class="on">Ruolo</label></div>
+            <div class="field"><input type="text" th:value="${me.agentCode}" disabled placeholder=" "><label class="on">Codice agente</label></div>
         </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:20px"><button class="btn" type="submit"><svg class="ic"><use href="#i-save"/></svg>Salva</button></div>
-    </form>
+    </div>
 </div></main>
 <div th:replace="~{fragments/layout :: foot}"></div>
 </body>

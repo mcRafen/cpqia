@@ -338,7 +338,7 @@ public class GridRegistry {
         add(new GridSpec("power-models", "Modelli IBM Power System", "power_model", "id", "power_model", "deleted_at is null")
                 .col(c("machineType", "Tipo macchina", "machine_type").edit("machine_type").required().maxLen(20).creatable().width(130))
                 .col(c("model", "Modello", "model").edit("model").required().maxLen(20).creatable().width(130))
-                .col(c("band", "Fascia", "band").edit("band").maxLen(100).creatable().width(170))
+                .col(c("band", "Fascia", "band").edit("band").maxLen(100).blankNotNull().creatable().width(170))
                 .col(c("type", "Tipo", "type").edit("type").required().maxLen(20).creatable().width(100))
                 .col(c("cores", "Core", "cores").intOptions(1, 4, 8).edit("cores").required().creatable().width(80))
                 .col(c("mounting", "Montaggio", "mounting").options("DESK", "Desk", "RACK", "Rack").edit("mounting").required().creatable().width(110))

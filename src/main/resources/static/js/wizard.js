@@ -16,7 +16,7 @@
     date: root.dataset.today,
     progressive: Number(root.dataset.nextProgressive || 1),
     initials: root.dataset.initials || '',
-    powerModelId: null, powerRam: '', powerDisk: '', powerLto8: false, powerEth10: false, powerUsers: '', powerUnlimited: false, powerCable: '', powerTransfer: 'NO', powerTransferRef: '', powerEdition: 'SOLUTION', powerOs: '7.5', powerMaint: '36', powerMaintList: [36], powerMaintAmt: {}, powerList: '', powerNet: '', powerDisks: '2', powerProducts: {}, ibmiProducts: [], powerModels: [],
+    powerModelId: null, powerRam: '', powerDisk: '', powerLto8: false, powerTs4300: false, powerEth10: false, powerUsers: '', powerUnlimited: false, powerCable: '', powerTransfer: 'NO', powerTransferRef: '', powerEdition: 'SOLUTION', powerOs: '7.5', powerMaint: '36', powerMaintList: [36], powerMaintAmt: {}, powerList: '', powerNet: '', powerDisks: '2', powerProducts: {}, ibmiProducts: [], powerModels: [],
     optRfq: false, svcGroups: [], profileEdits: {}, servicesMode: 'NONE', rfqEditGroups: new Set(), optDays: true, appTotalsMode: 'NO', rfqSheetTotal: null, optPower: false, optSmitech: false, optDept: false, optGalileo: false, galileoId: null,
     gal: { profileId: null, release: '', users: '0', addUsers: '', source: 0, aggiunta: false, sel: {}, calc: null },
     customer: null, title: '', contactRef: '', discountPct: 0, optMaint: false, optServices: false, optSummary: false,
@@ -41,10 +41,13 @@
   // ---------------------------------------------------------------- Power System: manutenzione SW/HW a periodi e importi
   const PW_PERIODS = [36, 48, 60];
   const amtKey = (m, kind) => m + '|' + kind;
-  /** sezioni di importi richieste: per ogni periodo selezionato Power e, con LTO8, LTO8 */
+  /** sezioni di importi di una configurazione Power: Power e, se scelti, LTO8 e/o TS4300 */
+  const maintKinds = (o) => ['POWER'].concat(o.powerLto8 ? ['LTO8'] : [], o.powerTs4300 ? ['TS4300'] : []);
+  const kindLabel = (k) => (k === 'LTO8' ? 'LTO8' : k === 'TS4300' ? 'TS4300' : 'Power');
+  /** sezioni di importi richieste: per ogni periodo selezionato Power e, con LTO8 e/o TS4300, le relative sezioni */
   function maintSlots() {
     const slots = [];
-    S.powerMaintList.slice().sort((a, b) => a - b).forEach((m) => { slots.push({ months: m, kind: 'POWER' }); if (S.powerLto8) slots.push({ months: m, kind: 'LTO8' }); });
+    S.powerMaintList.slice().sort((a, b) => a - b).forEach((m) => { maintKinds(S).forEach((k) => slots.push({ months: m, kind: k })); });
     return slots;
   }
   function slotAmt(sl) {
@@ -59,6 +62,19 @@
     maintSlots().forEach((sl) => { const a = slotAmt(sl); const o = by[sl.months] || (by[sl.months] = { list: 0, net: 0 }); o.list += a.list || 0; o.net += a.net || 0; });
     return Object.keys(by).map((k) => by[k]).reduce((m, o) => (o.list > m.list || (o.list === m.list && o.net > m.net) ? o : m), { list: 0, net: 0 });
   };
+  /** Power + LTO8 piu' alto tra le durate della scheda indicata (es. S.pwOther = Power CBU); null se gli importi non sono completi */
+  function cbuMaintMax(o) {
+    const by = {};
+    for (const m of (o.powerMaintList || [])) {
+      for (const kind of maintKinds(o)) {
+        const v = (o.powerMaintAmt || {})[amtKey(m, kind)] || {}, l = C.parseMoney(v.list), n = C.parseMoney(v.net);
+        if (l == null || n == null) return null;
+        const t = by[m] || (by[m] = { list: 0, net: 0 }); t.list += l; t.net += n;
+      }
+    }
+    const all = Object.keys(by).map((k) => by[k]);
+    return all.length ? all.reduce((a, t) => (t.list > a.list || (t.list === a.list && t.net > a.net) ? t : a), { list: 0, net: 0 }) : null;
+  }
   const maintComplete = () => S.powerMaintList.length > 0 && maintSlots().every((sl) => { const a = slotAmt(sl); return a.list != null && a.net != null; });
 
   // ---------------------------------------------------------------- avvio
@@ -78,7 +94,7 @@
         S.date = h.offerDate; S.progressive = h.progressive; S.initials = h.initials;
         S.title = h.projectTitle || ''; S.contactRef = h.contactRef || ''; S.discountPct = h.discountPct || 0;
         S.optPower = !!h.optPowerSystem; S.powerModelId = h.powerModelId || null; S.powerRam = h.powerRamGb ? String(h.powerRamGb) : ''; S.powerDisk = h.powerDisk || '';
-        S.powerLto8 = !!h.powerLto8; S.powerEth10 = !!h.powerEth10; S.powerUsers = h.powerIbmiUsers == null ? '' : String(h.powerIbmiUsers); S.powerUnlimited = !!h.powerIbmiUnlimited;
+        S.powerLto8 = !!h.powerLto8; S.powerTs4300 = !!h.powerTs4300; S.powerEth10 = !!h.powerEth10; S.powerUsers = h.powerIbmiUsers == null ? '' : String(h.powerIbmiUsers); S.powerUnlimited = !!h.powerIbmiUnlimited;
         S.powerCable = h.powerCable || ''; S.powerTransfer = h.powerTransfer || 'NO'; S.powerTransferRef = h.powerTransferRef || ''; S.powerEdition = h.powerEdition || 'SOLUTION'; S.powerOs = h.powerOs || '7.5'; S.powerMaint = String(h.powerMaintMonths || 36); S.powerMaintList = [Number(h.powerMaintMonths || 36)]; S.powerDisks = String(h.powerDiskCount || 2);
         S.powerMaintAmt = {}; S.optSmitech = !!h.optSmitechServices; S.optDept = h.optDepartmental !== false; S.galileoId = h.galileoApplicationId || null; S.optGalileo = !!S.galileoId;
         S.servicesMode = h.servicesMode || (h.optUseRfq ? 'RFQ' : 'MANUAL'); S.optRfq = S.servicesMode === 'RFQ'; S.optDays = h.optServicesDays !== false; S.appTotalsMode = h.appTotalsMode || 'NO'; S.rfqSheetTotal = h.rfqSheetTotal == null ? null : Number(h.rfqSheetTotal); S.optMaint = !!h.optMaintenanceAdditional; S.optServices = !!h.optExtraServices; S.optSummary = !!h.optFinalSummary;
@@ -608,8 +624,8 @@
 
   // ---- tipo di Power: «Nuovo Power» / «Power HA/DR» (due schede: Produzione e CBU).
   // La pagina lavora sempre sui campi S.power*: la scheda inattiva tiene i suoi valori in S.pwOther e le schede si scambiano.
-  const PW_KEYS = ['powerModelId', 'powerRam', 'powerDisk', 'powerLto8', 'powerEth10', 'powerUsers', 'powerUnlimited', 'powerCable', 'powerTransfer', 'powerTransferRef', 'powerEdition', 'powerOs', 'powerMaint', 'powerMaintList', 'powerMaintAmt', 'powerDisks', 'powerProducts'];
-  const pwFresh = () => ({ powerModelId: null, powerRam: '', powerDisk: '', powerLto8: false, powerEth10: false, powerUsers: '', powerUnlimited: false, powerCable: '', powerTransfer: 'NO', powerTransferRef: '', powerEdition: 'SOLUTION', powerOs: '7.5', powerMaint: '36', powerMaintList: [36], powerMaintAmt: {}, powerDisks: '2', powerProducts: {} });
+  const PW_KEYS = ['powerModelId', 'powerRam', 'powerDisk', 'powerLto8', 'powerTs4300', 'powerEth10', 'powerUsers', 'powerUnlimited', 'powerCable', 'powerTransfer', 'powerTransferRef', 'powerEdition', 'powerOs', 'powerMaint', 'powerMaintList', 'powerMaintAmt', 'powerDisks', 'powerProducts'];
+  const pwFresh = () => ({ powerModelId: null, powerRam: '', powerDisk: '', powerLto8: false, powerTs4300: false, powerEth10: false, powerUsers: '', powerUnlimited: false, powerCable: '', powerTransfer: 'NO', powerTransferRef: '', powerEdition: 'SOLUTION', powerOs: '7.5', powerMaint: '36', powerMaintList: [36], powerMaintAmt: {}, powerDisks: '2', powerProducts: {} });
   const pwPick = () => { const o = {}; PW_KEYS.forEach((k) => { o[k] = S[k]; }); return o; };
   const pwLoad = (o) => { PW_KEYS.forEach((k) => { S[k] = o[k]; }); };
   S.powerKind = 'NEW'; S.pwTab = 'PROD'; S.pwOther = pwFresh();
@@ -650,7 +666,7 @@
         try {
           r.powerCbu = {
             modelId: S.powerModelId || null, ramGb: S.powerRam ? Number(S.powerRam) : null, disk: S.powerDisk || null,
-            diskCount: Math.max(1, Number(S.powerDisks || 2)), lto8: !!S.powerLto8, eth10: !!S.powerEth10,
+            diskCount: Math.max(1, Number(S.powerDisks || 2)), lto8: !!S.powerLto8, ts4300: !!S.powerTs4300, eth10: !!S.powerEth10,
             ibmiUsers: !S.powerUnlimited && S.powerUsers !== '' && S.powerUsers != null ? Number(S.powerUsers) : null, ibmiUnlimited: !!S.powerUnlimited,
             cable: S.powerCable || null, transfer: S.powerTransfer || 'NO', transferRef: S.powerTransfer && S.powerTransfer !== 'NO' ? (S.powerTransferRef || '') : null,
             edition: S.powerEdition || 'SOLUTION', os: S.powerOs || '7.5', maint: S.powerMaintLines(),
@@ -664,7 +680,7 @@
   function cbuSlotFromRequest(c) {
     const o = pwFresh(), ms = c.maint || [];
     o.powerModelId = c.modelId || null; o.powerRam = c.ramGb ? String(c.ramGb) : ''; o.powerDisk = c.disk || ''; o.powerDisks = String(c.diskCount || 2);
-    o.powerLto8 = !!c.lto8; o.powerEth10 = !!c.eth10; o.powerUsers = c.ibmiUsers == null ? '' : String(c.ibmiUsers); o.powerUnlimited = !!c.ibmiUnlimited;
+    o.powerLto8 = !!c.lto8; o.powerTs4300 = !!c.ts4300; o.powerEth10 = !!c.eth10; o.powerUsers = c.ibmiUsers == null ? '' : String(c.ibmiUsers); o.powerUnlimited = !!c.ibmiUnlimited;
     o.powerCable = c.cable || ''; o.powerTransfer = c.transfer || 'NO'; o.powerTransferRef = c.transferRef || ''; o.powerEdition = c.edition || 'SOLUTION'; o.powerOs = c.os || '7.5';
     if (ms.length) { o.powerMaintList = Array.from(new Set(ms.map((x) => x.months))).sort((a, b) => a - b); o.powerMaint = String(o.powerMaintList[0]); }
     ms.forEach((x) => { o.powerMaintAmt[amtKey(x.months, x.kind)] = { list: CPQ.num(x.listPrice, 2), net: CPQ.num(x.netPrice, 2) }; });
@@ -728,7 +744,7 @@
     $('#pw-unlimited-box').hidden = hadr && pwIsCbu();               // la scheda CBU non ha gli utenti ILLIMITATI
   }
 
-  /** «Copia da Produzione»: porta nella scheda CBU le impostazioni della Produzione (esclusi i prodotti IBM i, Transfer-Conversion e riferimenti Power); gli utenti seguono la regola dei core */
+  /** «Copia da Produzione»: porta nella scheda CBU le impostazioni della Produzione (esclusi i prodotti IBM i, gli importi economici, Transfer-Conversion e riferimenti Power); gli utenti seguono la regola dei core */
   async function copyProdToCbu() {
     if (!pwIsCbu()) return;
     const prod = S.pwOther;
@@ -737,6 +753,7 @@
       { title: 'Copia da Produzione', yes: 'Sì, copia', no: 'No' }))) return;
     const copy = JSON.parse(JSON.stringify(prod));          // copia profonda: le due schede non devono condividere gli stessi oggetti
     copy.powerProducts = {};
+    copy.powerMaintAmt = {};                               // gli importi economici (listino e netto della manutenzione) NON si copiano: si indicano per la CBU
     pwLoad(copy);
     // Transfer-Conversion e riferimenti Power (tipo macchina, modello, matricola) NON si copiano: la CBU parte da «No» e senza riferimenti
     S.powerTransfer = 'NO'; S.powerTransferRef = '';
@@ -762,11 +779,11 @@
     $('#power-model-info').textContent = m ? m.type + ' · ' + m.cores + ' core · ' + (m.mounting === 'RACK' ? 'Rack' : 'Desk') + ' · ' + m.version + (m.processorGroup ? ' · gruppo processore ' + m.processorGroup : '') + (m.ghz ? ' · ' + m.ghz + ' GHz' : '') : '';
     renderPowerOptions();
     $('#pw-users').value = S.powerUsers; $('#pw-unlimited').checked = S.powerUnlimited; $('#pw-users').disabled = S.powerUnlimited;
-    $('#pw-lto8').checked = S.powerLto8; $('#pw-eth10').checked = S.powerEth10;
+    $('#pw-lto8').checked = S.powerLto8; $('#pw-ts4300').checked = S.powerTs4300; syncTape(); $('#pw-eth10').checked = S.powerEth10;
     syncPowerUsers(); syncSmitechMode(false);
     $('#pw-cable').value = S.powerCable; $('#pw-edition').value = S.powerEdition; $('#pw-os').value = S.powerOs; $('#pw-disks').value = S.powerDisks; renderMaintBtn(); renderAmtSummary(); $('#pw-transfer').value = S.powerTransfer;
     pwRenderRef(); $('#pw-tref-box').hidden = S.powerTransfer === 'NO';
-    $('#pw-cable-box').hidden = S.powerLto8;                  // con LTO8 il cavo di collegamento non si sceglie
+    $('#pw-cable-box').hidden = S.powerLto8 || S.powerTs4300;                  // con TAPE (LTO8 e/o TS4300) il cavo di collegamento non si sceglie
     renderPwKind();
   }
 
@@ -844,7 +861,7 @@
         '<div class="field"><input type="text" inputmode="decimal" placeholder=" " autocomplete="off" data-k="' + m + '|' + kind + '" data-f="net" id="pa-' + m + '-' + kind + '-net" value="' + esc(v.net || '') + '"><label for="pa-' + m + '-' + kind + '-net">Netto scontato (€) *</label></div></div></div>';
     };
     $('#pw-amt-body').innerHTML = S.powerMaintList.slice().sort((a, b) => a - b).map((m) =>
-      '<section class="pa-period"><h3>Manutenzione SW/HW – ' + m + ' mesi</h3>' + sub(m, 'POWER', 'Power') + (S.powerLto8 ? sub(m, 'LTO8', 'LTO8') : '') + '</section>').join('');
+      '<section class="pa-period"><h3>Manutenzione SW/HW – ' + m + ' mesi</h3>' + maintKinds(S).map((k) => sub(m, k, kindLabel(k))).join('') + '</section>').join('');
     $$('#pw-amt-body input').forEach((i) => amtDisc(i));
     $('#pw-amt-dialog').showModal();
     const f = $('#pw-amt-body input'); if (f) f.focus();
@@ -872,18 +889,18 @@
       const bad = Array.from(body.querySelectorAll('input[data-k]')).find((i) => C.parseMoney(i.value) == null);
       if (bad) {
         const [m, kind] = bad.dataset.k.split('|');
-        CPQ.fieldError(bad, 'Manutenzione ' + m + ' mesi – ' + (kind === 'LTO8' ? 'LTO8' : 'Power') + ': indica il ' + (bad.dataset.f === 'list' ? 'prezzo di listino' : 'prezzo netto scontato'));
+        CPQ.fieldError(bad, 'Manutenzione ' + m + ' mesi – ' + kindLabel(kind) + ': indica il ' + (bad.dataset.f === 'list' ? 'prezzo di listino' : 'prezzo netto scontato'));
         return;
       }
       // il prezzo (di listino e netto scontato) di un periodo piu' breve non puo' superare quello di un periodo piu' lungo (Power e LTO8): 36 <= 48 <= 60 mesi
       const months = S.powerMaintList.slice().sort((a, b) => a - b);
-      for (const kind of (S.powerLto8 ? ['POWER', 'LTO8'] : ['POWER'])) {
+      for (const kind of maintKinds(S)) {
         for (const f of ['list', 'net']) {
           for (let i = 0; i + 1 < months.length; i++) {
             const a = C.parseMoney((amtDraft[amtKey(months[i], kind)] || {})[f]), b = C.parseMoney((amtDraft[amtKey(months[i + 1], kind)] || {})[f]);
             if (a != null && b != null && a > b) {
               const el = body.querySelector('input[data-k="' + months[i] + '|' + kind + '"][data-f="' + f + '"]');
-              CPQ.fieldError(el, 'Manutenzione ' + (kind === 'LTO8' ? 'LTO8' : 'Power') + ': il prezzo ' + (f === 'list' ? 'di listino' : 'netto scontato') + ' a ' + months[i] + ' mesi (' + CPQ.eur(a) + ') non può essere maggiore di quello a ' + months[i + 1] + ' mesi (' + CPQ.eur(b) + ')');
+              CPQ.fieldError(el, 'Manutenzione ' + kindLabel(kind) + ': il prezzo ' + (f === 'list' ? 'di listino' : 'netto scontato') + ' a ' + months[i] + ' mesi (' + CPQ.eur(a) + ') non può essere maggiore di quello a ' + months[i + 1] + ' mesi (' + CPQ.eur(b) + ')');
               return;
             }
           }
@@ -947,6 +964,7 @@
     if (S.powerRam) parts.push('RAM ' + S.powerRam + ' GB');
     if (S.powerDisk) parts.push(S.powerDisks + ' dischi da ' + S.powerDisk.replace('TB', ' TB'));
     if (S.powerLto8) parts.push('LTO8');
+    if (S.powerTs4300) parts.push('TS4300 - TAPE LIBRARY');
     if (S.powerEth10) parts.push('ethernet 10 Gbit');
     parts.push('manutenzione SW/HW ' + (S.powerMaintList.length ? S.powerMaintList.slice().sort((a, b) => a - b).join(', ') : S.powerMaint) + ' mesi');
     parts.push('IBM i ' + S.powerOs);
@@ -1274,19 +1292,33 @@
     return '<span class="chip ' + cls + '" title="' + esc(r.message) + '"><svg class="ic" style="width:14px;height:14px"><use href="#i-' + (cls === 'err' || cls === 'warn' ? 'warning' : 'info') + '"/></svg>' + esc(txt.length > 90 ? txt.slice(0, 88) + '…' : txt) + '</span>';
   }
 
+  /** prezzi unitari effettivi di un modulo selezionato: listino (catalogo o modificato) e importo a cliente (uguale al listino finche' non modificato) */
+  function modPrices(line, m, mode) {
+    const mp = (line && line.modPrice && line.modPrice[m.id]) || {};
+    const cat = C.modulePrice(m, mode);
+    const list = mp.list == null ? cat : mp.list;
+    return { cat: cat, list: list, cust: mp.cust == null ? list : mp.cust, listEdited: mp.list != null, custEdited: mp.cust != null };
+  }
+  const MOD_HEAD = '<thead><tr><th></th><th>Codice</th><th>Modulo</th><th class="num">Listino</th><th class="num">Importo a cliente</th><th>Q.tà</th></tr></thead>';
   function modRow(a, line, m) {
     const on = !!(line && line.modules[m.id] > 0);
-    const price = C.modulePrice(m, line ? line.modeCode : (a.modes.find((x) => x.preferred) || a.modes[0] || {}).code);
+    const mode = line ? line.modeCode : (a.modes.find((x) => x.preferred) || a.modes[0] || {}).code;
+    const pr = modPrices(line, m, mode);
     const kind = m.kind === 'ANNUAL' ? '<span class="chip">canone annuo</span>' : (m.kind === 'MONTHLY' ? '<span class="chip">canone mensile</span>' : (m.kind === 'ONETIME' ? '<span class="chip">una tantum</span>' : ''));
-    const priceTxt = m.included ? '<span class="chip ok">incluso</span>' : CPQ.eur(price) + (m.onetimePrice ? ' <span class="muted">+ ' + CPQ.eur(m.onetimePrice) + ' att.</span>' : '');
-    const qty = m.qtyEnabled && on ? '<input type="number" min="1" class="mod-qty qty" data-app="' + a.id + '" data-mod="' + m.id + '" value="' + line.modules[m.id] + '" style="width:64px;height:32px;border:1px solid var(--outline);border-radius:6px;padding:0 6px;text-align:right">' : '';
+    const onetime = m.onetimePrice ? ' <span class="muted">+ ' + CPQ.eur(m.onetimePrice) + ' att.</span>' : '';
+    const editable = on && !m.included && m.section !== 'LINK';
+    const inp = (cls, v, edited, label) => '<input type="text" inputmode="decimal" class="mod-amt ' + cls + (edited ? ' edited' : '') + '" data-app="' + a.id + '" data-mod="' + m.id + '" value="' + esc(CPQ.num(v, 2)) +
+      '" aria-label="' + label + ' ' + esc(m.code) + '" title="' + (edited ? 'Modificato a mano: svuota il campo per tornare al valore di default' : 'Modificabile') + '" style="width:104px;height:32px;text-align:right;border:1px solid var(--outline);border-radius:6px;padding:0 8px;font:inherit;background:var(--surface);color:var(--on-surface)">';
+    const listCell = m.included ? '<span class="chip ok">incluso</span>' : (editable ? inp('mod-list', pr.list, pr.listEdited, 'Listino') : CPQ.eur(pr.list)) + onetime + ' ' + kind;
+    const custCell = m.included ? '' : (editable ? inp('mod-cust', pr.cust, pr.custEdited, 'Importo a cliente') : CPQ.eur(pr.list));
+    const qty = m.qtyEnabled && on ? '<input type="number" min="1" class="mod-qty qty" data-app="' + a.id + '" data-mod="' + m.id + '" value="' + line.modules[m.id] + '" style="width:64px;height:32px;border:1px solid var(--outline);border-radius:6px;padding:0 6px"' + '>' : '';
     const rules = (m.rules || []).map((r) => ruleChip(m, r, on)).join('');
     return '<tr class="' + (on ? 'on' : '') + (m.included ? ' dis' : '') + '"><td style="width:34px"><label class="check"><input type="checkbox" class="mod-check" data-app="' + a.id + '" data-mod="' + m.id + '"' +
       (on || m.included ? ' checked' : '') + (m.included ? ' disabled' : '') + ' aria-label="' + esc(m.code) + '"></label></td>' +
       '<td class="mono nowrap">' + esc(m.code) + '</td><td>' + esc(m.description) + (m.exclGroup ? ' <span class="chip" title="Alternativo agli altri moduli dello stesso gruppo">alternativo</span>' : '') +
       (m.note && !m.rules.length ? '<div class="hint">' + esc(m.note.length > 160 ? m.note.slice(0, 158) + '…' : m.note) + '</div>' : '') +
       (rules ? '<div class="rules">' + rules + '</div>' : '') + '</td>' +
-      '<td class="num pr nowrap">' + priceTxt + ' ' + kind + '</td><td style="width:80px">' + qty + '</td></tr>';
+      '<td class="num pr nowrap">' + listCell + '</td><td class="num pr nowrap">' + custCell + '</td><td style="width:80px">' + qty + '</td></tr>';
   }
 
   /** l'applicazione ha una progressione delle licenze per scaglioni (gruppi di prezzo con piu' fasce; sono esclusi i gruppi lineari «per unita'») */
@@ -1369,9 +1401,9 @@
       const mods = a.modules.filter((m) => m.groupId === g.id && m.section !== 'LINK');
       if (mods.length) byGroup.push({ label: hideGroup(g) ? '' : g.label + ' – il prezzo è moltiplicato dal numero di ' + ((a.drivers.find((d) => d.id === g.driverId) || {}).unitLabel || 'utenti'), mods: mods });
     });
-    byGroup.forEach((bg) => { h += (bg.label ? '<h4>' + esc(bg.label) + '</h4>' : '') + '<table class="mods"><tbody>' + bg.mods.map((m) => modRow(a, line, m)).join('') + '</tbody></table>'; });
+    byGroup.forEach((bg) => { h += (bg.label ? '<h4>' + esc(bg.label) + '</h4>' : '') + '<table class="mods">' + MOD_HEAD + '<tbody>' + bg.mods.map((m) => modRow(a, line, m)).join('') + '</tbody></table>'; });
     const fixed = a.modules.filter((m) => m.groupId == null && m.section !== 'LINK');
-    if (fixed.length) h += '<h4>Moduli a prezzo fisso</h4><table class="mods"><tbody>' + fixed.map((m) => modRow(a, line, m)).join('') + '</tbody></table>';
+    if (fixed.length) h += '<h4>Moduli a prezzo fisso</h4><table class="mods">' + MOD_HEAD + '<tbody>' + fixed.map((m) => modRow(a, line, m)).join('') + '</tbody></table>';
     const links = a.modules.filter((m) => m.section === 'LINK');
     if (links.length) h += '<h4>Moduli presenti in altri listini</h4><div class="hint">' + links.map((m) => '<b>' + esc(m.code) + '</b> ' + esc(m.description) + (m.linkText ? ' (' + esc(m.linkText) + ')' : '')).join(' · ') + '. Aggiungere l\'applicazione corrispondente all\'offerta.</div>';
     const tg = a.groups.filter((g) => !hideGroup(g));
@@ -1411,6 +1443,24 @@
       const t = e.target; const id = Number(t.dataset.app);
       if (t.classList.contains('drv-in')) { lineOf(id).drivers[Number(t.dataset.drv)] = Math.max(0, parseInt(t.value || '0', 10) || 0); scheduleCalc(); if (S.usersMark) markUsers(); }
       else if (t.classList.contains('mod-qty')) { lineOf(id).modules[Number(t.dataset.mod)] = Math.max(1, parseInt(t.value || '1', 10) || 1); scheduleCalc(); }
+    });
+    // listino / importo a cliente di un modulo selezionato: alla conferma del campo (campo vuoto = torna al valore di default)
+    body.addEventListener('change', (e) => {
+      const t = e.target; if (!t.classList.contains('mod-amt')) return;
+      const id = Number(t.dataset.app), modId = Number(t.dataset.mod), line = lineOf(id), a = appOf(id), m = a && a.modules.find((x) => x.id === modId);
+      if (!line || !m) return;
+      const isList = t.classList.contains('mod-list'), raw = String(t.value || '').trim(), v = raw === '' ? null : C.parseMoney(raw);
+      if (raw !== '' && (v == null || v < 0)) { CPQ.fieldError(t, 'Indica un importo valido (non negativo)'); const p0 = modPrices(line, m, line.modeCode); t.value = CPQ.num(isList ? p0.list : p0.cust, 2); return; }
+      line.modPrice = line.modPrice || {};
+      const cur = line.modPrice[modId] || (line.modPrice[modId] = { list: null, cust: null });
+      const cat = C.modulePrice(m, line.modeCode);
+      if (isList) cur.list = v == null || v === cat ? null : v; else cur.cust = v;
+      if (cur.list == null && cur.cust == null) delete line.modPrice[modId];
+      const p = modPrices(line, m, line.modeCode), row = t.closest('tr');
+      const l = row.querySelector('.mod-list'), c = row.querySelector('.mod-cust');
+      if (l) { l.value = CPQ.num(p.list, 2); l.classList.toggle('edited', p.listEdited); }
+      if (c) { c.value = CPQ.num(p.cust, 2); c.classList.toggle('edited', p.custEdited); }
+      CPQ.markDirty('page', root); scheduleCalc();
     });
     body.addEventListener('click', (e) => {
       if (e.target.closest('.tiers-info')) return;                  // icona scaglioni: apre solo la finestra informativa
@@ -1469,7 +1519,10 @@
     const tl = r2((calc ? calc.totalLicense : 0) + g.list); const tm = r2((calc ? calc.totalMaintenance : 0) + g.maint);
     const d = Math.min(100, Math.max(0, Number(S.discountPct) || 0));
     // «Manutenzione su netto scontato»: la manutenzione segue lo sconto; altrimenti resta sul valore di listino
-    const nl = r2(tl * (1 - d / 100)); const nm = S.maintOnNet ? r2(tm * (1 - d / 100)) : tm;
+    // base dello sconto: importi calcolati con i prezzi a cliente dei moduli (uguali al listino se non modificati)
+    const cl = calc ? calc.lines.reduce((a, l) => a + (l.customerLicenseTotal != null ? l.customerLicenseTotal : l.licenseTotal), 0) : 0;
+    const cm = calc ? calc.lines.reduce((a, l) => a + (l.customerMaintenance != null ? l.customerMaintenance : l.maintenance), 0) : 0;
+    const nl = r2((cl + g.list) * (1 - d / 100)); const nm = S.maintOnNet ? r2((cm + g.maint) * (1 - d / 100)) : tm;
     return { tl: tl, tm: tm, d: d, nl: nl, nm: nm, margin: r2(nl + nm) };
   }
 
@@ -1490,7 +1543,7 @@
     const n = nets();
     $('#t-lic').textContent = CPQ.eur(n.tl);
     $('#t-man').textContent = CPQ.eur(n.tm);
-    const hasDisc = n.d > 0;
+    const hasDisc = n.d > 0 || n.nl !== n.tl || n.nm !== n.tm;          // netto visibile con sconto o con importi a cliente modificati
     $('#t-net-wrap').hidden = !hasDisc;
     if (hasDisc) { $('#t-net-lic').textContent = CPQ.eur(n.nl); $('#t-net-man').textContent = CPQ.eur(n.nm); }
     $('#t-margin').textContent = CPQ.eur(n.margin);
@@ -1749,7 +1802,7 @@
     });
     const gt = galileoTotals();
     const galRow = stepVisible(8) && S.gal.calc && S.gal.calc.result && S.gal.calc.result.valid
-      ? '<tr><td><b>Galileo</b><div class="hint">' + esc(galProfileLabel()) + '</div></td><td>' + esc(galSelectedText()) + '</td><td>Utenti: <b>' + CPQ.num(Number(S.gal.users) || 0, 0) + '</b></td><td class="num pr">' + CPQ.eur(gt.list) + '</td><td class="num pr">' + CPQ.eur(gt.maint) + '</td></tr>' : '';
+      ? '<tr><td><b>Galileo</b><div class="hint">' + esc(galProfileLabel()) + '</div></td><td>' + esc(galMarketName()) + '</td><td>Utenti: <b>' + CPQ.num(Number(S.gal.users) || 0, 0) + '</b></td><td class="num pr">' + CPQ.eur(gt.list) + '</td><td class="num pr">' + CPQ.eur(gt.maint) + '</td></tr>' : '';
     $('#sum-body').innerHTML = galRow + rows.join('');                       // Galileo, se presente, e' sempre la prima riga
     $('#sum-annual-wrap').hidden = !feeRows.length;
     $('#sum-annual-body').innerHTML = feeRows.join('');
@@ -2447,6 +2500,8 @@
   const galMarket = () => (G.info.markets || []).find((m) => m.applicationId === S.galileoId);
   /** la pagina Galileo c'e' solo se e' scelta una tipologia che ha un listino configurato */
   function galHasListino() { return !!(S.optGalileo && S.galileoId && galMarket()); }
+  /** descrizione della configurazione Galileo scelta (tipologia: es. COMMESSA & MACHINERY, PRODUZIONE in SERIE, MODULI AGGIUNTIVI) */
+  const galMarketName = () => { const m = galMarket(); return m ? (m.code === GAL_AGG_CODE ? 'MODULI AGGIUNTIVI' : m.name) : ''; };
   const galProfileLabel = () => (G.profile ? (GAL_KIND[G.profile.kind] || G.profile.label) : '');
   const galIsAgg = () => !!G.profile && G.profile.kind === 'AGG';
   const galIsMig = () => !!G.profile && (G.profile.kind === 'MIG' || G.profile.kind === 'MIGCONS');
@@ -2822,7 +2877,7 @@
     $('#sum-annual-foot').innerHTML = '<tr><td colspan="3" class="right"><b>Totale canoni annui</b></td><td class="num pr"><b>' + CPQ.eur(feeTot) + '</b></td></tr>';
     $('#sum-foot').innerHTML = foot;
     $('#n-lic').textContent = CPQ.eur(n.nl); $('#n-man').textContent = CPQ.eur(n.nm);
-    $('#n-lic-was').textContent = n.d > 0 ? CPQ.eur(n.tl) : ''; $('#n-man-was').textContent = n.d > 0 ? CPQ.eur(n.tm) : '';
+    $('#n-lic-was').textContent = n.nl !== n.tl ? CPQ.eur(n.tl) : ''; $('#n-man-was').textContent = n.nm !== n.tm ? CPQ.eur(n.tm) : '';
     $('#n-margin').textContent = CPQ.eur(n.margin);
     const sat = C.activityTotals(S.activities, S.lines, S.actDiscount);
     $('#sum-act-list').textContent = CPQ.eur(sat.list); $('#sum-act-net').textContent = CPQ.eur(sat.net);
@@ -2835,9 +2890,18 @@
       const pt = S.powerMaintMax(), pl = maintComplete() ? pt.list : null, pn = maintComplete() ? pt.net : null, pm = powerModelOf(S.powerModelId);
       $('#sum-pw-list').textContent = pl == null ? '—' : CPQ.eur(pl); $('#sum-pw-net').textContent = pn == null ? '—' : CPQ.eur(pn);
       $('#sum-pw-model').textContent = pm ? pm.description : '';
-      const rowsP = maintComplete() ? maintSlots().map((sl) => { const am = slotAmt(sl); return '<tr><td>' + sl.months + ' mesi</td><td>' + (sl.kind === 'LTO8' ? 'LTO8' : 'Power') + '</td><td class="num">' + CPQ.eur(am.list) + '</td><td class="num">' + CPQ.eur(am.net) + '</td></tr>'; }) : [];
+      const rowsP = maintComplete() ? maintSlots().map((sl) => { const am = slotAmt(sl); return '<tr><td>' + sl.months + ' mesi</td><td>' + kindLabel(sl.kind) + '</td><td class="num">' + CPQ.eur(am.list) + '</td><td class="num">' + CPQ.eur(am.net) + '</td></tr>'; }) : [];
       $('#sum-pw-periods').innerHTML = rowsP.join(''); $('#sum-pw-periods-wrap').hidden = !rowsP.length;
       $('#sum-pw-disc').textContent = pl > 0 && pn != null ? 'sconto ' + CPQ.num((1 - pn / pl) * 100, 1) + ' %' : '';
+      // Power CBU (solo Power HA/DR): listino e prezzo al cliente della scheda CBU, con il Power + LTO8 piu' alto tra le durate scelte (come per la Produzione)
+      const hadr = S.powerKind === 'HADR' && S.pwOther && S.pwOther.powerModelId;          // solo se la scheda CBU ha un modello scelto
+      $('#sum-cbu-list-box').hidden = !hadr; $('#sum-cbu-net-box').hidden = !hadr;
+      if (hadr) {
+        const cb = cbuMaintMax(S.pwOther), cm = powerModelOf(S.pwOther.powerModelId);
+        $('#sum-cbu-list').textContent = cb == null ? '—' : CPQ.eur(cb.list); $('#sum-cbu-net').textContent = cb == null ? '—' : CPQ.eur(cb.net);
+        $('#sum-cbu-model').textContent = cm ? cm.description : '';
+        $('#sum-cbu-disc').textContent = cb && cb.list > 0 ? 'sconto ' + CPQ.num((1 - cb.net / cb.list) * 100, 1) + ' %' : '';
+      }
     }
     updateAmounts();
   }
@@ -2906,8 +2970,8 @@
     syncPowerUsers(true);                                   // deselezionando, con Galileo tornano gli utenti di Galileo
     setTimeout(updatePowerLock, 0); CPQ.markDirty('page', root);
   });
-  // LTO8 e cavo di collegamento (LTO6/LTO7) sono alternativi: scegliendone uno l'altro si disattiva
-  $('#pw-cable').addEventListener('change', (e) => { S.powerCable = e.target.value; if (S.powerCable) { S.powerLto8 = false; $('#pw-lto8').checked = false; renderAmtSummary(); } });
+  // TAPE (LTO8 e/o TS4300) e cavo di collegamento (LTO6/LTO7) sono alternativi: scegliendone uno l'altro si disattiva
+  $('#pw-cable').addEventListener('change', (e) => { S.powerCable = e.target.value; if (S.powerCable) { S.powerLto8 = false; S.powerTs4300 = false; $('#pw-lto8').checked = false; $('#pw-ts4300').checked = false; syncTape(); renderAmtSummary(); } });
   bindAmtDialog();
   $('#pw-copy-all').addEventListener('click', () => {
     const first = S.ibmiProducts[0], v = first ? S.powerProducts[first.id] : '';
@@ -2938,7 +3002,21 @@
   ['#pw-tr-type', '#pw-tr-model', '#pw-tr-serial'].forEach((id) => $(id).addEventListener('input', () => {
     S.powerTransferRef = trJoin($('#pw-tr-type').value, $('#pw-tr-model').value, $('#pw-tr-serial').value); pwSyncHwSel(); CPQ.markDirty('page', root);
   }));
-  $('#pw-lto8').addEventListener('change', (e) => { S.powerLto8 = e.target.checked; $('#pw-cable-box').hidden = S.powerLto8; if (S.powerLto8) { S.powerCable = ''; $('#pw-cable').value = ''; } renderAmtSummary(); refreshSaveState(); });
+  /** TAPE = LTO8 e/o TS4300 TAPE LIBRARY: la casella TAPE mostra le due scelte e con TAPE acceso almeno una e' attiva (LTO8 predefinita) */
+  function syncTape() {
+    const on = S.powerLto8 || S.powerTs4300; $('#pw-tape-on').checked = on; $('#pw-tape-sub').hidden = !on;
+    $('#pw-cable-box').hidden = on; if (on) { S.powerCable = ''; $('#pw-cable').value = ''; }          // il cavo si sceglie solo con TAPE spento
+  }
+  $('#pw-tape-on').addEventListener('change', (e) => {
+    S.powerLto8 = e.target.checked; S.powerTs4300 = false; $('#pw-lto8').checked = S.powerLto8; $('#pw-ts4300').checked = false;
+    syncTape(); renderAmtSummary();
+  });
+  $('#pw-ts4300').addEventListener('change', (e) => {
+    if (!e.target.checked && !S.powerLto8) { e.target.checked = true; window.toast('Con TAPE attivo seleziona almeno LTO8 o TS4300'); return; }
+    S.powerTs4300 = e.target.checked; syncTape(); renderAmtSummary();
+  });
+  $('#pw-lto8').addEventListener('change', (e) => { if (!e.target.checked && !S.powerTs4300) { e.target.checked = true; window.toast('Con TAPE attivo seleziona almeno LTO8 o TS4300'); return; }
+    S.powerLto8 = e.target.checked; syncTape(); renderAmtSummary(); refreshSaveState(); });
   $('#pw-eth10').addEventListener('change', (e) => { S.powerEth10 = e.target.checked; });
   $('#opt-galileo').addEventListener('change', (e) => {
     S.optGalileo = e.target.checked; $('#galileo-box').hidden = !S.optGalileo; syncPowerUsers();

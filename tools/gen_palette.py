@@ -249,16 +249,130 @@ T_NIGHT.update(
     login_shadow='0 10px 40px rgba(0, 0, 0, .55)', login_logo_fg='#1A120E', cgchip_fg='#1A120E', check_fg='#1A120E', chip_filter_on_fg='#1A120E', step_active_fg='#1A120E',
 )
 
+# ---------------- palette «Darth Vader»: nero, grigio antracite e blu elettrico (ispirata alle videate UniFi giorno / notte) ----------------
+#   #0B0C0E  #15161A  #2A2C33  #9EA3AD  #4A93FF  #006FFF
+V_DAY = dict(DAY)
+V_DAY.update(
+    vars='''  --primary: #006FFF; --on-primary: #fff; --primary-container: #dbe8ff; --on-primary-container: #0b2a5c;
+  --secondary-container: #e8f0ff;
+  --surface: #fff; --surface-1: #f6f7f9; --surface-2: #eef0f3; --surface-3: #e3e6eb;
+  --background: #f4f5f7;
+  --on-surface: #1b1c1f; --on-surface-var: #5b5f68; --outline: #8a8f99; --outline-var: #dfe1e6;
+  --error: #d92d20; --error-container: #ffe3e0; --warn: #8a5600; --warn-container: #ffeabb; --ok: #12803d; --ok-container: #d6f5e1;
+  --c-blue: #006FFF; --c-purple: #6a5fd8; --c-pink: #d6486f; --c-orange: #e08a00; --c-yellow: #f2a516;
+  --c-green: #1fb157; --c-teal: #12a3a3; --c-red: #d92d20;
+  --bar: #0B0C0E; --bar-ink: #fff;
+  --grad: linear-gradient(#0B0C0E, #0B0C0E);
+  --shadow-1: 0 1px 2px rgba(11, 12, 14, .16), 0 1px 3px 1px rgba(11, 12, 14, .08);
+  --shadow-2: 0 1px 2px rgba(11, 12, 14, .18), 0 2px 8px 2px rgba(11, 12, 14, .10);''',
+    body='linear-gradient(#f4f5f7, #f4f5f7)',
+    appbar_shadow='0 2px 8px rgba(11, 12, 14, .40)', logo_bg='#fff', logo_fg='#0B0C0E', card_shadow='0 1px 3px rgba(11, 12, 14, .08)',
+    card_alt='#1fb157', card_alt2='#0B0C0E',
+    btn_hover='#0058cc', tonal_bg='#e8f0ff', tonal_fg='#0b3d91', tonal_hover='#d6e4ff', outlined_border='#9db9e6',
+    disabled_bg='rgba(11, 12, 14, .12)', disabled_fg='rgba(11, 12, 14, .38)',
+    th_bg='#eef0f3', th_fg='#2b2e35', th_border='#d3d6dd', tr_hover='#f4f7fc', mods_on='#e3f5ea', appname='#1b1c1f',
+    stepbar='linear-gradient(90deg, #cfe0ff, #eef0f3)', chip_fg='#3d4048', chip_blue_bg='#e8f0ff', chip_blue_fg='#0b3d91',
+    f=[('#dbe8ff', '#0b3d91'), ('#d6f5e1', '#12803d'), ('#ffeabb', '#8a5600'), ('#e8eaee', '#3d4048'), ('#ffe3e0', '#b42318'), ('#e0dcff', '#3b32a8')],
+    chip_f3_on='#6b707a', total_b='#0B0C0E', kv_bg='#f1f3f6', kv_border='#dfe1e6', kv_small='#5b5f68', kv_b='#0B0C0E',
+    margin_bg='#e3f5ea', margin_border='#bfe5cd', margin_b='#0d652d', terms_fg='#0b3d91', terms_border='#d3d6dd', grp_bg='#eef0f3',
+    snack_bg='#15161A', snack_fg='#f2f3f5',
+    login='radial-gradient(circle at 85% 20%, rgba(0, 111, 255, .18) 0, transparent 42%), radial-gradient(circle at 15% 90%, rgba(11, 12, 14, .10) 0, transparent 45%), #f4f5f7',
+    login_shadow='0 10px 40px rgba(11, 12, 14, .18)', login_logo_bg='var(--bar)',
+)
+V_NIGHT = dict(NIGHT)
+V_NIGHT.update(
+    vars='''  --primary: #4a93ff; --on-primary: #04132e; --primary-container: #12315f; --on-primary-container: #cfe1ff;
+  --secondary-container: #1b2233;
+  --surface: #15161A; --surface-1: #1a1b20; --surface-2: #202127; --surface-3: #2a2c33;
+  --background: #0B0C0E;
+  --on-surface: #c6cad3; --on-surface-var: #9aa0ae; --outline: #5b606b; --outline-var: #2c2e35;
+  --error: #ff8a80; --error-container: #4a1f1c; --warn: #ffd36b; --warn-container: #3f3515; --ok: #3ddc84; --ok-container: #123a26;
+  --c-blue: #4a93ff; --c-purple: #a99dff; --c-pink: #ff9db6; --c-orange: #ffd36b; --c-yellow: #ffd36b;
+  --c-green: #3ddc84; --c-teal: #5fe0d3; --c-red: #ff7a8f;
+  --bar: #0B0C0E; --bar-ink: #c6cad3;
+  --grad: linear-gradient(#0B0C0E, #0B0C0E);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .6), 0 1px 3px 1px rgba(0, 0, 0, .4);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, .6), 0 2px 8px 2px rgba(0, 0, 0, .45);''',
+    body='linear-gradient(#0B0C0E, #0B0C0E)',
+    logo_bg='#f2f3f5', logo_fg='#0B0C0E', btn_hover='#7ab0ff', tonal_bg='#1d2a44', tonal_fg='#bcd5ff', tonal_hover='#25365a', outlined_border='#35507e',
+    th_bg='#1a1b20', th_fg='#c9ccd3', th_border='#2c2e35', tr_hover='#1a1b20', mods_on='#123a26',
+    stepbar='linear-gradient(90deg, #12315f, #202127)', chip_fg='#c6cad3', chip_blue_fg='#cfe1ff',
+    f=[('rgba(74, 147, 255, .20)', '#9dc3ff'), ('rgba(61, 220, 132, .16)', '#3ddc84'), ('rgba(255, 196, 60, .18)', '#ffd36b'), ('rgba(158, 163, 173, .16)', '#c9ccd3'), ('rgba(255, 107, 143, .2)', '#ff9db6'), ('rgba(169, 157, 255, .22)', '#c9c2ff')],
+    chip_f3_on='#9EA3AD', total_b='#c6cad3', kv_bg='#1a1b20', kv_border='#2c2e35', kv_small='#9aa0ae', kv_b='#c6cad3',
+    margin_bg='#123a26', margin_border='#1f6a45', margin_b='#3ddc84', terms_fg='#9dc3ff', terms_border='#2c2e35', grp_bg='#202127',
+    nav_fg='#c6cad3', nav_active_fg='#cfe1ff', snack_bg='#c6cad3', snack_fg='#15161A',
+    login='radial-gradient(circle at 85% 12%, rgba(0, 111, 255, .28) 0, transparent 45%), radial-gradient(circle at 12% 90%, rgba(74, 147, 255, .10) 0, transparent 45%), #0B0C0E',
+    login_shadow='0 10px 40px rgba(0, 0, 0, .6)', login_logo_fg='#04132e', cgchip_fg='#04132e', check_fg='#04132e', chip_filter_on_fg='#04132e', step_active_fg='#04132e',
+)
+
+# ---------------- palette «Christmas»: rosso Natale, verde abete e oro (con neve in movimento, vedi layout.html) ----------------
+#   #07120C  #12452C  #1F7A3F  #B3202A  #FF6B6B  #FFD36B
+X_DAY = dict(DAY)
+X_DAY.update(
+    vars='''  --primary: #B3202A; --on-primary: #fff; --primary-container: #fde0df; --on-primary-container: #5c0d12;
+  --secondary-container: #e1f0e5;
+  --surface: #fff; --surface-1: #fff7f4; --surface-2: #fbeeea; --surface-3: #f4dcd6;
+  --background: #f6f3ec;
+  --on-surface: #1d2a22; --on-surface-var: #5b6b60; --outline: #8a9a8f; --outline-var: #e2d9cf;
+  --error: #c9283f; --error-container: #ffdde6; --warn: #8a5600; --warn-container: #ffeabb; --ok: #1f7a3f; --ok-container: #d6f0dd;
+  --c-blue: #3f7fbf; --c-purple: #8a4bbf; --c-pink: #d6486f; --c-orange: #e08a00; --c-yellow: #d9a321;
+  --c-green: #1f7a3f; --c-teal: #2a9d8f; --c-red: #B3202A;
+  --bar: #12452C; --bar-ink: #fff;
+  --grad: linear-gradient(#12452C, #12452C);
+  --shadow-1: 0 1px 2px rgba(18, 69, 44, .18), 0 1px 3px 1px rgba(18, 69, 44, .10);
+  --shadow-2: 0 1px 2px rgba(18, 69, 44, .20), 0 2px 8px 2px rgba(18, 69, 44, .12);''',
+    body='radial-gradient(560px 360px at 100% 64px, rgba(179, 32, 42, .10), transparent 70%), radial-gradient(640px 420px at 0% 480px, rgba(31, 122, 63, .12), transparent 70%), linear-gradient(#f6f3ec, #f6f3ec)',
+    appbar_shadow='0 2px 8px rgba(7, 18, 12, .40)', logo_bg='#fff', logo_fg='#B3202A', card_shadow='0 1px 3px rgba(18, 69, 44, .10)',
+    card_alt='#1F7A3F', card_alt2='#C9962B',
+    btn_hover='#8f1822', tonal_bg='#e1f0e5', tonal_fg='#14532d', tonal_hover='#cfe6d6', outlined_border='#d9a3a6',
+    disabled_bg='rgba(29, 42, 34, .12)', disabled_fg='rgba(29, 42, 34, .38)',
+    th_bg='#f7e9e4', th_fg='#7a1a21', th_border='#e8cfc8', tr_hover='#fdf5f2', mods_on='#e1f0e5', appname='#1d2a22',
+    stepbar='linear-gradient(90deg, #f4c9c6, #e1f0e5)', chip_fg='#4b5a50', chip_blue_bg='#fde0df', chip_blue_fg='#7a1a21',
+    f=[('#dbe8f7', '#25507f'), ('#d6f0dd', '#14532d'), ('#fff0c2', '#7a5200'), ('#ece8e0', '#4b5a50'), ('#ffdde6', '#b01e47'), ('#fde0df', '#7a1a21')],
+    chip_f3_on='#7a8a7f', total_b='#12452C', kv_bg='#fbf1ee', kv_border='#ead9d2', kv_small='#5b6b60', kv_b='#12452C',
+    margin_bg='#e1f0e5', margin_border='#b9d9c3', margin_b='#14532d', terms_fg='#7a1a21', terms_border='#e8cfc8', grp_bg='#f7e9e4',
+    snack_bg='#12452C', snack_fg='#fff7f4',
+    login='radial-gradient(circle at 15% 15%, rgba(179, 32, 42, .16) 0, transparent 40%), radial-gradient(circle at 85% 20%, rgba(31, 122, 63, .22) 0, transparent 42%), radial-gradient(circle at 70% 90%, rgba(217, 163, 33, .20) 0, transparent 45%), #f6f3ec',
+    login_shadow='0 10px 40px rgba(18, 69, 44, .20)', login_logo_bg='var(--bar)',
+)
+X_NIGHT = dict(NIGHT)
+X_NIGHT.update(
+    vars='''  --primary: #ff6b6b; --on-primary: #3a0508; --primary-container: #6e1c22; --on-primary-container: #ffd9d6;
+  --secondary-container: #1f4030;
+  --surface: #12291D; --surface-1: #163223; --surface-2: #1c3b2b; --surface-3: #244a36;
+  --background: #0A1A12;
+  --on-surface: #e8f0ea; --on-surface-var: #a9c2b3; --outline: #5f8a70; --outline-var: #26452f;
+  --error: #ff9db6; --error-container: #4d1d2c; --warn: #ffd36b; --warn-container: #3f3515; --ok: #7be0a0; --ok-container: #134a2c;
+  --c-blue: #9cc3e8; --c-purple: #c9a6f0; --c-pink: #ff9db6; --c-orange: #ffb35c; --c-yellow: #ffd36b;
+  --c-green: #7be0a0; --c-teal: #5fe0d3; --c-red: #ff7a8f;
+  --bar: #07120C; --bar-ink: #e8f0ea;
+  --grad: linear-gradient(#07120C, #07120C);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .6), 0 1px 3px 1px rgba(0, 0, 0, .4);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, .6), 0 2px 8px 2px rgba(0, 0, 0, .45);''',
+    body='radial-gradient(620px 420px at 100% 64px, rgba(179, 32, 42, .22), transparent 70%), radial-gradient(640px 420px at 0% 520px, rgba(31, 122, 63, .22), transparent 70%), linear-gradient(#0A1A12, #0A1A12)',
+    logo_bg='#e8f0ea', logo_fg='#B3202A', btn_hover='#ff8c8c', tonal_bg='#4a3a14', tonal_fg='#ffe29a', tonal_hover='#5a4719', outlined_border='#7a3a40',
+    th_bg='#163223', th_fg='#ffd9d6', th_border='#2c5a40', tr_hover='#163223', mods_on='#134a2c',
+    stepbar='linear-gradient(90deg, #6e1c22, #1f4030)', chip_fg='#dcebe1', chip_blue_fg='#ffd9d6',
+    f=[('rgba(156, 195, 232, .20)', '#b5d3f0'), ('rgba(123, 224, 160, .16)', '#7be0a0'), ('rgba(255, 211, 107, .18)', '#ffd36b'), ('rgba(169, 194, 179, .16)', '#cfe0d5'), ('rgba(255, 107, 143, .2)', '#ff9db6'), ('rgba(255, 107, 107, .2)', '#ffb0b0')],
+    chip_f3_on='#a9c2b3', total_b='#ffd36b', kv_bg='#163223', kv_border='#2c5a40', kv_small='#a9c2b3', kv_b='#e8f0ea',
+    margin_bg='#134a2c', margin_border='#1f6f44', margin_b='#7be0a0', terms_fg='#ffb0b0', terms_border='#2c5a40', grp_bg='#1c3b2b',
+    nav_fg='#d5e4da', nav_active_fg='#ffd9d6', snack_bg='#e8f0ea', snack_fg='#12291D',
+    login='radial-gradient(circle at 85% 12%, rgba(179, 32, 42, .40) 0, transparent 45%), radial-gradient(circle at 12% 90%, rgba(31, 122, 63, .35) 0, transparent 45%), #0A1A12',
+    login_shadow='0 10px 40px rgba(0, 0, 0, .6)', login_logo_fg='#B3202A', cgchip_fg='#3a0508', check_fg='#3a0508', chip_filter_on_fg='#3a0508', step_active_fg='#3a0508',
+)
+
 out = '''/* =====================================================================
    PALETTE «VIOLA», «FORESTA» e «TERRA» (giorno e notte) - generato da tools/gen_palette.py: non modificare a mano.
    Ametista (id viola):   #0B0720  #25134D  #6A2FC8  #9D71E8  #D1B8FF  #F2E9FF
    Foresta (id foresta):  #0F1F17  #1E3A2E  #3E5A3F  #6B7F67  #C7CBB8  #3D4337
    Terra (id terra):      #1A120E  #3A2418  #6B4A2E  #A88462  #D5C4AE  #4A4A46
+   Christmas (id christmas): #07120C  #12452C  #1F7A3F  #B3202A  #FF6B6B  #FFD36B
+   Darth Vader (id vader): #0B0C0E  #15161A  #2A2C33  #9EA3AD  #4A93FF  #006FFF
    Si attiva con <html data-palette="viola"> o "foresta"; senza l'attributo resta il tema predefinito (verde acqua).
    La modalita' giorno / notte e' scelta con data-theme (light / dark) come per la palette predefinita.
    ===================================================================== */
 '''
-for nm, d, n in (('viola', DAY, NIGHT), ('foresta', F_DAY, F_NIGHT), ('terra', T_DAY, T_NIGHT)):
+for nm, d, n in (('viola', DAY, NIGHT), ('foresta', F_DAY, F_NIGHT), ('terra', T_DAY, T_NIGHT), ('vader', V_DAY, V_NIGHT), ('christmas', X_DAY, X_NIGHT)):
     out += '\n/* ---------- %s: giorno ---------- */\n' % nm + block(d, nm, False) + '\n\n/* ---------- %s: notte ---------- */\n' % nm + block(n, nm, True) + '\n'
 out += '''
 /* selettore palette nel menu utente */

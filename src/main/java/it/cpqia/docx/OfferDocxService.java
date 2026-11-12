@@ -27,6 +27,8 @@ import org.apache.poi.xwpf.usermodel.XWPFFooter;
 import org.apache.poi.xwpf.usermodel.XWPFHeader;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFStyle;
+import org.apache.poi.xwpf.usermodel.XWPFStyles;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
@@ -126,12 +128,22 @@ public class OfferDocxService {
             new Part("power-hardware", List.of("Power/tabelle-power-hardware.docx"), List.of()),
             new Part("power-software", List.of("Power/tabelle-power-software.docx"), List.of()),
             new Part("power-manutenzione", List.of("Power/tabelle-power-manutenzione.docx"), List.of()),
+            // Power CBU (solo Power HA/DR con CBU): documento del modello, hardware, software, nota e manutenzione, prima delle chiavi di licenza
+            new Part("cbu-model", List.of(), List.of()),
+            new Part("cbu-hardware", List.of("Power/tabelle-power-hardware.docx"), List.of()),
+            new Part("cbu-software", List.of("Power/tabelle-power-software.docx"), List.of()),
+            new Part("cbu-manutenzione", List.of("Power/tabelle-power-manutenzione.docx"), List.of()),
             new Part("power-licenze", List.of("Power/tabelle-power-chiavi di licenza.docx"), List.of()),
             new Part("power-solution", List.of("Power/tabelle-power-solution edition.docx"), List.of()),
             new Part("power-migrazione", List.of("Power/tabelle-power-migrazione programmi.docx"), List.of()),
             new Part("power-transfer", List.of("Power/tabelle-power-transfer.docx"), List.of()),
             new Part("power-nvme", List.of("Power/tabelle-power-caratteristiche nvme.docx"), List.of()),
             new Part("power-smaltimento", List.of("Power/tabelle-power-smaltimento.docx"), List.of()),
+            // servizio SMIDRI (soluzione HA/DR): dopo la sezione Power System e prima di ATTIVITA' SISTEMISTICHE; con SMISMP abbinato il documento che comprende anche SMISMP
+            new Part("smidri", List.of("Smitech/SMIDRI.docx"), List.of()),
+            // con SMISMP abbinato a SMIDRI: documento SMISMP e, di seguito (un capo riga), i totali di listino e al cliente
+            new Part("smidri-smismp", List.of("Smitech/SMISMP.docx"), List.of()),
+            new Part("smidri-totali", List.of("Smitech/SMISMP-TOTALI-CON-SMIDRI.docx"), List.of()),
             new Part("attivita", List.of("attivita.docx", "attività.docx"), List.of("ATTIVITA")),
             new Part("manutenzione", List.of("manutenzione.docx"), List.of("MANUTENZIONE")),
             new Part("servizi-accessori", List.of("servizi-accessori.docx"), List.of("SERVIZI ACCESSORI")),
@@ -159,7 +171,8 @@ public class OfferDocxService {
         throw new IOException("Modello Word non trovato: " + names.get(0));
     }
 
-    private record LineRow(long id, long applicationId, String modeCode, BigDecimal licenseAmount, BigDecimal maintenanceAmount) {
+    private record LineRow(long id, long applicationId, String modeCode, BigDecimal licenseAmount, BigDecimal maintenanceAmount,
+                           BigDecimal customerLicenseAmount, BigDecimal customerMaintenanceAmount) {
     }
 
     private record ModRow(long moduleId, int qty) {
@@ -175,7 +188,9 @@ public class OfferDocxService {
     public byte[] generate(OfferHeader h) throws IOException {
         Customer c = customers.findById(h.customerId()).orElseThrow();
         List<LineRow> lines = jdbc.sql("""
-                select id, application_id, mode_code, license_amount, maintenance_amount
+                select id, application_id, mode_code, license_amount, maintenance_amount,
+                       coalesce(customer_license_amount, license_amount) as customer_license_amount,
+                       coalesce(customer_maintenance_amount, maintenance_amount) as customer_maintenance_amount
                 from offer_line where offer_id = :id order by sort_order, id""")
                 .param("id", h.id()).query(LineRow.class).list();
 
@@ -183,6 +198,7 @@ public class OfferDocxService {
         List<String> lineFamilies = new ArrayList<>();            // famiglia di ogni riga, per ordinare la tabella come l'elenco dei moduli
         BigDecimal totLic = BigDecimal.ZERO;
         BigDecimal totMan = BigDecimal.ZERO;
+        BigDecimal custLic = BigDecimal.ZERO, custMan = BigDecimal.ZERO;      // importi calcolati con i prezzi a cliente dei moduli: base dello sconto
         for (LineRow l : lines) {
             App app = catalog.find(l.applicationId()).orElseThrow();
             List<String> codes = new ArrayList<>();
@@ -198,6 +214,8 @@ public class OfferDocxService {
             lineFamilies.add(app.family() == null || app.family().isBlank() ? app.name() : app.family().trim());
             totLic = totLic.add(l.licenseAmount());
             totMan = totMan.add(l.maintenanceAmount());
+            custLic = custLic.add(l.customerLicenseAmount());
+            custMan = custMan.add(l.customerMaintenanceAmount());
         }
 
         // Galileo: listino di vendita e manutenzione della configurazione entrano nelle licenze e nei totali
@@ -216,12 +234,16 @@ public class OfferDocxService {
             lineFamilies.addAll(0, java.util.Collections.nCopies(agg.size(), "JGALILEO"));
             totLic = totLic.add(gal.list());
             totMan = totMan.add(gm);
+            custLic = custLic.add(gal.list());
+            custMan = custMan.add(gm);
         } else if (gal != null && gal.list() != null) {
             BigDecimal gm = gal.maint() == null ? BigDecimal.ZERO : gal.maint();
             tableLines.add(0, new TableLine(List.of("GALILEO"), List.of(gal.market()), eur(gal.list()), eur(gm), gal.users() > 0 ? "Licenze Posti di Lavoro n. " + gal.users() : ""));
             lineFamilies.add(0, "JGALILEO");
             totLic = totLic.add(gal.list());
             totMan = totMan.add(gm);
+            custLic = custLic.add(gal.list());
+            custMan = custMan.add(gm);
         }
 
         // Galileo e SMITECH per primi (uno di seguito all'altro), poi le altre applicazioni nell'ordine della selezione dei Dipartimentali
@@ -270,6 +292,23 @@ public class OfferDocxService {
             tokens.put("{{PW_UTENTI}}", h.powerIbmiUnlimited() ? "ILLIMITATI" : (h.powerIbmiUsers() == null ? "" : String.valueOf(h.powerIbmiUsers())));
         }
 
+        // SMIDRI (Power HA/DR con soluzione SMIDRI): listino per classe del Power di Produzione e valore al cliente; SMISMP abbinato (facoltativo)
+        boolean smidriDoc = false, smidriSmismp = false;
+        if (h.optPowerSystem() && power != null) {
+            Map<String, Object> so = jdbc.sql("select power_kind, power_hadr_solution, power_smidri_price, power_smidri_smismp, power_smidri_smismp_price from offer where id = :id")
+                    .param("id", h.id()).query().singleRow();
+            smidriDoc = "HADR".equals(so.get("power_kind")) && "SMIDRI".equals(so.get("power_hadr_solution"));
+            smidriSmismp = smidriDoc && Boolean.TRUE.equals(so.get("power_smidri_smismp"));
+            if (smidriDoc) {
+                String cls = power.processorGroup() == null ? "" : power.processorGroup().trim().toUpperCase();
+                tokens.put("{{CLASSE_POWER}}", cls);
+                tokens.put("{{SMIDRI_LISTINO}}", smitechPrice("SMIDRI", cls));
+                tokens.put("{{SMIDRI_NETTO}}", so.get("power_smidri_price") == null ? "" : eur((BigDecimal) so.get("power_smidri_price")));
+                tokens.put("{{SMISMP-SMIDRI_LISTINO}}", smidriSmismp ? smitechPrice("SMISMP-SMIDRI", cls) : "");
+                tokens.put("{{SMISMP-SMIDRI_NETTO}}", smidriSmismp && so.get("power_smidri_smismp_price") != null ? eur((BigDecimal) so.get("power_smidri_smismp_price")) : "");
+            }
+        }
+
         // modalita' di fatturazione e pagamento (tabella di pagamenti.docx)
         PaymentTerms terms = termsRepo.load(h.id());
         tokens.put("{{PAG_LIC_FATT}}", termsConfig.billLicText(terms));
@@ -304,9 +343,9 @@ public class OfferDocxService {
             ensureSectionBreakAfterCover(doc);
 
             // valori netti (dopo lo sconto) per il riepilogo finale
-            BigDecimal netLic = totLic.multiply(factor).setScale(2, java.math.RoundingMode.HALF_UP);
+            BigDecimal netLic = custLic.multiply(factor).setScale(2, java.math.RoundingMode.HALF_UP);
             // «Manutenzione su netto scontato»: se no, la manutenzione resta sul valore di listino delle licenze
-            BigDecimal netMan = h.maintOnNet() ? totMan.multiply(factor).setScale(2, java.math.RoundingMode.HALF_UP) : totMan;
+            BigDecimal netMan = h.maintOnNet() ? custMan.multiply(factor).setScale(2, java.math.RoundingMode.HALF_UP) : totMan;
             ExtraModel.Selection extraSel = h.optExtraServices() ? extraRepo.loadSelection(h.id()) : ExtraModel.Selection.empty();
             ExtraModel.Totals extraTotals = h.optExtraServices() ? extraCalc.calculate(extraSel, null) : null;
             BigDecimal activitiesTotal = null;
@@ -314,14 +353,23 @@ public class OfferDocxService {
 
             Map<String, Map<String, List<String[]>>> moduleFamilies = loadModuleFamilies(h, lines);
 
+            // Power CBU: scheda, modello e segnaposto propri
+            PowerCfg cbuCfg = power == null ? null : cbuCfgOf(h);
+            PowerRow cbuPower = cbuCfg == null ? null : powerModel(cbuCfg.modelId());
+            boolean hasCbu = cbuPower != null;
+            Map<String, String> cbuTokens = hasCbu ? cbuTokens(tokens, cbuPower, cbuCfg, h) : tokens;
+
             String prevKey = "";                               // hardware e software Power seguono il documento precedente senza salto pagina
             for (int idx = 0; idx < PARTS.size(); idx++) {
                 Part pt = PARTS.get(idx);
                 if (("servizi-accessori".equals(pt.key()) && !h.optExtraServices())
                         || ("riepilogo-finale".equals(pt.key()) && (h.optFinalSummary() || aggOnly))          // il riepilogo c'e' solo con «Modello offerta Light» spento (mai per MODULI AGGIUNTIVI)
                         || (pt.key().startsWith("power-") && (!h.optPowerSystem() || power == null))
+                        || (pt.key().startsWith("cbu-") && !hasCbu)
                         || ("power-solution".equals(pt.key()) && !"SOLUTION".equalsIgnoreCase(h.powerEdition()))
                         || (("power-migrazione".equals(pt.key()) || "power-transfer".equals(pt.key())) && !transferOn(h))
+                        || ("smidri".equals(pt.key()) && !smidriDoc)
+                        || (("smidri-smismp".equals(pt.key()) || "smidri-totali".equals(pt.key())) && !smidriSmismp)
                         || ("licenze".equals(pt.key()) && tableLines.isEmpty())                  // senza Dipartimentali non ci sono licenze
                         || ("attivita".equals(pt.key()) && (activityRows.isEmpty() || "NONE".equals(h.servicesMode())))) {      // nessuna attività configurata: la sezione non c'è
                     continue;
@@ -331,7 +379,8 @@ public class OfferDocxService {
                 List<String> partFiles = "attivita".equals(pt.key()) && h.optFinalSummary() ? List.of("attivita-light.docx")
                         : "licenze".equals(pt.key()) && aggOnly ? List.of("licenze-elenco-semplice.docx", "licenze.docx")          // MODULI AGGIUNTIVI: elenco semplice dei moduli
                         : pt.files();
-                InputStream pin = "power-model".equals(pt.key()) ? powerDocs.open(power.wordFile()).orElse(null) : openTemplate(partFiles);
+                InputStream pin = "power-model".equals(pt.key()) ? powerDocs.open(power.wordFile()).orElse(null)
+                        : "cbu-model".equals(pt.key()) ? powerDocs.open(cbuPower.wordFile()).orElse(null) : openTemplate(partFiles);
                 if (pin == null) {
                     continue;
                 }
@@ -341,7 +390,8 @@ public class OfferDocxService {
                     switch (pt.key()) {
                         case "licenze" -> {
                             fillLicenceTable(part.getTables().get(0), tableLines);
-                            fillTotals(part.getTables().get(1), eur(totLic), eur(totMan), eur(netLic), eur(netMan), hasDiscount);
+                            fillTotals(part.getTables().get(1), eur(totLic), eur(totMan), eur(netLic), eur(netMan),
+                                    hasDiscount || netLic.compareTo(totLic) != 0 || netMan.compareTo(totMan) != 0);
                             replaceEverywhere(part, tokens);
                             elems = trimToOwnPart(part.getBodyElements(), idx);
                             if (!aggOnly) {
@@ -363,20 +413,43 @@ public class OfferDocxService {
                                 activitiesTotal = fillActivityDocument(part, activityRows, h.activityDiscountPct(), until, hoursDetail, h.optServicesDays(), tokens);
                             }
                             replaceEverywhere(part, tokens);
-                            importNumbering(doc, part);                      // elenchi puntati (tariffe, trasferte): simbolo «-» con colore automatico come nel modello
+                            importNumbering(doc, part, true);                      // elenchi puntati (tariffe, trasferte): simbolo «-» con colore automatico come nel modello
                             elems = dropTrailingBlanks(trimToOwnPart(part.getBodyElements(), idx));          // via i salti pagina finali: seguono altri documenti
                         }
                         case "power-model" -> {
+                            if (hasCbu) {
+                                retitlePower(part, " (PRODUZIONE)");           // con la CBU il titolo del Power di Produzione termina con «(PRODUZIONE)»
+                            }
                             replaceEverywhere(part, tokens);
                             elems = part.getBodyElements();
                         }
+                        case "cbu-model" -> {
+                            retitlePower(part, " (CBU)");                      // titolo del Power CBU: termina con «(CBU)»
+                            replaceEverywhere(part, cbuTokens);
+                            elems = part.getBodyElements();
+                        }
+                        case "cbu-hardware" -> {
+                            fillPowerHardware(part, cbuPower, cbuCfg);
+                            replaceEverywhere(part, cbuTokens);
+                            elems = part.getBodyElements();
+                        }
+                        case "cbu-software" -> {
+                            fillPowerSoftware(part, cbuPower, cbuCfg);
+                            replaceEverywhere(part, cbuTokens);
+                            elems = part.getBodyElements();
+                        }
+                        case "cbu-manutenzione" -> {
+                            fillPowerMaintenance(part, cbuCfg);
+                            replaceEverywhere(part, cbuTokens);
+                            elems = part.getBodyElements();
+                        }
                         case "power-hardware" -> {
-                            fillPowerHardware(part, power, h);
+                            fillPowerHardware(part, power, cfgOf(h));
                             replaceEverywhere(part, tokens);
                             elems = part.getBodyElements();
                         }
                         case "power-manutenzione" -> {
-                            fillPowerMaintenance(part, h);              // una riga di durata e i totali (listino e netto) per ogni periodo selezionato
+                            fillPowerMaintenance(part, cfgOf(h));              // una riga di durata e i totali (listino e netto) per ogni periodo selezionato
                             replaceEverywhere(part, tokens);            // {{PW_PREZZO_LISTINO}} e {{PW_PREZZO_NETTO}} nella tabella dei totali
                             elems = part.getBodyElements();
                         }
@@ -388,6 +461,12 @@ public class OfferDocxService {
                             replaceEverywhere(part, tokens);            // {{TRANSFER-CONVERSION}}, {{MACCHINA_DONOR}}, {{SOFTWARE_IBM}}
                             elems = part.getBodyElements();
                         }
+                        case "smidri", "smidri-smismp", "smidri-totali" -> {
+                            flattenStyles(part);                            // titoli e testi mantengono carattere, dimensione e colore del documento originale
+                            importNumbering(doc, part, false);              // gli elenchi puntati restano puntati (stesso simbolo e rientro del modello)
+                            replaceEverywhere(part, tokens);                // {{CLASSE_POWER}}, {{SMIDRI_LISTINO}}, {{SMIDRI_NETTO}}, {{SMISMP-SMIDRI_LISTINO}}, {{SMISMP-SMIDRI_NETTO}}
+                            elems = dropTrailingBlanks(part.getBodyElements());
+                        }
                         case "power-nvme", "power-smaltimento" -> {
                             replaceEverywhere(part, tokens);
                             elems = part.getBodyElements();
@@ -397,7 +476,7 @@ public class OfferDocxService {
                             elems = part.getBodyElements();
                         }
                         case "power-software" -> {
-                            fillPowerSoftware(part, power, h);
+                            fillPowerSoftware(part, power, cfgOf(h));
                             replaceEverywhere(part, tokens);
                             elems = part.getBodyElements();
                         }
@@ -410,7 +489,7 @@ public class OfferDocxService {
                         }
                         case "servizi-accessori" -> elems = prepareExtraServices(part, extraSel, extraTotals, tokens);
                         case "riepilogo-finale" -> {
-                            fillFinalSummary(part, netLic, activitiesTotal, netMan, h.optMaintenanceAdditional(), tokens, powerSummaryNets(h, power));
+                            fillFinalSummary(part, netLic, activitiesTotal, netMan, h.optMaintenanceAdditional(), tokens, powerSummaryNets(h, power), cbuSummaryNets(h, power));
                             elems = trimToOwnPart(part.getBodyElements(), idx);
                         }
                         default -> {
@@ -419,15 +498,18 @@ public class OfferDocxService {
                         }
                     }
                     if ("power-model".equals(pt.key()) || "power-hardware".equals(pt.key()) || "power-software".equals(pt.key())
+                            || pt.key().startsWith("cbu-")
                             || "power-manutenzione".equals(pt.key()) || "power-licenze".equals(pt.key())
                             || "power-solution".equals(pt.key()) || "power-migrazione".equals(pt.key())
                             || "power-transfer".equals(pt.key()) || "power-nvme".equals(pt.key())) {
                         elems = dropTrailingBlanks(elems);          // paragrafi vuoti finali dei documenti: a separare le tabelle basta una riga vuota
                     }
-                    boolean hardware = ("power-hardware".equals(pt.key()) && "power-model".equals(prevKey))
+                    boolean hardware = "smidri-totali".equals(pt.key())          // i totali SMISMP seguono il documento SMISMP con un solo capo riga (nessun salto pagina)
+                            || ("power-hardware".equals(pt.key()) && "power-model".equals(prevKey))
                             || ("power-software".equals(pt.key()) && "power-hardware".equals(prevKey))
+                            || "cbu-hardware".equals(pt.key()) || "cbu-software".equals(pt.key()) || "cbu-manutenzione".equals(pt.key())          // CBU: dopo il modello (pagina nuova) tutto di seguito
                             || "power-manutenzione".equals(pt.key())                                           // manutenzione: di seguito, senza salto pagina
-                            || ("power-licenze".equals(pt.key()) && "power-manutenzione".equals(prevKey))
+                            || ("power-licenze".equals(pt.key()) && ("power-manutenzione".equals(prevKey) || "cbu-manutenzione".equals(prevKey)))
                             || "power-solution".equals(pt.key()) || "power-migrazione".equals(pt.key())
                             || "power-nvme".equals(pt.key()) || "power-smaltimento".equals(pt.key());       // power-transfer: pagina nuova     // le chiavi di licenza seguono la manutenzione con una riga vuota
                     if (hardware) {
@@ -437,8 +519,15 @@ public class OfferDocxService {
                             doc.createParagraph();        // documenti successivi (licenze, solution, migrazione, transfer): due righe vuote dopo il documento precedente
                         }
                     }
-                    appendPart(doc, part, elems, !hardware, pt.key().startsWith("power-"));
+                    appendPart(doc, part, elems, !hardware, pt.key().startsWith("power-") || pt.key().startsWith("smidri") || pt.key().startsWith("cbu-"));
                     prevKey = pt.key();
+                    if ("cbu-software".equals(pt.key())) {                  // dopo il software della CBU: capo riga e nota sul subentro della CBU
+                        doc.createParagraph();
+                        XWPFRun cr = doc.createParagraph().createRun();
+                        cr.setFontFamily("Arial");
+                        cr.setFontSize(10);
+                        cr.setText("In caso di caduta del sistema produzione, il power CBU erediterà i software programma, gli stessi processori e utenti che sono configurati nella macchina di Produzione.");
+                    }
                     if ("attivita".equals(pt.key())) {
                         appendActivityExtras(doc, h.optFinalSummary(), "PROSPECT".equalsIgnoreCase(c.type()), tokens);
                     }
@@ -450,6 +539,18 @@ public class OfferDocxService {
                         nr.setFontFamily("Arial");
                         nr.setFontSize(10);
                         nr.setText("Eventuale attività sarà conteggiata a consuntivo mensile alle tariffe in vigore.");
+                    }
+                    // servizi SMITECH (SMIDRI e/o SMISMP) nel riepilogo finale: descrizione e valore al cliente, prima dei servizi accessori
+                    if ("riepilogo-finale".equals(pt.key())) {
+                        List<String[]> sm = smitechSummaryLines(h);
+                        if (!sm.isEmpty()) {
+                            try (InputStream sin = openTemplate(List.of("riepilogo-finale-servizi-smitech.docx"));
+                                 XWPFDocument sx = new XWPFDocument(sin)) {
+                                fillSmitechSummaryTable(sx.getTables().get(0), sm);
+                                replaceEverywhere(sx, tokens);
+                                appendPart(doc, sx, new ArrayList<>(sx.getBodyElements()), false);
+                            }
+                        }
                     }
                     // seconda tabella del riepilogo finale: solo con "aggiungi servizi accessori" (stessa pagina, nessun salto)
                     if ("riepilogo-finale".equals(pt.key()) && h.optExtraServices() && extraTotals != null) {
@@ -896,7 +997,7 @@ public class OfferDocxService {
      * (altro simbolo o colore). Copia nel principale le definizioni usate dal modello e riscrive i numId dei suoi paragrafi.
      * Il colore del simbolo dei livelli copiati e' «Automatico».
      */
-    private static void importNumbering(XWPFDocument main, XWPFDocument part) {
+    private static void importNumbering(XWPFDocument main, XWPFDocument part, boolean autoColor) {
         Map<BigInteger, BigInteger> cache = new HashMap<>();
         // si lavora sul XML del corpo (comprese le righe aggiunte alle tabelle direttamente sul CT)
         org.apache.xmlbeans.XmlObject[] ids = part.getDocument().getBody().selectPath(
@@ -907,10 +1008,140 @@ public class OfferDocxService {
             }
             BigInteger old = dn.getVal();
             BigInteger nid = cache.computeIfAbsent(old, k -> {
-                BigInteger created = importNumberingById(main, part, k, true);
+                BigInteger created = importNumberingById(main, part, k, autoColor);
                 return created == null ? k : created;
             });
             dn.setVal(nid);
+        }
+    }
+
+    // ------------------------------------------------------------------ stili dei documenti agganciati
+    private static final String W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+    private static final List<String> RPR_ORDER = List.of("rStyle", "rFonts", "b", "bCs", "i", "iCs", "caps", "smallCaps", "strike", "dstrike", "outline", "shadow",
+            "emboss", "imprint", "noProof", "snapToGrid", "vanish", "webHidden", "color", "spacing", "w", "kern", "position", "sz", "szCs", "highlight", "u",
+            "effect", "bdr", "shd", "fitText", "vertAlign", "rtl", "cs", "em", "lang", "eastAsianLayout", "specVanish", "oMath");
+
+    private static org.w3c.dom.Element domChild(org.w3c.dom.Node parent, String local) {
+        for (org.w3c.dom.Node n = parent == null ? null : parent.getFirstChild(); n != null; n = n.getNextSibling()) {
+            if (n instanceof org.w3c.dom.Element e && local.equals(e.getLocalName())) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    private static String domVal(org.w3c.dom.Element e, String attr) {
+        if (e == null) {
+            return null;
+        }
+        String v = e.getAttributeNS(W_NS, attr);
+        return v == null || v.isEmpty() ? null : v;
+    }
+
+    /**
+     * Gli stili di paragrafo di un documento agganciato (es. «Titolo 1») nel documento principale hanno un'altra definizione (carattere, colore,
+     * dimensione): il testo cambierebbe aspetto. Per ogni paragrafo con stile si riportano nei suoi caratteri, come formattazione diretta,
+     * carattere, dimensione, colore, grassetto e corsivo effettivi dello stile originale (seguendo la catena «basato su»), senza toccare quanto
+     * il carattere specifica gia' da se'.
+     */
+    private static void flattenStyles(XWPFDocument part) {
+        try {
+            XWPFStyles styles = part.getStyles();
+            if (styles == null) {
+                return;
+            }
+            for (org.apache.xmlbeans.XmlObject o : part.getDocument().getBody().selectPath("declare namespace w='" + W_NS + "' .//w:p")) {
+                org.w3c.dom.Node pn = o.getDomNode();
+                String id = domVal(domChild(domChild(pn, "pPr"), "pStyle"), "val");
+                if (id == null) {
+                    continue;
+                }
+                String font = null, sz = null, szCs = null, color = null;
+                boolean bold = false, italic = false;
+                String cur = id;
+                for (int depth = 0; cur != null && depth < 12; depth++) {
+                    XWPFStyle st = styles.getStyle(cur);
+                    if (st == null) {
+                        break;
+                    }
+                    org.w3c.dom.Element rpr = domChild(st.getCTStyle().getDomNode(), "rPr");
+                    org.w3c.dom.Element f = domChild(rpr, "rFonts");
+                    if (font == null && f != null && domVal(f, "ascii") != null) {
+                        font = domVal(f, "ascii");
+                    }
+                    if (sz == null) {
+                        sz = domVal(domChild(rpr, "sz"), "val");
+                    }
+                    if (szCs == null) {
+                        szCs = domVal(domChild(rpr, "szCs"), "val");
+                    }
+                    if (color == null) {
+                        color = domVal(domChild(rpr, "color"), "val");
+                    }
+                    bold |= domChild(rpr, "b") != null && !"0".equals(domVal(domChild(rpr, "b"), "val")) && !"false".equals(domVal(domChild(rpr, "b"), "val"));
+                    italic |= domChild(rpr, "i") != null && !"0".equals(domVal(domChild(rpr, "i"), "val")) && !"false".equals(domVal(domChild(rpr, "i"), "val"));
+                    cur = st.getCTStyle().isSetBasedOn() ? st.getCTStyle().getBasedOn().getVal() : null;
+                }
+                org.w3c.dom.NodeList runs = ((org.w3c.dom.Element) pn).getElementsByTagNameNS(W_NS, "r");
+                for (int i = 0; i < runs.getLength(); i++) {
+                    org.w3c.dom.Element run = (org.w3c.dom.Element) runs.item(i);
+                    org.w3c.dom.Element rpr = domChild(run, "rPr");
+                    if (rpr == null) {
+                        rpr = run.getOwnerDocument().createElementNS(W_NS, "w:rPr");
+                        run.insertBefore(rpr, run.getFirstChild());
+                    }
+                    org.w3c.dom.Element rf = domChild(rpr, "rFonts");
+                    if (font != null) {
+                        if (rf == null) {
+                            rf = run.getOwnerDocument().createElementNS(W_NS, "w:rFonts");
+                            rpr.appendChild(rf);
+                        }
+                        if (domVal(rf, "ascii") == null && domVal(rf, "asciiTheme") == null) {
+                            rf.setAttributeNS(W_NS, "w:ascii", font);
+                            rf.setAttributeNS(W_NS, "w:hAnsi", font);
+                        }
+                    }
+                    addIfMissing(rpr, "sz", sz);
+                    addIfMissing(rpr, "szCs", szCs != null ? szCs : sz);
+                    addIfMissing(rpr, "color", color);
+                    if (bold && domChild(rpr, "b") == null) {
+                        rpr.appendChild(run.getOwnerDocument().createElementNS(W_NS, "w:b"));
+                    }
+                    if (italic && domChild(rpr, "i") == null) {
+                        rpr.appendChild(run.getOwnerDocument().createElementNS(W_NS, "w:i"));
+                    }
+                    sortRpr(rpr);
+                }
+            }
+        } catch (RuntimeException ex) {
+            // formattazione dello stile non riportata: resta quella del documento principale
+        }
+    }
+
+    private static void addIfMissing(org.w3c.dom.Element rpr, String local, String val) {
+        if (val == null || domChild(rpr, local) != null) {
+            return;
+        }
+        org.w3c.dom.Element e = rpr.getOwnerDocument().createElementNS(W_NS, "w:" + local);
+        e.setAttributeNS(W_NS, "w:val", val);
+        rpr.appendChild(e);
+    }
+
+    /** riordina i figli di w:rPr nell'ordine previsto dallo schema (Word e' esigente sull'ordine) */
+    private static void sortRpr(org.w3c.dom.Element rpr) {
+        List<org.w3c.dom.Node> kids = new ArrayList<>();
+        for (org.w3c.dom.Node n = rpr.getFirstChild(); n != null; n = n.getNextSibling()) {
+            kids.add(n);
+        }
+        kids.sort(java.util.Comparator.comparingInt(n -> {
+            int i = RPR_ORDER.indexOf(n.getLocalName());
+            return i < 0 ? 1000 : i;
+        }));
+        for (org.w3c.dom.Node n : kids) {
+            rpr.removeChild(n);
+        }
+        for (org.w3c.dom.Node n : kids) {
+            rpr.appendChild(n);
         }
     }
 
@@ -1243,11 +1474,93 @@ public class OfferDocxService {
     /**
      * tabelle-power-manutenzione.docx: la tabella della durata ha una riga «MANUTENZIONE HARDWARE 7x24 – N MESI» e quella dei totali le righe
      * «TOTALE POWER SYSTEM» (listino) e «TOTALE POWER SYSTEM A VOI RISERVATO» (netto). Per ogni periodo selezionato si ripete la riga della durata e
-     * si aggiungono le righe dei totali di Power e, con LTO8, di LTO8; con piu' periodi le diciture riportano «– N MESI».
+     * si aggiungono le righe dei totali di Power e, con LTO8 e/o TS4300, di LTO8 e/o TS4300; con piu' periodi le diciture riportano «– N MESI».
      */
-    private void fillPowerMaintenance(XWPFDocument part, OfferHeader h) {
-        List<MaintAmt> ls = jdbc.sql("select months, kind, list_price, net_price from offer_power_maint where offer_id = :id order by months, kind desc")
-                .param("id", h.id()).query((rs, n) -> new MaintAmt(rs.getInt("months"), rs.getString("kind"), rs.getBigDecimal("list_price"), rs.getBigDecimal("net_price"))).list();
+    /** titolo del documento del modello Power: alla fine del titolo «POWER SYSTEM Model …» si accoda il termine tra parentesi (es. « (CBU)»), con la formattazione dell'ultimo carattere */
+    private static void retitlePower(XWPFDocument part, String suffix) {
+        for (XWPFParagraph p : part.getParagraphs()) {
+            List<XWPFRun> runs = p.getRuns();
+            StringBuilder full = new StringBuilder();
+            for (XWPFRun r : runs) {
+                String t = r.getText(0);
+                full.append(t == null ? "" : t);
+            }
+            if (!full.toString().contains("POWER SYSTEM")) {
+                continue;
+            }
+            for (int i = runs.size() - 1; i >= 0; i--) {                     // ultimo carattere con testo
+                String t = runs.get(i).getText(0);
+                if (t != null && !t.isBlank()) {
+                    runs.get(i).setText(t.stripTrailing() + suffix, 0);
+                    return;
+                }
+            }
+            return;
+        }
+    }
+
+    /** segnaposto Power ricavati dalla scheda Power CBU (stessi nomi di quelli della Produzione) */
+    private Map<String, String> cbuTokens(Map<String, String> base, PowerRow m, PowerCfg c, OfferHeader h) {
+        Map<String, String> t = new LinkedHashMap<>(base);
+        t.put("{{PW_MODELLO}}", m.model());
+        t.put("{{PW_TIPO}}", m.type());
+        t.put("{{PW_CODICE}}", m.model() + " " + m.type());
+        t.put("{{PW_DESCRIZIONE}}", m.description());
+        t.put("{{PW_CORE}}", String.valueOf(m.cores()));
+        t.put("{{PW_MONTAGGIO}}", m.mounting());
+        t.put("{{PW_GHZ}}", m.ghz());
+        t.put("{{PW_CPW}}", new java.text.DecimalFormat("#,##0", java.text.DecimalFormatSymbols.getInstance(Locale.ITALY)).format(m.cpw()));
+        t.put("{{PW_RAM}}", c.ramGb() == null ? "" : c.ramGb() + " GB");
+        t.put("{{PW_DISCO}}", c.disk() == null ? "" : c.disk());
+        t.put("{{PW_N_DISCHI}}", String.valueOf(c.diskCount()));
+        t.put("{{PW_UTENTI}}", c.unlimited() ? "ILLIMITATI" : (c.users() == null ? "" : String.valueOf(c.users())));
+        List<Integer> ms = jdbc.sql("select distinct months from offer_power_cbu_maint where offer_id = :id order by months").param("id", c.offerId()).query(Integer.class).list();
+        t.put("{{PW_MESI_MANUTENZIONE}}", ms.isEmpty() ? "" : ms.size() == 1 ? String.valueOf(ms.get(0))
+                : ms.subList(0, ms.size() - 1).stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(", ")) + " e " + ms.get(ms.size() - 1));
+        Map<String, Object> tot = jdbc.sql("select coalesce(sum(list_price), 0) as l, coalesce(sum(net_price), 0) as n from offer_power_cbu_maint where offer_id = :id")
+                .param("id", c.offerId()).query().singleRow();
+        t.put("{{PW_PREZZO_LISTINO}}", eur((BigDecimal) tot.get("l")));
+        t.put("{{PW_PREZZO_NETTO}}", eur((BigDecimal) tot.get("n")));
+        return t;
+    }
+
+    /** configurazione di un Power dell'offerta (Produzione dall'intestazione, CBU dalla scheda Power CBU): usata dalle tabelle hardware, software e manutenzione */
+    private record PowerCfg(long offerId, boolean cbu, Long modelId, Integer ramGb, String disk, int diskCount, boolean lto8, boolean eth10,
+                            Integer users, boolean unlimited, String cable, String os, String transfer, String transferRef, boolean ts4300) {
+    }
+
+    private PowerCfg cfgOf(OfferHeader h) {
+        return new PowerCfg(h.id(), false, h.powerModelId(), h.powerRamGb(), h.powerDisk(), h.powerDiskCount(), h.powerLto8(), h.powerEth10(),
+                h.powerIbmiUsers(), h.powerIbmiUnlimited(), h.powerCable(), h.powerOs(), h.powerTransfer(), h.powerTransferRef(), tsOf(h.id(), "offer"));
+    }
+
+    /** TS4300 TAPE LIBRARY scelta nella tabella indicata: offer (Produzione) oppure offer_power_cbu */
+    private boolean tsOf(long offerId, String table) {
+        return jdbc.sql("select power_ts4300 from " + table + " where " + ("offer".equals(table) ? "id" : "offer_id") + " = :id")
+                .param("id", offerId).query(Boolean.class).optional().orElse(false);
+    }
+
+    /** scheda Power CBU dell'offerta (solo Power HA/DR con un modello scelto); null = nessuna CBU */
+    private PowerCfg cbuCfgOf(OfferHeader h) {
+        if (!h.optPowerSystem()) {
+            return null;
+        }
+        String kind = jdbc.sql("select power_kind from offer where id = :id").param("id", h.id()).query(String.class).optional().orElse("NEW");
+        if (!"HADR".equals(kind)) {
+            return null;
+        }
+        return jdbc.sql("""
+                select power_model_id, power_ram_gb, power_disk, power_disk_count, power_lto8, power_eth10, power_ibmi_users, power_ibmi_unlimited,
+                       power_cable, power_os, power_transfer, power_transfer_ref from offer_power_cbu where offer_id = :id and power_model_id is not null""")
+                .param("id", h.id()).query((rs, n) -> new PowerCfg(h.id(), true, rs.getLong(1), (Integer) rs.getObject(2), rs.getString(3), rs.getInt(4),
+                        rs.getBoolean(5), rs.getBoolean(6), (Integer) rs.getObject(7), rs.getBoolean(8), rs.getString(9), rs.getString(10), rs.getString(11), rs.getString(12), tsOf(h.id(), "offer_power_cbu")))
+                .optional().orElse(null);
+    }
+
+    private void fillPowerMaintenance(XWPFDocument part, PowerCfg h) {
+        List<MaintAmt> ls = jdbc.sql("select months, kind, list_price, net_price from " + (h.cbu() ? "offer_power_cbu_maint" : "offer_power_maint")
+                + " where offer_id = :id order by months, case kind when 'POWER' then 0 when 'LTO8' then 1 else 2 end")
+                .param("id", h.offerId()).query((rs, n) -> new MaintAmt(rs.getInt("months"), rs.getString("kind"), rs.getBigDecimal("list_price"), rs.getBigDecimal("net_price"))).list();
         if (ls.isEmpty()) {
             return;                                                  // offerta senza periodi: restano i segnaposto con i totali storici
         }
@@ -1305,9 +1618,9 @@ public class OfferDocxService {
                     if (a.months() != m) {
                         continue;
                     }
-                    boolean lto = "LTO8".equals(a.kind());
-                    totalRow(tTot, protoList, (lto ? labelList.replace("POWER SYSTEM", "LTO8") : labelList) + suffix, a.list());
-                    totalRow(tTot, protoNet, (lto ? labelNet.replace("POWER SYSTEM", "LTO8") : labelNet) + suffix, a.net());
+                    String nm = "LTO8".equals(a.kind()) ? "LTO8" : "TS4300".equals(a.kind()) ? "TS4300" : null;        // Power: dicitura del modello; LTO8 / TS4300: la sostituisce
+                    totalRow(tTot, protoList, (nm != null ? labelList.replace("POWER SYSTEM", nm) : labelList) + suffix, a.list());
+                    totalRow(tTot, protoNet, (nm != null ? labelNet.replace("POWER SYSTEM", nm) : labelNet) + suffix, a.net());
                 }
             }
         }
@@ -1354,12 +1667,14 @@ public class OfferDocxService {
         return String.join(", ", d.subList(0, d.size() - 1)) + " e " + d.get(d.size() - 1);
     }
 
-    private void fillPowerSoftware(XWPFDocument part, PowerRow p, OfferHeader h) {
+    private void fillPowerSoftware(XWPFDocument part, PowerRow p, PowerCfg h) {
         List<HwLine> lines = new ArrayList<>();
-        lines.add(new HwLine("", List.of("Gruppo SW " + (p.processorGroup() == null ? "" : p.processorGroup()) + " (" + p.cores() + " core)",
-                "Versione software IBM " + (h.powerOs() == null ? "" : h.powerOs())), ""));
-        List<String[]> products = jdbc.sql("select o.code, o.description, o.value from offer_power_product o join ibmi_product p on p.id = o.product_id "
-                + "where o.offer_id = :id order by p.sort_order, o.code").param("id", h.id())
+        // prima riga: gruppo SW e versione su un'unica riga, separati da « - »
+        lines.add(new HwLine("", List.of("Gruppo SW " + (p.processorGroup() == null ? "" : p.processorGroup()) + " (" + p.cores() + " core) - "
+                + "Versione software IBM " + (h.os() == null ? "" : h.os())), ""));
+        // prodotti IBM i: solo del Power di Produzione (la scheda CBU non li ha)
+        List<String[]> products = h.cbu() ? List.<String[]>of() : jdbc.sql("select o.code, o.description, o.value from offer_power_product o join ibmi_product p on p.id = o.product_id "
+                + "where o.offer_id = :id order by p.sort_order, o.code").param("id", h.offerId())
                 .query((rs, n) -> new String[]{rs.getString(1), rs.getString(2), rs.getString(3)}).list();
         for (String[] pr : products) {
             lines.add(new HwLine(pr[0], List.of(pr[1]), "MIGRATO".equals(pr[2]) ? "Migrato" : pr[2]));
@@ -1402,7 +1717,7 @@ public class OfferDocxService {
      * Righe: sistema, RAM, dischi NVMe in mirroring, tape LTO 8 oppure cavo di collegamento, cavi vari, DVD, adattatore 1 Gbps,
      * adattatore 10 Gbps (se scelto), utenti IBM i in subscription.
      */
-    private void fillPowerHardware(XWPFDocument part, PowerRow p, OfferHeader h) {
+    private void fillPowerHardware(XWPFDocument part, PowerRow p, PowerCfg h) {
         List<HwLine> lines = new ArrayList<>();
         List<String> sys = new ArrayList<>();
         // la descrizione automatica parte gia' da «Model »: non si ripete il prefisso
@@ -1412,21 +1727,24 @@ public class OfferDocxService {
         }
         sys.add("Prestazioni  CPW " + new java.text.DecimalFormat("#,##0", java.text.DecimalFormatSymbols.getInstance(Locale.ITALY)).format(p.cpw()));
         lines.add(new HwLine(p.model() + " " + p.type(), sys, "1"));
-        lines.add(new HwLine("", List.of("Memoria RAM GB"), h.powerRamGb() == null ? "" : String.valueOf(h.powerRamGb())));
-        lines.add(new HwLine("", List.of("Dischi NVMe da " + (h.powerDisk() == null ? "" : h.powerDisk()) + " in mirroring"), String.valueOf(h.powerDiskCount())));
-        if (h.powerLto8()) {
+        lines.add(new HwLine("", List.of("Memoria RAM GB"), h.ramGb() == null ? "" : String.valueOf(h.ramGb())));
+        lines.add(new HwLine("", List.of("Dischi NVMe da " + (h.disk() == null ? "" : h.disk()) + " in mirroring"), String.valueOf(h.diskCount())));
+        if (h.lto8()) {
             lines.add(new HwLine("", List.of("Tape LTO 8 e scheda sas"), "1"));
-        } else if (h.powerCable() != null && !h.powerCable().isBlank()) {
-            lines.add(new HwLine("", List.of("Cavo di collegamento per " + h.powerCable()), "1"));
+        } else if (h.cable() != null && !h.cable().isBlank()) {
+            lines.add(new HwLine("", List.of("Cavo di collegamento per " + h.cable()), "1"));
+        }
+        if (h.ts4300()) {
+            lines.add(new HwLine("", List.of("Tape library TS4300"), "1"));
         }
         lines.add(new HwLine("", List.of("Cavi vari"), "1"));
         lines.add(new HwLine("", List.of("DVD ROM (esterno)"), "1"));
         lines.add(new HwLine("", List.of("Adattatore Ethernet 4 porte 1 Gbps"), p.cores() == 8 ? "2" : "1"));
-        if (h.powerEth10()) {
+        if (h.eth10()) {
             lines.add(new HwLine("", List.of("Adattatore Ethernet 2 porte 10GB + 4 transceiver 10gbit ottici"), "2"));
         }
         lines.add(new HwLine("", List.of("Utenti licenziati IN SUBSCRIPTION (compreso software maintenance)"),
-                h.powerIbmiUnlimited() ? "ILLIMITATI" : (h.powerIbmiUsers() == null ? "" : String.valueOf(h.powerIbmiUsers()))));
+                h.unlimited() ? "ILLIMITATI" : (h.users() == null ? "" : String.valueOf(h.users()))));
 
         fillProtoTable(part, "{{PWH_DESC}}", "tabelle-power-hardware.docx", lines);
     }
@@ -1684,6 +2002,16 @@ public class OfferDocxService {
         tokens.put("{{TOT_LISTINO}}", eur(gross));
         tokens.put("{{TOT_NETTO}}", eur(total));
         return total;
+    }
+
+    /** prezzo di listino (canone annuo) del modulo SMITECH con il codice esatto indicato, nella modalita' uguale al gruppo processore (P05 / P10); vuoto se manca */
+    private String smitechPrice(String moduleCode, String mode) {
+        BigDecimal v = jdbc.sql("""
+                select mp.price from module_price mp join module m on m.id = mp.module_id join application a on a.id = m.application_id
+                where a.code = 'SMITECH' and a.deleted_at is null and m.deleted_at is null and m.code = :c and mp.mode_code in (:m, 'STD')
+                order by case when mp.mode_code = :m then 0 else 1 end limit 1""")
+                .param("c", moduleCode).param("m", mode).query(BigDecimal.class).optional().orElse(null);
+        return v == null ? "" : eur(v);
     }
 
     /** SMIDRI / SMISMP nell'offerta salvata: «SMIDRI», «SMISMP», «SMIDRI/SMISMP» oppure null */
@@ -2115,6 +2443,46 @@ public class OfferDocxService {
      * canone di manutenzione (netto) con l'eventuale dicitura "IN AGGIUNTA ALL'ATTUALE".
      * POWER SYSTEM e PACCHETTO GIORNATE DI FOLLOW UP non sono gestiti dall'applicazione: le righe vengono tolte.
      */
+    /** Power HA/DR con CBU: la riga «POWER SYSTEM» diventa «POWER SYSTEM PRODUZIONE» e subito sotto se ne aggiunge una «POWER SYSTEM CBU» con il netto della CBU */
+    private static void splitPowerRow(XWPFDocument part, String cbuText) {
+        for (XWPFTable t : part.getTables()) {
+            CTRow[] trs = t.getCTTbl().getTrArray();
+            for (int i = 0; i < trs.length; i++) {
+                if (!rowText(trs[i]).contains("{{RF_POWER}}")) {
+                    continue;
+                }
+                CTRow cbu = (CTRow) trs[i].copy();
+                setCellText(trs[i].getTcArray(0), "POWER SYSTEM PRODUZIONE");
+                CTRow nr = t.getCTTbl().insertNewTr(i + 1);
+                nr.set(cbu);
+                setCellText(nr.getTcArray(0), "POWER SYSTEM CBU");
+                setCellText(nr.getTcArray(nr.sizeOfTcArray() - 1), cbuText);
+                return;
+            }
+        }
+    }
+
+    /** netto Power + LTO8 della scheda Power CBU, una voce per durata di manutenzione (come la Produzione); null = niente CBU */
+    private List<BigDecimal> cbuSummaryNets(OfferHeader h, PowerRow power) {
+        if (!h.optPowerSystem() || power == null) {
+            return null;
+        }
+        Map<String, Object> o = jdbc.sql("select power_kind from offer where id = :id").param("id", h.id()).query().singleRow();
+        if (!"HADR".equals(o.get("power_kind"))) {
+            return null;
+        }
+        long has = jdbc.sql("select count(*) from offer_power_cbu where offer_id = :id and power_model_id is not null").param("id", h.id()).query(Long.class).single();
+        if (has == 0) {
+            return null;
+        }
+        List<BigDecimal> vals = new ArrayList<>();
+        for (Map<String, Object> m : jdbc.sql("select months, sum(net_price) as net from offer_power_cbu_maint where offer_id = :id group by months order by months")
+                .param("id", h.id()).query().listOfRows()) {
+            vals.add((BigDecimal) m.get("net"));
+        }
+        return vals.isEmpty() ? null : vals;
+    }
+
     /**
      * Importo della riga «POWER SYSTEM» del riepilogo: totale netto Power + LTO8 di ogni opzione di manutenzione SW/HW (36, 48, 60 mesi),
      * separati da « ~ » se sono piu' opzioni. null = offerta senza Power System (riga omessa).
@@ -2135,18 +2503,22 @@ public class OfferDocxService {
     }
 
     private void fillFinalSummary(XWPFDocument part, BigDecimal netLic, BigDecimal activities, BigDecimal netMan,
-                                  boolean additional, Map<String, String> baseTokens, List<BigDecimal> powerNets) {
+                                  boolean additional, Map<String, String> baseTokens, List<BigDecimal> powerNets, List<BigDecimal> cbuNets) {
         String powerText = powerNets == null ? null : String.join(" ~ ", powerNets.stream().map(OfferDocxService::eur).toList());
         if (powerText == null) {
             removeRowsContaining(part, "{{RF_POWER}}");           // senza Power System la riga non c'e'
+        } else if (cbuNets != null) {
+            splitPowerRow(part, String.join(" ~ ", cbuNets.stream().map(OfferDocxService::eur).toList()));      // Power System Produzione + Power System CBU
         }
         removeRowsContaining(part, "{{RF_FOLLOWUP}}");
         if (activities == null) {
             removeRowsContaining(part, "{{RF_ATTIVITA}}");
         }
         // totale: licenze + (Power se ha una sola opzione di manutenzione) + attivita'; con piu' opzioni Power il totale non e' determinabile e resta vuoto
-        boolean multiPower = powerNets != null && powerNets.size() > 1;
-        BigDecimal total = netLic.add(activities == null ? BigDecimal.ZERO : activities).add(powerNets != null && powerNets.size() == 1 ? powerNets.get(0) : BigDecimal.ZERO);
+        boolean multiPower = (powerNets != null && powerNets.size() > 1) || (cbuNets != null && cbuNets.size() > 1);
+        BigDecimal total = netLic.add(activities == null ? BigDecimal.ZERO : activities)
+                .add(powerNets != null && powerNets.size() == 1 ? powerNets.get(0) : BigDecimal.ZERO)
+                .add(cbuNets != null && cbuNets.size() == 1 ? cbuNets.get(0) : BigDecimal.ZERO);
         Map<String, String> t = new LinkedHashMap<>(baseTokens);
         t.put("{{RF_LICENZE}}", eur(netLic));
         if (powerText != null) {
@@ -2160,6 +2532,55 @@ public class OfferDocxService {
     }
 
     /** tabella di riepilogo dei servizi accessori scelti: una riga per servizio (riga prototipo {{SA_*}} replicata) */
+    /** una riga per servizio SMIDRI / SMISMP: descrizione e canone annuo al cliente */
+    private void fillSmitechSummaryTable(XWPFTable table, List<String[]> lines) {
+        CTRow proto = table.getRow(1).getCtRow();
+        for (String[] l : lines) {
+            CTRow r = cloneRow(table, proto);
+            setCellText(r.getTcArray(0), l[0]);
+            setCellText(r.getTcArray(r.sizeOfTcArray() - 1), l[1]);
+        }
+        table.removeRow(1);   // riga prototipo
+    }
+
+    /**
+     * Servizi SMIDRI / SMISMP dell'offerta con il valore al cliente (canone annuo): soluzione HA/DR SMIDRI (e SMISMP abbinato) del Power e moduli
+     * SMITECH con SMIDRI / SMISMP nel codice (importo = prezzo del modulo; se e' a fasce, il canone annuo della riga quando e' l'unico servizio).
+     */
+    private List<String[]> smitechSummaryLines(OfferHeader h) {
+        List<String[]> out = new ArrayList<>();
+        Map<String, Object> o = jdbc.sql("select power_kind, power_hadr_solution, power_smidri_price, power_smidri_smismp, power_smidri_smismp_price from offer where id = :id")
+                .param("id", h.id()).query().singleRow();
+        if (h.optPowerSystem() && "HADR".equals(o.get("power_kind")) && "SMIDRI".equals(o.get("power_hadr_solution"))) {
+            out.add(new String[]{"SMIDRI – Disaster Recovery per ambiente IBM i", o.get("power_smidri_price") == null ? "" : eur((BigDecimal) o.get("power_smidri_price"))});
+            if (Boolean.TRUE.equals(o.get("power_smidri_smismp"))) {
+                out.add(new String[]{"SMISMP – Smart Monitoring IBM Power Systems (abbinato a SMIDRI)",
+                        o.get("power_smidri_smismp_price") == null ? "" : eur((BigDecimal) o.get("power_smidri_smismp_price"))});
+            }
+        }
+        for (Map<String, Object> l : jdbc.sql("""
+                select l.id, l.maintenance_amount from offer_line l join application a on a.id = l.application_id
+                where l.offer_id = :id and upper(a.family) = 'SMITECH' order by l.sort_order, l.id""").param("id", h.id()).query().listOfRows()) {
+            List<Map<String, Object>> mods = jdbc.sql("""
+                    select m.code, m.description, x.qty, x.unit_price from offer_line_module x join module m on m.id = x.module_id
+                    where x.line_id = :l order by m.sort_order, m.id""").param("l", l.get("id")).query().listOfRows();
+            List<Map<String, Object>> dri = new ArrayList<>();
+            for (Map<String, Object> m : mods) {
+                String c = String.valueOf(m.get("code")).toUpperCase();
+                if (c.contains("SMIDRI") || c.contains("SMISMP")) {
+                    dri.add(m);
+                }
+            }
+            for (Map<String, Object> m : dri) {
+                BigDecimal unit = (BigDecimal) m.get("unit_price");
+                BigDecimal v = unit != null && unit.signum() > 0 ? unit.multiply(BigDecimal.valueOf(((Number) m.get("qty")).longValue()))
+                        : (mods.size() == 1 ? (BigDecimal) l.get("maintenance_amount") : null);          // modulo a fasce di utenti: canone annuo della riga se e' l'unico
+                out.add(new String[]{m.get("code") + " – " + String.valueOf(m.get("description")).trim(), v == null || v.signum() == 0 ? "" : eur(v)});
+            }
+        }
+        return out;
+    }
+
     private void fillExtrasSummaryTable(XWPFTable table, ExtraModel.Totals totals) {
         CTRow proto = table.getRow(1).getCtRow();
         for (ExtraModel.Line l : totals.lines()) {

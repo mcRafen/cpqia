@@ -15,7 +15,7 @@ import java.util.Map;
 public class UiPrefsController {
 
     public static final List<String> THEMES = List.of("light", "dark", "system");
-    public static final List<String> PALETTES = List.of("teal", "viola", "foresta", "terra");
+    public static final List<String> PALETTES = List.of("teal", "viola", "foresta", "terra", "vader", "christmas");
 
     public record Prefs(String theme, String palette) {
     }

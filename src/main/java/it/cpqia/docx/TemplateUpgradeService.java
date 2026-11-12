@@ -74,7 +74,7 @@ public class TemplateUpgradeService implements ApplicationRunner {
             String rel = url.substring(url.lastIndexOf(ROOT) + ROOT.length());
             rel = java.net.URLDecoder.decode(rel.replace("+", "%2B"), java.nio.charset.StandardCharsets.UTF_8);
             String name = rel.substring(rel.lastIndexOf('/') + 1);
-            if (name.startsWith("~$") || rel.startsWith("_backup/")) {
+            if (name.startsWith("~$") || name.toLowerCase().startsWith("old_") || rel.startsWith("_backup/")) {          // file di lavoro Word e vecchie versioni «old_*» non si distribuiscono
                 continue;
             }
             byte[] data;

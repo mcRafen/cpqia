@@ -49,6 +49,14 @@ public class PricingService {
      * @param driverQty driverId -&gt; quantita' (utenti, macchine, ...)
      */
     public Result calculate(App app, String mode, Map<Long, Integer> selected, Map<Long, Integer> driverQty) {
+        return calculate(app, mode, selected, driverQty, Map.of());
+    }
+
+    /**
+     * come sopra, con prezzi unitari dei moduli diversi dal catalogo (moduleId -&gt; prezzo unitario): sostituiscono quello del listino,
+     * sia per i moduli a prezzo fisso sia come base dei gruppi a fasce
+     */
+    public Result calculate(App app, String mode, Map<Long, Integer> selected, Map<Long, Integer> driverQty, Map<Long, BigDecimal> priceOverride) {
         if (mode == null) {
             mode = app.defaultMode();
         }
@@ -66,7 +74,8 @@ public class PricingService {
                 continue;
             }
             int qty = m.qtyEnabled() ? q : 1;
-            BigDecimal t = priceOf(m, mode).multiply(BigDecimal.valueOf(qty));
+            BigDecimal unitPrice = priceOverride != null && priceOverride.get(m.id()) != null ? priceOverride.get(m.id()) : priceOf(m, mode);
+            BigDecimal t = unitPrice.multiply(BigDecimal.valueOf(qty));
             if (m.groupId() != null) {
                 groupSums.merge(m.groupId(), t, BigDecimal::add);
                 groupKind.putIfAbsent(m.groupId(), m.kind());

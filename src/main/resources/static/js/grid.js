@@ -61,7 +61,7 @@
         (m.newHref ? '<a class="btn sm" href="' + CPQ.url('/' + m.newHref) + '">' + icon('add') + esc(m.newLabel || 'Nuovo') + '</a>'
           : (m.canCreate ? '<button type="button" class="btn sm cg-new">' + icon('add') + 'Aggiungi</button>' : '')) +
         '</div>' +
-        '<div class="cg-groupbar"></div>' +
+        (this.bh.pivot ? '<div class="cg-groupbar"></div>' : '') +          // senza pivot niente area per trascinare le colonne
         '<div class="card cg-card" style="padding:0"><div class="tablewrap"><table class="t cg-table"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>' +
         '<div class="cg-pager"></div></div>';
       const q = (s) => this.el.querySelector(s);
@@ -69,13 +69,16 @@
       q('.cg-ppsel').value = String(this.cfg.pageSize);
       q('.cg-ppsel').addEventListener('change', (e) => this.setPageSize(Number(e.target.value)));
       q('.cg-clear').addEventListener('click', () => { this.quick = ''; q('.cg-quick').value = ''; this.cfg.filters = {}; this.cfg.sorts = []; this.cfg.groups = []; this.page = 0; this.renderAll(); });
-      this.bindPop('.cg-expbtn', '.cg-exp-menu', () => {});
-      q('.cg-exp-menu').addEventListener('click', (e) => {
-        const b = e.target.closest('[data-ex]'); if (!b) return;
-        q('.cg-exp-menu').hidden = true;
-        const f = { xlsx: () => this.exportXlsx(), gsheet: () => this.exportGoogle(), csv: () => this.exportCsv() }[b.dataset.ex];
-        f();
-      });
+      // esportazione: il pulsante c'e' solo per gli utenti abilitati su questa griglia (senza, non si collega nulla e il resto della griglia si disegna comunque)
+      if (q('.cg-exp-menu')) {
+        this.bindPop('.cg-expbtn', '.cg-exp-menu', () => {});
+        q('.cg-exp-menu').addEventListener('click', (e) => {
+          const b = e.target.closest('[data-ex]'); if (!b) return;
+          q('.cg-exp-menu').hidden = true;
+          const f = { xlsx: () => this.exportXlsx(), gsheet: () => this.exportGoogle(), csv: () => this.exportCsv() }[b.dataset.ex];
+          f();
+        });
+      }
       const et = q('.cg-empty-trash'); if (et) et.addEventListener('click', () => this.emptyTrash());
       const nb = q('.cg-new'); if (nb) nb.addEventListener('click', () => this.openCreate());
       if (this.bh.configurable) {
@@ -102,6 +105,7 @@
     // ------------------------------------------------------------------ barra pivot
     renderGroupBar() {
       const bar = this.el.querySelector('.cg-groupbar');
+      if (!bar) return;                                    // griglia senza pivot
       if (!this.bh.pivot) { bar.hidden = true; bar.style.display = 'none'; bar.innerHTML = ''; return; }
       const chips = this.cfg.groups.map((k, i) => {
         const c = this.col(k);
@@ -653,8 +657,23 @@
           upd = await this.applyFiles(files, id, upd);
           const i = this.rows.findIndex((r) => String(r.id) === String(id)); if (i >= 0) this.rows[i] = upd;
           close(); this.renderBody(); window.toast('Salvato');
-        } catch (ex) { err.hidden = false; err.textContent = ex.message; }
+        } catch (ex) { err.hidden = false; err.textContent = ex.message; this.markBad(fields, inputs, ex.message); }
       });
+    }
+
+    /** evidenzia nella scheda i campi citati tra parentesi quadre nel messaggio d'errore */
+    markBad(fields, inputs, msg) {
+      Object.values(inputs).forEach((i) => i.closest('.cg-fld') && i.closest('.cg-fld').classList.remove('cg-bad'));
+      const m = /\[([^\]]+)\]/.exec(msg || '');
+      if (!m) return;
+      const names = m[1].split(',').map((x) => x.trim());
+      let first = null;
+      fields.forEach((c) => {
+        if (names.includes(c.label) && inputs[c.key]) {
+          const w = inputs[c.key].closest('.cg-fld'); if (w) { w.classList.add('cg-bad'); first = first || inputs[c.key]; }
+        }
+      });
+      if (first && first.focus) first.focus();
     }
 
     /**
@@ -744,7 +763,7 @@
           try { const withFile = await this.applyFiles(files, row.id, row); this.rows[this.rows.length - 1] = withFile; }
           catch (fe) { window.toast('Record creato, ma il documento non è stato caricato: ' + fe.message, true); }
           dlg.close(); dlg.remove(); this.renderBody(); window.toast('Aggiunto');
-        } catch (ex) { err.hidden = false; err.textContent = ex.message; }
+        } catch (ex) { err.hidden = false; err.textContent = ex.message; this.markBad(fields, inputs, ex.message); }
       });
     }
     /** «Elimina» sulle righe selezionate: conferma (predefinito No), poi eliminazione definitiva sul server */

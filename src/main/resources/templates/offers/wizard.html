@@ -120,7 +120,7 @@
                 <div class="card pw-model" id="pw-card-model">
                     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
                         <h2 style="margin:0">Selezione del modello</h2>
-                        <button type="button" class="btn tonal sm" id="pw-copy-prod" title="Copia in Power CBU le impostazioni di Power Produzione (esclusi prodotti IBM i, Transfer-Conversion e riferimenti Power)" hidden><svg class="ic"><use href="#i-copy"/></svg>Copia da Produzione</button>
+                        <button type="button" class="btn tonal sm" id="pw-copy-prod" title="Copia in Power CBU le impostazioni di Power Produzione (esclusi prodotti IBM i, importi economici, Transfer-Conversion e riferimenti Power)" hidden><svg class="ic"><use href="#i-copy"/></svg>Copia da Produzione</button>
                     </div>
                     <div class="grid c4" style="align-items:start;margin-bottom:6px">
                         <div class="field span3"><select id="sel-power"></select><label for="sel-power" class="on">Modello *</label>
@@ -154,7 +154,13 @@
                         <fieldset class="pw-fs" disabled>
                             <div class="pw-stack">
                                 <label class="check"><input type="checkbox" id="pw-eth10"> Scheda ethernet 10 gbit</label>
-                                <label class="check"><input type="checkbox" id="pw-lto8"> LTO8</label>
+                                <div id="pw-tape-row" style="display:flex;align-items:center;gap:20px">
+                                    <label class="check"><input type="checkbox" id="pw-tape-on"> TAPE</label>
+                                    <div id="pw-tape-sub" hidden style="display:flex;align-items:center;gap:20px">
+                                        <label class="check"><input type="checkbox" id="pw-lto8"> LTO8</label>
+                                        <label class="check"><input type="checkbox" id="pw-ts4300"> TS4300</label>
+                                    </div>
+                                </div>
                                 <div class="field" id="pw-cable-box"><select id="pw-cable"><option value="">— nessuno —</option><option value="LTO6">LTO6</option><option value="LTO7">LTO7</option></select><label for="pw-cable" class="on">Cavo di collegamento</label></div>
                             </div>
                         </fieldset>
@@ -391,6 +397,8 @@
                 <div class="grid c4" style="align-items:start">
                     <div class="kv-box"><small>Prezzo di listino</small><b id="sum-pw-list">€ 0,00</b><span class="note" id="sum-pw-model"></span></div>
                     <div class="kv-box margin"><small>Prezzo netto</small><b id="sum-pw-net">€ 0,00</b><span class="note" id="sum-pw-disc"></span></div>
+                    <div class="kv-box" id="sum-cbu-list-box" hidden><small>Power CBU – prezzo di listino</small><b id="sum-cbu-list">€ 0,00</b><span class="note" id="sum-cbu-model"></span></div>
+                    <div class="kv-box margin" id="sum-cbu-net-box" hidden><small>Power CBU – prezzo al cliente</small><b id="sum-cbu-net">€ 0,00</b><span class="note" id="sum-cbu-disc"></span></div>
                 </div>
                 <div class="tablewrap" id="sum-pw-periods-wrap" style="margin-top:12px" hidden><table class="t"><thead><tr><th>Manutenzione SW/HW</th><th>Sezione</th><th class="num">Listino</th><th class="num">Netto scontato</th></tr></thead><tbody id="sum-pw-periods"></tbody></table></div>
             </div>

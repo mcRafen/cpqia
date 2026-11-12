@@ -27,17 +27,10 @@ public class ProfileController {
         return "profile";
     }
 
+    /** il profilo non si modifica da qui: nome, cognome e iniziali sono quelli della configurazione utente gestita dall'amministratore */
     @PostMapping("/profile")
-    public String save(@RequestParam(required = false) String firstName, @RequestParam(required = false) String lastName,
-                       @RequestParam String initials, Authentication auth, RedirectAttributes ra) {
-        AppUser me = current.get(auth);
-        String ini = initials == null ? "" : initials.trim().toUpperCase();
-        if (ini.isEmpty() || ini.length() > 6) {
-            ra.addFlashAttribute("err", "Le iniziali sono obbligatorie (max 6 caratteri)");
-            return "redirect:/profile";
-        }
-        users.updateProfile(me.id(), blank(firstName), blank(lastName), ini);
-        ra.addFlashAttribute("msg", "Profilo aggiornato");
+    public String save(RedirectAttributes ra) {
+        ra.addFlashAttribute("err", "Il profilo non è modificabile: i dati sono gestiti dall'amministratore");
         return "redirect:/profile";
     }
 

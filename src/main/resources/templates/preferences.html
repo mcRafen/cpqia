@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Preferenze')}"></head>
+<body>
+<div th:replace="~{fragments/layout :: shell('')}"></div>
+<main class="content"><div class="inner" style="max-width:720px">
+    <div class="pagehead"><h1>Preferenze</h1></div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <form class="card" th:action="@{/preferences}" method="post">
+        <h2>Menu laterale</h2>
+        <div class="grid c2" style="align-items:start">
+            <div class="field"><input type="number" name="recentOffers" id="recentOffers" min="0" th:max="${maxRecent}" step="1" required placeholder=" " th:value="${recentCount}"><label for="recentOffers">Ultime offerte da visualizzare</label>
+                <div class="help" th:text="'Da 0 a ' + ${maxRecent} + '. Con 0 l\'elenco «Ultime offerte gestite» non compare nel menu di sinistra'">Da 0 a 20</div></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:20px"><button class="btn" type="submit"><svg class="ic"><use href="#i-save"/></svg>Salva</button></div>
+    </form>
+</div></main>
+<div th:replace="~{fragments/layout :: foot}"></div>
+</body>
+</html>

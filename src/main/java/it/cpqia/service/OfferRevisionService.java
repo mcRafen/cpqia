@@ -163,12 +163,12 @@ public class OfferRevisionService {
         // righe e relativi moduli / grandezze: serve la mappatura dei nuovi id
         List<Long> oldLines = jdbc.sql("select id from offer_line where offer_id = :o order by id").param("o", sourceId).query(Long.class).list();
         for (Long ol : oldLines) {
-            long nl = jdbc.sql("insert into offer_line (offer_id, application_id, mode_code, sort_order, license_amount, maintenance_amount) "
-                    + "select :n, application_id, mode_code, sort_order, license_amount, maintenance_amount from offer_line where id = :l returning id")
+            long nl = jdbc.sql("insert into offer_line (offer_id, application_id, mode_code, sort_order, license_amount, maintenance_amount, customer_license_amount, customer_maintenance_amount) "
+                    + "select :n, application_id, mode_code, sort_order, license_amount, maintenance_amount, customer_license_amount, customer_maintenance_amount from offer_line where id = :l returning id")
                     .param("n", newId).param("l", ol).query(Long.class).single();
             jdbc.sql("insert into offer_line_driver (line_id, driver_id, qty) select :n, driver_id, qty from offer_line_driver where line_id = :l")
                     .param("n", nl).param("l", ol).update();
-            jdbc.sql("insert into offer_line_module (line_id, module_id, qty, unit_price) select :n, module_id, qty, unit_price from offer_line_module where line_id = :l")
+            jdbc.sql("insert into offer_line_module (line_id, module_id, qty, unit_price, list_price, customer_price) select :n, module_id, qty, unit_price, list_price, customer_price from offer_line_module where line_id = :l")
                     .param("n", nl).param("l", ol).update();
         }
         for (String t : CHILD_TABLES) {

@@ -64,6 +64,7 @@ public final class GridSpec {
         String upload;                           // indirizzo (con {id}) per caricare un file collegato alla riga
         boolean upper;
         boolean noSpaces;
+        boolean blankNotNull;                    // colonna NOT NULL DEFAULT '': il valore vuoto si salva come stringa vuota
         Predicate<AppUser> editWho;
 
         private ColDef(String key, String label, String sql) {
@@ -190,6 +191,11 @@ public final class GridSpec {
 
         public ColDef upper() {
             this.upper = true;
+            return this;
+        }
+
+        public ColDef blankNotNull() {
+            this.blankNotNull = true;
             return this;
         }
 

@@ -16,7 +16,11 @@ public final class OfferDtos {
     private OfferDtos() {
     }
 
-    public record ModuleQty(Long moduleId, Integer qty) {
+    /** modulo scelto: quantita' e, se modificati a mano, prezzo unitario di listino e prezzo unitario a cliente (null = quelli del catalogo / uguale al listino) */
+    public record ModuleQty(Long moduleId, Integer qty, BigDecimal listPrice, BigDecimal customerPrice) {
+        public ModuleQty(Long moduleId, Integer qty) {
+            this(moduleId, qty, null, null);
+        }
     }
 
     public record LineRequest(Long applicationId, String modeCode, Map<Long, Integer> drivers, List<ModuleQty> modules) {
@@ -37,13 +41,13 @@ public final class OfferDtos {
                                it.cpqia.galileo.GalileoService.Request galileo, String servicesMode,
                                List<ProfileRateReq> profileRates, List<PowerMaintReq> powerMaint, Boolean optHoursDetail,
                                LocalDate activityDiscountUntil, String powerKind, PowerCbuReq powerCbu, String powerHadrSolution,
-                               BigDecimal powerSmidriPrice, Boolean powerSmidriSmismp, BigDecimal powerSmidriSmismpPrice) {
+                               BigDecimal powerSmidriPrice, Boolean powerSmidriSmismp, BigDecimal powerSmidriSmismpPrice, Boolean powerTs4300) {
     }
 
     /** scheda «Power CBU» di un Power HA/DR: gli stessi campi della scheda Produzione, senza i prodotti IBM i */
     public record PowerCbuReq(Long modelId, Integer ramGb, String disk, Integer diskCount, Boolean lto8, Boolean eth10,
                               Integer ibmiUsers, Boolean ibmiUnlimited, String cable, String transfer, String transferRef,
-                              String edition, String os, List<PowerMaintReq> maint) {
+                              String edition, String os, List<PowerMaintReq> maint, Boolean ts4300) {
     }
 
     /** importi di un periodo di manutenzione SW/HW (36, 48, 60 mesi) per la sezione POWER o LTO8 */
@@ -64,7 +68,8 @@ public final class OfferDtos {
     }
 
     public record LineResult(Long applicationId, BigDecimal license, BigDecimal onetime, BigDecimal licenseTotal,
-                             BigDecimal maintenance, BigDecimal rentMonthly, List<Row> rows, BigDecimal annual) {
+                             BigDecimal maintenance, BigDecimal rentMonthly, List<Row> rows, BigDecimal annual,
+                             BigDecimal customerLicenseTotal, BigDecimal customerMaintenance) {
     }
 
     public record CalcResponse(List<LineResult> lines, BigDecimal totalLicense, BigDecimal totalMaintenance,

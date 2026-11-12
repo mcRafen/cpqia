@@ -26,7 +26,7 @@
 
   /** stato iniziale di una riga quando si seleziona un'applicazione */
   function newLine(app) {
-    const line = { applicationId: app.id, modeCode: null, drivers: {}, modules: {} };
+    const line = { applicationId: app.id, modeCode: null, drivers: {}, modules: {}, modPrice: {} };   // modPrice: prezzi unitari modificati a mano {list, cust} per modulo
     const dm = app.modes.find((m) => m.preferred) || app.modes[0];
     line.modeCode = dm ? dm.code : null;
     app.drivers.forEach((d) => { line.drivers[d.id] = 0; });          // utenti e macchine partono da 0: i campi obbligatori vanno compilati
@@ -45,7 +45,7 @@
     const m = app.modules.find((x) => x.id === moduleId);
     if (!m || m.section === 'LINK' || m.included) return [];
     const added = [];
-    if (!on) { delete line.modules[moduleId]; return added; }
+    if (!on) { delete line.modules[moduleId]; if (line.modPrice) delete line.modPrice[moduleId]; return added; }
     line.modules[moduleId] = m.qtyEnabled ? Math.max(1, qty || line.modules[moduleId] || 1) : 1;
     if (m.exclGroup) {
       app.modules.forEach((o) => {
@@ -143,6 +143,7 @@
     const m = app.modules.find((x) => x.id === moduleId);
     if (!m || !line.modules[moduleId]) return;
     delete line.modules[moduleId];
+    if (line.modPrice) delete line.modPrice[moduleId];
     out.removed.push(m.code);
     app.modules.forEach((d) => {
       if (!line.modules[d.id]) return;
@@ -219,7 +220,10 @@
       applicationId: l.applicationId,
       modeCode: l.modeCode,
       drivers: l.drivers,
-      modules: Object.keys(l.modules).map((id) => ({ moduleId: Number(id), qty: l.modules[id] })),
+      modules: Object.keys(l.modules).map((id) => {
+        const mp = (l.modPrice || {})[id] || {};
+        return { moduleId: Number(id), qty: l.modules[id], listPrice: mp.list == null ? null : mp.list, customerPrice: mp.cust == null ? null : mp.cust };
+      }),
     }));
     return {
       id: state.offerId || null,
@@ -267,6 +271,7 @@
       powerListPrice: state.optPower && state.powerMaintTotals ? state.powerMaintTotals(state).list : null,
       powerNetPrice: state.optPower && state.powerMaintTotals ? state.powerMaintTotals(state).net : null,
       powerLto8: !!(state.optPower && state.powerLto8),
+      powerTs4300: !!(state.optPower && state.powerTs4300),
       powerEth10: !!(state.optPower && state.powerEth10),
       powerIbmiUsers: state.optPower && !state.powerUnlimited && state.powerUsers !== '' && state.powerUsers != null ? Number(state.powerUsers) : null,
       powerIbmiUnlimited: !!(state.optPower && state.powerUnlimited),
@@ -297,9 +302,12 @@
   /** ricostruisce lo stato righe da una richiesta salvata */
   function linesFromRequest(req) {
     return (req.lines || []).map((l) => {
-      const mods = {};
-      (l.modules || []).forEach((m) => { mods[m.moduleId] = m.qty; });
-      return { applicationId: l.applicationId, modeCode: l.modeCode, drivers: Object.assign({}, l.drivers || {}), modules: mods };
+      const mods = {}, mp = {};
+      (l.modules || []).forEach((m) => {
+        mods[m.moduleId] = m.qty;
+        if (m.listPrice != null || m.customerPrice != null) mp[m.moduleId] = { list: m.listPrice == null ? null : Number(m.listPrice), cust: m.customerPrice == null ? null : Number(m.customerPrice) };
+      });
+      return { applicationId: l.applicationId, modeCode: l.modeCode, drivers: Object.assign({}, l.drivers || {}), modules: mods, modPrice: mp };
     });
   }
 

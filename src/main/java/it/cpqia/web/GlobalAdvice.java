@@ -23,14 +23,18 @@ public class GlobalAdvice {
 
     private final CurrentUserService current;
     private final UiPrefsController uiPrefs;
+    private final it.cpqia.service.OfferService offerService;
+    private final PreferencesController preferences;
 
     private final String version;
     private final String build;
 
-    public GlobalAdvice(CurrentUserService current, UiPrefsController uiPrefs, @org.springframework.beans.factory.annotation.Value("${cpqia.version:}") String version,
+    public GlobalAdvice(CurrentUserService current, UiPrefsController uiPrefs, it.cpqia.service.OfferService offerService, PreferencesController preferences, @org.springframework.beans.factory.annotation.Value("${cpqia.version:}") String version,
                         @org.springframework.beans.factory.annotation.Value("${cpqia.build:}") String build) {
         this.current = current;
         this.uiPrefs = uiPrefs;
+        this.offerService = offerService;
+        this.preferences = preferences;
         this.build = build == null || build.isBlank() || build.startsWith("@") ? "sviluppo" : build.replace('T', ' ').replace("Z", " UTC");
         // versione del pom (filtrata in application.properties); fuori dal build Maven resta il segnaposto
         this.version = version == null || version.isBlank() || version.startsWith("@") ? "dev" : version;
@@ -58,6 +62,21 @@ public class GlobalAdvice {
             return current.get(auth);
         } catch (IllegalStateException e) {
             return null;
+        }
+    }
+
+    /** ultime offerte gestite dall'utente (numero scelto nelle Preferenze, predefinito 5), per il menu laterale */
+    @ModelAttribute("recentOffers")
+    public java.util.List<it.cpqia.service.OfferService.RecentOffer> recentOffers(Authentication auth) {
+        AppUser u = me(auth);
+        if (u == null) {
+            return java.util.List.of();
+        }
+        try {
+            int n = preferences.recentCount(u.id());                 // preferenza dell'utente: 0 = elenco nascosto
+            return n <= 0 ? java.util.List.of() : offerService.recentOffers(u, n);
+        } catch (RuntimeException e) {
+            return java.util.List.of();                          // il menu non deve mai impedire di aprire la pagina
         }
     }
 

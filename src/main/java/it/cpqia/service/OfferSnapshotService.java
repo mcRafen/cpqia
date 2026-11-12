@@ -147,7 +147,8 @@ public class OfferSnapshotService {
             put(out, P, "Disco", s(o.get("power_disk")));
             put(out, P, "Numero dischi", s(o.get("power_disk_count")));
             put(out, P, "Utenti IBM i", Boolean.TRUE.equals(o.get("power_ibmi_unlimited")) ? "ILLIMITATI" : s(o.get("power_ibmi_users")));
-            put(out, P, "LTO8", yn(o.get("power_lto8")));
+            put(out, P, "LTO8 TAPE", yn(o.get("power_lto8")));
+            put(out, P, "TS4300 - TAPE LIBRARY", yn(o.get("power_ts4300")));
             put(out, P, "Ethernet 10G", yn(o.get("power_eth10")));
             put(out, P, "Cavo", s(o.get("power_cable")));
             put(out, P, "Soluzione HA/DR", s(o.get("power_hadr_solution")));
@@ -157,8 +158,8 @@ public class OfferSnapshotService {
             put(out, P, "Riferimenti Power", s(o.get("power_transfer_ref")).replace("|", " | "));
             put(out, P, "Edizione", s(o.get("power_edition")));
             put(out, P, "Sistema operativo", s(o.get("power_os")));
-            for (Map<String, Object> m : jdbc.sql("select months, kind, list_price, net_price from offer_power_maint where offer_id = :o order by months, kind desc").param("o", id).query().listOfRows()) {
-                String k = "Manutenzione " + m.get("months") + " mesi – " + ("LTO8".equals(m.get("kind")) ? "LTO8" : "Power");
+            for (Map<String, Object> m : jdbc.sql("select months, kind, list_price, net_price from offer_power_maint where offer_id = :o order by months, case kind when 'POWER' then 0 when 'LTO8' then 1 else 2 end").param("o", id).query().listOfRows()) {
+                String k = "Manutenzione " + m.get("months") + " mesi – " + ("LTO8".equals(m.get("kind")) ? "LTO8" : "TS4300".equals(m.get("kind")) ? "TS4300" : "Power");
                 put(out, P, k + " (listino)", money(m.get("list_price")));
                 put(out, P, k + " (netto scontato)", money(m.get("net_price")));
             }

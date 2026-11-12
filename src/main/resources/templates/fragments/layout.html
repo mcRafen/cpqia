@@ -27,13 +27,62 @@
         if (meta('ui-theme')) ls('cpqia.theme', meta('ui-theme'));
         if (meta('ui-palette')) ls('cpqia.palette', meta('ui-palette'));
         function pref() { return ls('cpqia.theme') || 'system'; }
-        function palette() { var v = ls('cpqia.palette'); return v === 'viola' || v === 'foresta' || v === 'terra' ? v : 'teal'; }
+        function palette() { var v = ls('cpqia.palette'); return v === 'viola' || v === 'foresta' || v === 'terra' || v === 'vader' || v === 'christmas' ? v : 'teal'; }
+        /** palette Christmas: fiocchi di neve e stelle dorate che cadono sopra la pagina (canvas che non intercetta i clic; fermo con «riduci animazioni») */
+        var snowCv = null, snowRaf = 0, flakes = [];
+        function snow(on) {
+            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (!on || reduce) {
+                if (snowRaf) { cancelAnimationFrame(snowRaf); snowRaf = 0; }
+                if (snowCv && snowCv.parentNode) snowCv.parentNode.removeChild(snowCv);
+                snowCv = null;
+                return;
+            }
+            if (snowCv) return;
+            var cv = document.createElement('canvas'), ctx = cv.getContext('2d'), W = 0, H = 0, glyphs = ['\u2744', '\u2745', '\u2746', '\u2022', '\u2726'];
+            cv.setAttribute('aria-hidden', 'true');
+            cv.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2147483000';
+            snowCv = cv;
+            (document.body || document.documentElement).appendChild(cv);
+            if (!document.body) document.addEventListener('DOMContentLoaded', function () { if (snowCv === cv) document.body.appendChild(cv); });
+            function size() { W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
+            size(); window.addEventListener('resize', size);
+            var n = Math.max(30, Math.min(90, Math.round(window.innerWidth / 18)));
+            flakes = [];
+            for (var i = 0; i < n; i++) {
+                var gold = Math.random() < 0.12;
+                flakes.push({ x: Math.random() * W, y: Math.random() * H, r: 6 + Math.random() * 12, v: 0.4 + Math.random() * 1.1, ph: Math.random() * 6.28, sw: 0.4 + Math.random() * 0.9,
+                              g: gold ? '\u2726' : glyphs[Math.floor(Math.random() * 4)], gold: gold, rot: Math.random() * 6.28, rv: (Math.random() - 0.5) * 0.02 });
+            }
+            var t = 0;
+            (function frame() {
+                if (snowCv !== cv) return;
+                t += 0.016;
+                var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                ctx.clearRect(0, 0, W, H);
+                for (var k = 0; k < flakes.length; k++) {
+                    var f = flakes[k];
+                    f.y += f.v; f.x += Math.sin(t * f.sw + f.ph) * 0.6; f.rot += f.rv;
+                    if (f.y > H + 20) { f.y = -20; f.x = Math.random() * W; }
+                    if (f.x > W + 20) f.x = -20; else if (f.x < -20) f.x = W + 20;
+                    ctx.save();
+                    ctx.translate(f.x, f.y); ctx.rotate(f.rot);
+                    ctx.font = f.r + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.globalAlpha = 0.55 + 0.4 * (f.r / 18);
+                    ctx.fillStyle = f.gold ? (dark ? '#ffd36b' : '#d9a321') : (dark ? '#ffffff' : '#7fb2e5');
+                    ctx.fillText(f.g, 0, 0);
+                    ctx.restore();
+                }
+                snowRaf = requestAnimationFrame(frame);
+            })();
+        }
         function apply() {
             var p = pref(), dark = p === 'dark' || (p === 'system' && mq && mq.matches), pal = palette(), el = document.documentElement;
             el.setAttribute('data-theme', dark ? 'dark' : 'light');
             if (pal !== 'teal') el.setAttribute('data-palette', pal); else el.removeAttribute('data-palette');
+            snow(pal === 'christmas');
             var tc = document.querySelector('meta[name=theme-color]');
-            if (tc) tc.setAttribute('content', ({ viola: ['#f2e9ff', '#0b0720'], foresta: ['#e9ebdf', '#0f1f17'], terra: ['#efe6da', '#1a120e'] }[pal] || ['#ffffff', '#101215'])[dark ? 1 : 0]);
+            if (tc) tc.setAttribute('content', ({ viola: ['#f2e9ff', '#0b0720'], foresta: ['#e9ebdf', '#0f1f17'], terra: ['#efe6da', '#1a120e'], vader: ['#f4f5f7', '#0b0c0e'], christmas: ['#f6f3ec', '#0a1a12'] }[pal] || ['#ffffff', '#101215'])[dark ? 1 : 0]);
         }
         function save(body) {
             if (!logged) return;
@@ -48,7 +97,7 @@
         window.CPQTheme = {
             get: pref, getPalette: palette,
             set: function (v) { ls('cpqia.theme', v); apply(); save({ theme: v }); },
-            setPalette: function (v) { v = v === 'viola' || v === 'foresta' || v === 'terra' ? v : 'teal'; ls('cpqia.palette', v); apply(); save({ palette: v }); }
+            setPalette: function (v) { v = v === 'viola' || v === 'foresta' || v === 'terra' || v === 'vader' || v === 'christmas' ? v : 'teal'; ls('cpqia.palette', v); apply(); save({ palette: v }); }
         };
     })();
     </script>
@@ -81,13 +130,16 @@
                     <small class="muted" th:text="${me.administrator} ? 'Administrator' : ${me.email}">email</small></span>
             </button>
             <div class="menu" id="usermenu" hidden>
-                <a th:href="@{/profile}"><svg class="ic"><use href="#i-person"/></svg>Profilo e iniziali</a>
+                <a th:href="@{/profile}"><svg class="ic"><use href="#i-person"/></svg>Profilo</a>
+                <a th:href="@{/preferences}"><svg class="ic"><use href="#i-settings"/></svg>Preferenze</a>
                 <hr>
                 <div class="palette-sec">Palette colori</div>
                 <button type="button" data-palette-set="teal" title="Laguna – verde acqua e carbone (predefinita)"><span class="sw"><i style="background:#0d3b39"></i><i style="background:#0e7f77"></i><i style="background:#3fbfb4"></i><i style="background:#d9f2ee"></i></span>Laguna<svg class="ic tick"><use href="#i-check"/></svg></button>
                 <button type="button" data-palette-set="viola" title="Ametista – viola profondo e lavanda"><span class="sw"><i style="background:#0B0720"></i><i style="background:#25134D"></i><i style="background:#6A2FC8"></i><i style="background:#9D71E8"></i><i style="background:#D1B8FF"></i><i style="background:#F2E9FF"></i></span>Ametista<svg class="ic tick"><use href="#i-check"/></svg></button>
                 <button type="button" data-palette-set="foresta" title="Foresta – verde bosco e salvia"><span class="sw"><i style="background:#0F1F17"></i><i style="background:#1E3A2E"></i><i style="background:#3E5A3F"></i><i style="background:#6B7F67"></i><i style="background:#C7CBB8"></i><i style="background:#3D4337"></i></span>Foresta<svg class="ic tick"><use href="#i-check"/></svg></button>
                 <button type="button" data-palette-set="terra" title="Terra – marrone caffè e sabbia"><span class="sw"><i style="background:#1A120E"></i><i style="background:#3A2418"></i><i style="background:#6B4A2E"></i><i style="background:#A88462"></i><i style="background:#D5C4AE"></i><i style="background:#4A4A46"></i></span>Terra<svg class="ic tick"><use href="#i-check"/></svg></button>
+                <button type="button" data-palette-set="vader" title="Darth Vader – nero antracite e blu elettrico"><span class="sw"><i style="background:#0B0C0E"></i><i style="background:#15161A"></i><i style="background:#2A2C33"></i><i style="background:#9EA3AD"></i><i style="background:#4A93FF"></i><i style="background:#006FFF"></i></span>Darth Vader<svg class="ic tick"><use href="#i-check"/></svg></button>
+                <button type="button" data-palette-set="christmas" title="Christmas – rosso Natale, verde abete e oro, con neve in movimento"><span class="sw"><i style="background:#07120C"></i><i style="background:#12452C"></i><i style="background:#1F7A3F"></i><i style="background:#B3202A"></i><i style="background:#FF6B6B"></i><i style="background:#FFD36B"></i></span>Christmas<svg class="ic tick"><use href="#i-check"/></svg></button>
                 <hr>
                 <form th:action="@{/logout}" method="post"><button type="submit"><svg class="ic"><use href="#i-logout"/></svg>Esci</button></form>
             </div>
@@ -100,6 +152,15 @@
         <a th:href="@{/trash}" th:classappend="${active == 'trash'} ? 'active'"><svg class="ic lg"><use href="#i-trash"/></svg>Cestino</a>
         <a sec:authorize="hasAuthority('P_MANAGE_CATALOG')" th:href="@{/admin/applications}" th:classappend="${active != null and T(java.util.List).of('apps','rates','power','ibmi-products','users','sedi','agents','hw-cards','geodata','lookups','grid-behavior','integrations','settings-pack').contains(active)} ? 'active'"><svg class="ic lg"><use href="#i-settings"/></svg>Impostazioni</a>
         <a sec:authorize="hasRole('ADMIN') and !hasAuthority('P_MANAGE_CATALOG')" th:href="@{/admin/users}" th:classappend="${active != null and T(java.util.List).of('apps','rates','power','ibmi-products','users','sedi','hw-cards','geodata','lookups','integrations','settings-pack').contains(active)} ? 'active'"><svg class="ic lg"><use href="#i-settings"/></svg>Impostazioni</a>
+        <th:block th:if="${recentOffers != null and !#lists.isEmpty(recentOffers)}">
+            <hr class="drawer-sep">
+            <div class="section">Ultime offerte gestite</div>
+            <div class="recent-row" th:each="r : ${recentOffers}">
+                <a class="recent" th:href="@{/offers/{id}/open(id=${r.id})}" th:title="${r.number} + ' – ' + ${r.customer}">
+                    <svg class="ic"><use href="#i-doc"/></svg><span class="rtxt"><b th:text="${r.number}">20261112.1AB</b><small th:text="${r.customer}">Cliente</small></span></a>
+                <a class="recent-dl" sec:authorize="hasAuthority('P_EXPORT_DOCX')" th:href="@{/offers/{id}/docx(id=${r.id})}" download title="Genera e scarica il Word" aria-label="Genera e scarica il Word"><svg class="ic"><use href="#i-download"/></svg></a>
+            </div>
+        </th:block>
     </nav>
 </div>
 

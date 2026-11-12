@@ -6,6 +6,7 @@ import it.cpqia.grid.GridModels.Layout;
 import it.cpqia.grid.GridSpec.ColDef;
 import it.cpqia.grid.GridSpec.Scope;
 import it.cpqia.trash.TrashService;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -250,7 +251,7 @@ public class GridService {
         if (c.required) {
             throw new IllegalArgumentException(c.label + " è obbligatorio");
         }
-        return null;
+        return c.blankNotNull ? "" : null;
     }
 
     private static void range(ColDef c, double v) {
@@ -300,9 +301,9 @@ public class GridService {
             jdbc.sql("update " + s.table + " set " + c.updateColumn + " = :v" + (s.touch == null ? "" : ", " + s.touch) + " where id = :id")
                     .param("v", v).param("id", Long.parseLong(id)).update();
         } catch (DuplicateKeyException e) {
-            throw new IllegalArgumentException(c.label + ": esiste già un record con questo valore");
+            throw new IllegalArgumentException(dbMessage(e, c.label + ": esiste già un record con questo valore"));
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalArgumentException(c.label + ": valore non accettato dal database");
+            throw new IllegalArgumentException(dbMessage(e, c.label + ": valore non accettato dal database"));
         }
         if (s.after != null) {
             s.after.run(u, Long.parseLong(id), c, v);
@@ -351,9 +352,9 @@ public class GridService {
         try {
             st.update();
         } catch (DuplicateKeyException e) {
-            throw new IllegalArgumentException("Esiste già un record con gli stessi valori");
+            throw new IllegalArgumentException(dbMessage(e, "Esiste già un record con gli stessi valori"));
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalArgumentException("Valori non accettati dal database: controllare i campi");
+            throw new IllegalArgumentException(dbMessage(e, "Valori non accettati dal database: controllare i campi"));
         }
         if (s.after != null) {
             for (Map.Entry<ColDef, Object> e : changes.entrySet()) {
@@ -412,9 +413,9 @@ public class GridService {
         try {
             newId = st.query(Long.class).single();
         } catch (DuplicateKeyException e) {
-            throw new IllegalArgumentException("Esiste già un record con questo valore");
+            throw new IllegalArgumentException(dbMessage(e, "Esiste già un record con questo valore"));
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalArgumentException("Dati non accettati dal database: controllare i campi obbligatori");
+            throw new IllegalArgumentException(dbMessage(e, "Dati non accettati dal database: controllare i campi obbligatori"));
         }
         return row(s, u, String.valueOf(newId));
     }
@@ -522,5 +523,33 @@ public class GridService {
     public void deleteLayout(String key, long id, AppUser u) {
         spec(key, u);
         jdbc.sql("delete from grid_layout where id = :id and user_id = :u and grid_key = :k").param("id", id).param("u", u.id()).param("k", key).update();
+    }
+
+    /**
+     * messaggio specifico per le violazioni note dei vincoli del database; i nomi dei campi sono tra parentesi quadre, così la scheda
+     * (grid.js) può evidenziarli. Per i vincoli non noti si riporta il dettaglio del database, se presente.
+     */
+    static String dbMessage(DataAccessException e, String fallback) {
+        Throwable t = e;
+        while (t.getCause() != null) {
+            t = t.getCause();
+        }
+        String m = t.getMessage() == null ? "" : t.getMessage();
+        if (m.contains("ux_power_model")) {
+            return "Esiste già un modello con gli stessi valori di [Tipo macchina, Modello, Tipo, Core, Montaggio]: modificare almeno uno di questi campi";
+        }
+        if (m.contains("power_model_version_check")) {
+            return "Versione non ammessa: [Versione]";
+        }
+        if (m.contains("power_model_active_complete_check")) {
+            return "Per attivare il modello servono [Tipo, Core, Montaggio, CPW, Gruppo processore]";
+        }
+        // vincolo non noto: si riporta la prima riga dell'errore del database (nome del vincolo o della colonna) per individuare il campo
+        String first = m.lines().findFirst().orElse("").replace("ERROR:", "").trim();
+        org.slf4j.LoggerFactory.getLogger(GridService.class).warn("Violazione di vincolo non mappata: {}", m);
+        if (!first.isEmpty()) {
+            return fallback + " (" + first + ")";
+        }
+        return fallback;
     }
 }
