@@ -8,6 +8,7 @@ import it.cpqia.galileo.GalileoRepository.Rule;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,7 +23,10 @@ import java.util.Set;
 public class GalileoService {
 
     /** state: D = selezionato/in comune/migrato, F = nuovo */
-    public record Selection(Long moduleId, String state) {
+    public record Selection(Long moduleId, String state, BigDecimal listPrice, BigDecimal customerPrice) {
+        public Selection(Long moduleId, String state) {
+            this(moduleId, state, null, null);
+        }
     }
 
     /** richiesta del wizard (calcolo e salvataggio) */
@@ -30,10 +34,12 @@ public class GalileoService {
                           List<Selection> selections) {
     }
 
-    public record Violation(String moduleCode, String severity, String message) {
+    /** missing = moduli da aggiungere per rispettare la dipendenza (con REQUIRES_ANY: le alternative, ne basta una) */
+    public record Violation(String moduleCode, String severity, String message, List<String> missing, boolean anyOf) {
     }
 
-    public record Calc(Result result, List<Violation> violations, boolean listinoExpired, String listinoVersion, String listinoValidUntil) {
+    /** result = calcolo sui prezzi a cliente (e' quello che entra nei totali); listResult = calcolo sui prezzi di listino (solo se ci sono prezzi modificati) */
+    public record Calc(Result result, List<Violation> violations, boolean listinoExpired, String listinoVersion, String listinoValidUntil, Result listResult) {
     }
 
     private final GalileoRepository repo;
@@ -99,13 +105,70 @@ public class GalileoService {
     public Calc calculate(Request req) {
         Profile p = repo.profile(req.profileId() == null ? -1 : req.profileId()).orElseThrow(() -> new IllegalArgumentException("Configurazione Galileo non valida"));
         Input in = toInput(p, req);
-        Result r = GalileoPricing.calculate(p, in);
+        Map<Long, BigDecimal> listOv = new HashMap<>(), custOv = new HashMap<>();
+        collectPrices(p, req, listOv, custOv);
+        Result r = GalileoPricing.calculate(withPrices(p, mergeOv(listOv, custOv)), in);              // totali sui prezzi a cliente
+        Result rl = listOv.isEmpty() && custOv.isEmpty() ? null : GalileoPricing.calculate(withPrices(p, listOv), in);
         Set<String> present = new HashSet<>(in.d());
         present.addAll(in.f());
         List<Violation> v = r.valid() ? violations(p, present) : List.of();
         Optional<GalileoRepository.Listino> l = repo.listino();
         return new Calc(r, v, l.map(GalileoRepository.Listino::expired).orElse(false), l.map(GalileoRepository.Listino::version).orElse(null),
-                l.map(x -> x.validUntil() == null ? null : x.validUntil().toString()).orElse(null));
+                l.map(x -> x.validUntil() == null ? null : x.validUntil().toString()).orElse(null), rl);
+    }
+
+    /**
+     * prezzi unitari modificati a mano dei moduli scelti: listOv = listino, custOv = a cliente (solo se indicato). Controlla che il listino
+     * (effettivo) non sia inferiore al prezzo a cliente (effettivo, uguale al listino se non indicato).
+     */
+    static void collectPrices(Profile p, Request req, Map<Long, BigDecimal> listOv, Map<Long, BigDecimal> custOv) {
+        if (req.selections() == null) {
+            return;
+        }
+        Map<Long, Mod> byId = new HashMap<>();
+        for (Mod m : p.modules()) {
+            byId.put(m.moduleId(), m);
+        }
+        for (Selection s : req.selections()) {
+            Mod m = s.moduleId() == null ? null : byId.get(s.moduleId());
+            if (m == null || (s.listPrice() == null && s.customerPrice() == null)) {
+                continue;
+            }
+            if ((s.listPrice() != null && s.listPrice().signum() < 0) || (s.customerPrice() != null && s.customerPrice().signum() < 0)) {
+                throw new IllegalArgumentException(m.code() + ": i prezzi non possono essere negativi");
+            }
+            BigDecimal list = s.listPrice() != null ? s.listPrice() : (m.price() == null ? BigDecimal.ZERO : m.price());
+            BigDecimal cust = s.customerPrice() != null ? s.customerPrice() : list;
+            if (list.compareTo(cust) < 0) {
+                throw new IllegalArgumentException(m.code() + ": il prezzo di listino non può essere inferiore a quello a cliente");
+            }
+            if (s.listPrice() != null) {
+                listOv.put(m.moduleId(), s.listPrice());
+            }
+            custOv.put(m.moduleId(), cust);
+        }
+    }
+
+    /** prezzi a cliente effettivi: quello indicato, altrimenti il listino modificato */
+    static Map<Long, BigDecimal> mergeOv(Map<Long, BigDecimal> listOv, Map<Long, BigDecimal> custOv) {
+        Map<Long, BigDecimal> m = new HashMap<>(listOv);
+        m.putAll(custOv);
+        return m;
+    }
+
+    /** copia del profilo con il prezzo dei moduli indicati sostituito (anche dove il foglio addebita il prezzo di un'altra riga) */
+    static Profile withPrices(Profile p, Map<Long, BigDecimal> ov) {
+        if (ov.isEmpty()) {
+            return p;
+        }
+        List<Mod> mods = new ArrayList<>();
+        for (Mod m : p.modules()) {
+            BigDecimal v = ov.get(m.moduleId());
+            mods.add(v == null ? m : new Mod(m.moduleId(), m.code(), m.description(), m.area(), m.flag(), m.eRule(), m.gCounted(), v, v, v, m.order()));
+        }
+        return new Profile(p.id(), p.applicationId(), p.kind(), p.label(), p.sheet(), p.cfgV9(), p.cfgV11(), p.discountPct(), p.newDiscountPct(),
+                p.v11Discount(), p.consDivisor(), p.migCarattere(), p.migVisuale(), p.migV9Flat(), p.maxUsers(), p.aggiuntaSupported(),
+                p.proRataBelowFirst(), p.maintenancePct(), p.tiers(), mods, p.reductionPct());
     }
 
     /** vincoli sui moduli presenti nella configurazione (i prerequisiti esterni al listino del mercato vengono ignorati) */
@@ -140,9 +203,10 @@ public class GalileoService {
                     List<String> missing = inList.stream().filter(x -> !present.contains(x)).toList();
                     String which = "REQUIRES_ANY".equals(r.type()) ? "almeno uno tra " + String.join(", ", inList) : String.join(", ", missing);
                     out.add(new Violation(r.moduleCode(), "WARNING", r.moduleCode() + ": verifica con il cliente se ha già " + (missing.size() > 1 || "REQUIRES_ANY".equals(r.type()) ? "i moduli " : "il modulo ") + which
-                            + " (dipendenza non vincolante)"));
+                            + " (dipendenza non vincolante)", "REQUIRES_ANY".equals(r.type()) ? inList : missing, "REQUIRES_ANY".equals(r.type())));
                 } else {
-                    out.add(new Violation(r.moduleCode(), r.severity(), r.moduleCode() + ": " + r.message()));
+                    List<String> miss = "REQUIRES_ANY".equals(r.type()) ? inList : inList.stream().filter(x -> !present.contains(x)).toList();
+                    out.add(new Violation(r.moduleCode(), r.severity(), r.moduleCode() + ": " + r.message(), miss, "REQUIRES_ANY".equals(r.type())));
                 }
             }
         }
@@ -190,16 +254,35 @@ public class GalileoService {
         for (Mod m : p.modules()) {
             byCode.put(m.code(), m);
         }
+        Map<Long, Selection> chosen = new HashMap<>();
+        if (req.selections() != null) {
+            for (Selection x : req.selections()) {
+                if (x.moduleId() != null) {
+                    chosen.put(x.moduleId(), x);
+                }
+            }
+        }
         for (String code : in.f()) {
-            jdbc.sql("insert into offer_galileo_module (offer_id, module_id, state) values (:o, :m, 'F')").param("o", offerId).param("m", byCode.get(code).moduleId()).update();
+            Mod m = byCode.get(code);
+            insertModule(offerId, m, "F", chosen.get(m.moduleId()));
         }
         for (String code : in.d()) {
             Mod m = byCode.get(code);
             if ("CB".equals(m.flag()) || "V11".equals(m.flag())) {
                 continue;                           // impliciti (configurazione base / release)
             }
-            jdbc.sql("insert into offer_galileo_module (offer_id, module_id, state) values (:o, :m, 'D')").param("o", offerId).param("m", m.moduleId()).update();
+            insertModule(offerId, m, "D", chosen.get(m.moduleId()));
         }
+    }
+
+    /** modulo della configurazione salvata, con i prezzi modificati a mano solo se diversi dal listino / dal prezzo di listino */
+    private void insertModule(long offerId, Mod m, String state, Selection sel) {
+        BigDecimal cat = m.price() == null ? BigDecimal.ZERO : m.price();
+        BigDecimal lp = sel != null && sel.listPrice() != null && sel.listPrice().compareTo(cat) != 0 ? sel.listPrice() : null;
+        BigDecimal effList = lp != null ? lp : cat;
+        BigDecimal cp = sel != null && sel.customerPrice() != null && sel.customerPrice().compareTo(effList) != 0 ? sel.customerPrice() : null;
+        jdbc.sql("insert into offer_galileo_module (offer_id, module_id, state, list_price, customer_price) values (:o, :m, :s, :lp, :cp)")
+                .param("o", offerId).param("m", m.moduleId()).param("s", state).param("lp", lp).param("cp", cp).update();
     }
 
     public Request load(long offerId) {
@@ -208,8 +291,8 @@ public class GalileoService {
         if (head.isEmpty()) {
             return null;
         }
-        List<Selection> sel = jdbc.sql("select module_id, state from offer_galileo_module where offer_id = :o order by module_id").param("o", offerId)
-                .query((rs, n) -> new Selection(rs.getLong(1), rs.getString(2))).list();
+        List<Selection> sel = jdbc.sql("select module_id, state, list_price, customer_price from offer_galileo_module where offer_id = :o order by module_id").param("o", offerId)
+                .query((rs, n) -> new Selection(rs.getLong(1), rs.getString(2), rs.getBigDecimal(3), rs.getBigDecimal(4))).list();
         Request h = head.get();
         return new Request(h.profileId(), h.release(), h.users(), h.addUsers(), h.source(), h.aggiunta(), sel);
     }

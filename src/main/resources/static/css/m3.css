@@ -1191,3 +1191,5 @@ table.mods thead th.num { text-align: right; }
 table.mods { table-layout: fixed; }
 table.mods td.mono { overflow-wrap: anywhere; white-space: normal; }
 table.mods td.num { text-align: right; }
+.gal-t { table-layout: fixed; }
+.gal-t td.mono { overflow-wrap: anywhere; }

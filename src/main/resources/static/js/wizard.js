@@ -18,7 +18,7 @@
     initials: root.dataset.initials || '',
     powerModelId: null, powerRam: '', powerDisk: '', powerLto8: false, powerTs4300: false, powerEth10: false, powerUsers: '', powerUnlimited: false, powerCable: '', powerTransfer: 'NO', powerTransferRef: '', powerEdition: 'SOLUTION', powerOs: '7.5', powerMaint: '36', powerMaintList: [36], powerMaintAmt: {}, powerList: '', powerNet: '', powerDisks: '2', powerProducts: {}, ibmiProducts: [], powerModels: [],
     optRfq: false, svcGroups: [], profileEdits: {}, servicesMode: 'NONE', rfqEditGroups: new Set(), optDays: true, appTotalsMode: 'NO', rfqSheetTotal: null, optPower: false, optSmitech: false, optDept: false, optGalileo: false, galileoId: null,
-    gal: { profileId: null, release: '', users: '0', addUsers: '', source: 0, aggiunta: false, sel: {}, calc: null },
+    gal: { profileId: null, release: '', users: '0', addUsers: '', source: 0, aggiunta: false, sel: {}, price: {}, calc: null },
     customer: null, title: '', contactRef: '', discountPct: 0, optMaint: false, optServices: false, optSummary: false,
     xSel: { services: new Set(), options: {} },
     accountTravelRateId: null, activities: [], actDiscount: 0, actUntil: '', actDetail: false, hoursDetail: false, maintOnNet: true, profiles: [],
@@ -113,7 +113,7 @@
         S.pwOther = S.powerKind === 'HADR' && rq.powerCbu ? cbuSlotFromRequest(rq.powerCbu) : pwFresh();      // scheda «Power CBU» (HA/DR)
         if (rq.galileo) {
           const g = rq.galileo; S.gal = { profileId: g.profileId, release: g.release || 'V9', users: g.users || '', addUsers: g.addUsers || '', source: g.source || 0, aggiunta: !!g.aggiunta, sel: {}, calc: null };
-          (g.selections || []).forEach((x) => { S.gal.sel[x.moduleId] = x.state; });
+          (g.selections || []).forEach((x) => { S.gal.sel[x.moduleId] = x.state; if (x.listPrice != null || x.customerPrice != null) S.gal.price[x.moduleId] = { list: x.listPrice == null ? null : Number(x.listPrice), cust: x.customerPrice == null ? null : Number(x.customerPrice) }; });
         }
         S.actDiscount = rq.activityDiscountPct || 0; S.actUntil = rq.activityDiscountUntil || ''; S.actDetail = !!rq.optActivityDetail; S.hoursDetail = !!rq.optHoursDetail; S.maintOnNet = rq.maintOnNet !== false;
         S.activities = (rq.activities || []).map((a) => ({ appId: a.applicationId, desc: a.description, profileId: a.profileId, profileName: a.profileName, hours: a.hours, rate: a.rate, rfq: !!a.rfqImport, group: a.rfqGroup || '', days: a.days }));
@@ -588,14 +588,15 @@
     renderPower(); syncServicesUi(); renderApps(); scheduleCalc();
     return true;
   }
-  const GAL_AGG_CODE = 'CRM_JGAL_MODULI';            // applicazione «AGGIUNTA MODULI»: compare in fondo all'elenco come «MODULI AGGIUNTIVI»
+  const GAL_AGG_CODE = 'CRM_JGAL_MODULI';            // applicazione «AGGIUNTA MODULI»: compare in testa all'elenco come «MODULI AGGIUNTIVI», seguita dal separatore
   const galAppName = (a) => (a && a.code === GAL_AGG_CODE ? 'MODULI AGGIUNTIVI' : (a ? a.name : ''));
   function renderGalileo() {
     const list = catalog.filter((a) => a.family === GALILEO);
     const opt = (a) => '<option value="' + a.id + '"' + (S.galileoId === a.id ? ' selected' : '') + '>' + esc(galAppName(a)) + '</option>';
     const agg = list.filter((a) => a.code === GAL_AGG_CODE);
-    $('#sel-galileo').innerHTML = '<option value="">— seleziona —</option>' + list.filter((a) => a.code !== GAL_AGG_CODE).map(opt).join('') +
-      (agg.length ? '<option value="" disabled>──────────</option>' + agg.map(opt).join('') : '');
+    const rest = list.filter((a) => a.code !== GAL_AGG_CODE);
+    $('#sel-galileo').innerHTML = '<option value="">— seleziona —</option>' + agg.map(opt).join('') +
+      (agg.length && rest.length ? '<option value="" disabled>──────────</option>' : '') + rest.map(opt).join('');
   }
 
   // ---------------------------------------------------------------- IBM Power System (elemento + pagina di configurazione)
@@ -1310,8 +1311,8 @@
     return { cat: cat, list: list, cust: mp.cust == null ? list : mp.cust, listEdited: mp.list != null, custEdited: mp.cust != null };
   }
   /** larghezze fisse: Listino e Importo a cliente stanno sempre nella stessa posizione in tutte le tabelle moduli */
-  const MOD_COLS = '<colgroup><col style="width:40px"><col style="width:170px"><col><col style="width:290px"><col style="width:130px"><col style="width:86px"></colgroup>';
-  const MOD_HEAD = MOD_COLS + '<thead><tr><th></th><th>Codice</th><th>Modulo</th><th class="num">Listino</th><th class="num">Importo a cliente</th><th>Q.tà</th></tr></thead>';
+  const MOD_COLS = '<colgroup><col style="width:40px"><col style="width:170px"><col><col style="width:290px"><col style="width:130px"></colgroup>';
+  const MOD_HEAD = MOD_COLS + '<thead><tr><th></th><th>Codice</th><th>Modulo</th><th class="num">Listino</th><th class="num">Importo a cliente</th></tr></thead>';
   function modRow(a, line, m) {
     const on = !!(line && line.modules[m.id] > 0);
     const mode = line ? line.modeCode : (a.modes.find((x) => x.preferred) || a.modes[0] || {}).code;
@@ -1323,14 +1324,13 @@
       '" aria-label="' + label + ' ' + esc(m.code) + '" title="' + (edited ? 'Modificato a mano: svuota il campo per tornare al valore di default' : 'Modificabile') + '" style="width:104px;height:32px;text-align:right;border:1px solid var(--outline);border-radius:6px;padding:0 8px;font:inherit;background:var(--surface);color:var(--on-surface)">';
     const listCell = m.included ? '<span class="chip ok">incluso</span>' : (editable ? inp('mod-list', pr.list, pr.listEdited, 'Listino') : CPQ.eur(pr.list)) + onetime + ' ' + kind;
     const custCell = m.included ? '' : (editable ? inp('mod-cust', pr.cust, pr.custEdited, 'Importo a cliente') : CPQ.eur(pr.list));
-    const qty = m.qtyEnabled && on ? '<input type="number" min="1" class="mod-qty qty" data-app="' + a.id + '" data-mod="' + m.id + '" value="' + line.modules[m.id] + '" style="width:64px;height:32px;border:1px solid var(--outline);border-radius:6px;padding:0 6px"' + '>' : '';
     const rules = (m.rules || []).map((r) => ruleChip(m, r, on)).join('');
     return '<tr class="' + (on ? 'on' : '') + (m.included ? ' dis' : '') + '"><td style="width:34px"><label class="check"><input type="checkbox" class="mod-check" data-app="' + a.id + '" data-mod="' + m.id + '"' +
       (on || m.included ? ' checked' : '') + (m.included ? ' disabled' : '') + ' aria-label="' + esc(m.code) + '"></label></td>' +
       '<td class="mono nowrap">' + esc(m.code) + '</td><td>' + esc(m.description) + (m.exclGroup ? ' <span class="chip" title="Alternativo agli altri moduli dello stesso gruppo">alternativo</span>' : '') +
       (m.note && !m.rules.length ? '<div class="hint">' + esc(m.note.length > 160 ? m.note.slice(0, 158) + '…' : m.note) + '</div>' : '') +
       (rules ? '<div class="rules">' + rules + '</div>' : '') + '</td>' +
-      '<td class="num pr nowrap">' + listCell + '</td><td class="num pr nowrap">' + custCell + '</td><td style="width:80px">' + qty + '</td></tr>';
+      '<td class="num pr nowrap">' + listCell + '</td><td class="num pr nowrap">' + custCell + '</td></tr>';
   }
 
   /** l'applicazione ha una progressione delle licenze per scaglioni (gruppi di prezzo con piu' fasce; sono esclusi i gruppi lineari «per unita'») */
@@ -1404,11 +1404,10 @@
   function appDetail(a, line) {
     const mode = line ? line.modeCode : (a.modes.find((x) => x.preferred) || a.modes[0] || {}).code;
     let h = '<div class="detail-inner">';
-    if (!line) h += '<div class="alert info" style="margin-bottom:10px"><svg class="ic"><use href="#i-info"/></svg><span>Spuntando un modulo l\'applicazione viene aggiunta automaticamente all\'offerta.</span></div>';
     if (a.notes) h += '<div class="hint" style="margin-bottom:8px">' + esc(a.notes) + '</div>';
     const byGroup = [];
-    // Dipartimentali: niente titolo e niente riga delle fasce per il gruppo «Moduli per utente» (i moduli restano)
-    const hideGroup = (g) => /^moduli per utente$/i.test(String(g.label || '').trim());
+    // Dipartimentali: niente titolo e niente riga delle fasce per i gruppi «Moduli per utente» e «Collegamento macchine» (i moduli restano)
+    const hideGroup = (g) => /^(moduli per utente|collegamento macchine)$/i.test(String(g.label || '').trim());
     a.groups.forEach((g) => {
       const mods = a.modules.filter((m) => m.groupId === g.id && m.section !== 'LINK');
       if (mods.length) byGroup.push({ label: hideGroup(g) ? '' : g.label + ' – il prezzo è moltiplicato dal numero di ' + ((a.drivers.find((d) => d.id === g.driverId) || {}).unitLabel || 'utenti'), mods: mods });
@@ -2540,7 +2539,7 @@
   const galDate = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || ''); };
 
   function galReset() {
-    S.gal = { profileId: null, release: '', users: '0', addUsers: '', source: 0, aggiunta: false, sel: {}, calc: null };
+    S.gal = { profileId: null, release: '', users: '0', addUsers: '', source: 0, aggiunta: false, sel: {}, price: {}, calc: null };
     G.profile = null; G.rules = [];
   }
 
@@ -2549,7 +2548,6 @@
     const m = galMarket(); if (!m) return;
     $('#gal-market').textContent = m.code === GAL_AGG_CODE ? 'MODULI AGGIUNTIVI' : m.name;
     const l = G.info.listino;
-    $('#gal-listino').textContent = l ? 'Listino ' + l.name + ' ' + l.version + ' – valido fino al ' + galDate(l.validUntil) : '';
     const ex = $('#gal-expired'); ex.hidden = !G.info.expired;
     if (G.info.expired) ex.querySelector('span').textContent = 'Il listino è scaduto il ' + galDate(l.validUntil) + ': verifica con l\'amministrazione prima di emettere l\'offerta.';
     if (!S.gal.profileId || !m.profiles.some((p) => p.id === S.gal.profileId)) {
@@ -2572,8 +2570,8 @@
         const byCode = {}; old.modules.forEach((m) => { byCode[m.moduleId] = m.code; });
         const ns = {};
         G.profile.modules.forEach((m) => { const was = Object.keys(oldSel).find((k) => byCode[k] === m.code); if (was && oldSel[was]) ns[m.moduleId] = oldSel[was]; });
-        S.gal.sel = ns;
-      } else if (!keep) S.gal.sel = {};
+        S.gal.sel = ns; S.gal.price = {};
+      } else if (!keep) { S.gal.sel = {}; S.gal.price = {}; }
       else { const valid = new Set(G.profile.modules.map((m) => String(m.moduleId))); Object.keys(S.gal.sel).forEach((k) => { if (!valid.has(k)) delete S.gal.sel[k]; }); }
       if (!G.profile.cfgV11) S.gal.release = 'V9';
       if (G.profile.kind !== 'MIG' && G.profile.kind !== 'MIGCONS') { S.gal.source = 0; S.gal.addUsers = ''; }
@@ -2585,7 +2583,23 @@
     } catch (e) { G.loading = false; toast(e.message, true); }
   }
 
+  /** prezzi del modulo: listino (catalogo o modificato) e a cliente (uguale al listino finche' non modificato) */
+  function galPrices(m) {
+    const o = (S.gal.price || {})[m.moduleId] || {}, cat = Number(m.price) || 0;
+    const list = o.list == null ? cat : o.list;
+    return { cat: cat, list: list, cust: o.cust == null ? list : o.cust, listEdited: o.list != null, custEdited: o.cust != null };
+  }
+  const galEditable = (m) => !!G.profile && G.profile.kind !== 'IMMOB' && m.flag !== 'CB' && m.flag !== 'V11' && !!S.gal.sel[m.moduleId];
   const galState = (m) => S.gal.sel[m.moduleId] || (m.flag === 'CB' ? 'D' : '');
+
+  function galPriceCells(m) {
+    if (m.price == null) return '<td class="num pr nowrap"></td><td class="num pr nowrap"></td>';
+    const pr = galPrices(m);
+    if (!galEditable(m)) return '<td class="num pr nowrap" style="width:130px">' + CPQ.eur(pr.cat) + '</td><td class="num pr nowrap" style="width:130px"></td>';
+    const inp = (cls, v, ed, lbl) => '<input type="text" inputmode="decimal" class="mod-amt gal-amt ' + cls + (ed ? ' edited' : '') + '" data-gp="' + m.moduleId + '" value="' + esc(CPQ.num(v, 2)) + '" aria-label="' + lbl + ' ' + esc(m.code) +
+      '" title="' + (ed ? 'Modificato a mano: svuota il campo per tornare al valore di default' : 'Modificabile') + '" style="width:104px;height:32px;text-align:right;border:1px solid var(--outline);border-radius:6px;padding:0 8px;font:inherit;background:var(--surface);color:var(--on-surface)">';
+    return '<td class="num pr nowrap" style="width:130px">' + inp('gal-list', pr.list, pr.listEdited, 'Listino') + '</td><td class="num pr nowrap" style="width:130px">' + inp('gal-cust', pr.cust, pr.custEdited, 'Prezzo a cliente') + '</td>';
+  }
 
   function galStateCtl(m) {
     const kind = G.profile.kind, st = galState(m);
@@ -2648,7 +2662,7 @@
       if (!(a in idx)) { idx[a] = groups.length; groups.push({ area: a, mods: [] }); }
       groups[idx[a]].mods.push(m);
     });
-    const violSev = {}; ((S.gal.calc && S.gal.calc.violations) || []).forEach((v) => { violSev[v.moduleCode] = v.severity; });
+    const violSev = {}, violMiss = {}; ((S.gal.calc && S.gal.calc.violations) || []).forEach((v) => { violSev[v.moduleCode] = v.severity; violMiss[v.moduleCode] = (violMiss[v.moduleCode] || []).concat(v.anyOf && v.missing && v.missing.length > 1 ? [v.missing.join(' oppure ')] : (v.missing || [])); });
     const viol = new Set(Object.keys(violSev));
     $('#gal-mods').innerHTML = groups.map((g) => {
       const rows = g.mods.filter((m) => (!q || (m.code + ' ' + m.description).toLowerCase().includes(q)) && (!only || galState(m)));
@@ -2656,12 +2670,12 @@
       const closed = G.collapsed.has(g.area) && !q;
       const nsel = g.mods.filter((m) => galState(m) && m.flag !== 'CB' && m.flag !== 'V11').length;
       return '<div class="gal-area" data-area="' + esc(g.area) + '"><span>' + (closed ? '▸' : '▾') + '</span><span class="grow">' + esc(g.area) + '</span><span class="cnt">' + g.mods.length + ' moduli' + (nsel ? ' · ' + nsel + ' selezionati' : '') + '</span></div>' +
-        (closed ? '' : '<div class="tablewrap"><table class="t gal-t"><tbody>' + rows.map((m) => {
+        (closed ? '' : '<div class="tablewrap"><table class="t gal-t"><colgroup><col style="width:150px"><col style="width:100px"><col><col style="width:130px"><col style="width:130px"></colgroup><thead><tr><th></th><th>Codice</th><th>Descrizione</th><th class="num" style="width:130px">Listino</th><th class="num" style="width:130px">Prezzo a cliente</th></tr></thead><tbody>' + rows.map((m) => {
           const st = galState(m);
           return '<tr data-m="' + m.moduleId + '" class="' + (st && m.flag !== 'CB' && m.flag !== 'V11' ? 'sel' : '') + '"><td style="width:150px">' + galStateCtl(m) + '</td><td class="mono"><b>' + esc(m.code) + '</b></td><td>' + esc(m.description) +
-            (m.flag === 'CB' ? ' <span class="chip">base</span>' : '') + (viol.has(m.code) ? (violSev[m.code] === 'ERROR' ? ' <span class="chip err">vincolo non rispettato</span>' : ' <span class="chip warn" title="Dipendenza non vincolante: verifica con il cliente">dipendenza da verificare</span>') : '') +
+            (m.flag === 'CB' ? ' <span class="chip">base</span>' : '') + (viol.has(m.code) ? (violSev[m.code] === 'ERROR' ? ' <span class="chip err">vincolo non rispettato</span>' : ' <span class="chip warn" title="Dipendenza non vincolante: verifica con il cliente">dipendenza da verificare</span>' + ((violMiss[m.code] || []).length ? ' <span class="chip warn" title="Moduli da aggiungere per rispettare la dipendenza">richiede: ' + esc(violMiss[m.code].join(', ')) + '</span>' : '')) : '') +
             (galNoCharge(m) ? ' <span class="chip warn" title="Nel foglio Excel del listino questo modulo non ha la formula di addebito">non addebitato</span>' : '') + '</td>' +
-            '<td class="num pr nowrap">' + (m.price == null ? '' : CPQ.eur(m.price)) + '</td></tr>';
+            galPriceCells(m) + '</tr>';
         }).join('') + '</tbody></table></div>');
     }).join('') || '<div class="muted">Nessun modulo.</div>';
   }
@@ -2669,7 +2683,7 @@
   function galBody() {
     const g = S.gal;
     return { profileId: g.profileId, release: g.release, users: Number(g.users) || 0, addUsers: Number(g.addUsers) || 0, source: Number(g.source) || 0, aggiunta: !!g.aggiunta,
-      selections: Object.keys(g.sel).filter((k) => g.sel[k]).map((k) => ({ moduleId: Number(k), state: g.sel[k] })) };
+      selections: Object.keys(g.sel).filter((k) => g.sel[k]).map((k) => { const pr = (g.price || {})[k] || {}; return { moduleId: Number(k), state: g.sel[k], listPrice: pr.list == null ? null : pr.list, customerPrice: pr.cust == null ? null : pr.cust }; }) };
   }
 
   function scheduleGalCalc() {
@@ -2701,7 +2715,8 @@
     else if (r && !r.valid && need) inv.querySelector('span').textContent = r.message || 'Configurazione non valida';
     $('#gal-t-list').textContent = ok ? CPQ.eur(r.list) : '€ 0,00';
     $('#gal-t-maint').textContent = ok ? CPQ.eur(r.maintenance) : '€ 0,00';
-    $('#gal-t-note').textContent = ok ? galProfileLabel() : '';
+    const rl = c && c.listResult && c.listResult.valid ? c.listResult : null;
+    $('#gal-t-note').textContent = ok ? galProfileLabel() + (rl && Number(rl.list) !== Number(r.list) ? ' · listino ' + CPQ.eur(rl.list) + ' (importo a cliente ' + CPQ.eur(r.list) + ')' : '') : '';
     $('#gal-lines').innerHTML = ok ? r.lines.map((l) => '<tr class="gal-lines"><td>' + esc(l.label) + '</td><td class="num pr">' + CPQ.eur(l.amount) + '</td></tr>').join('') : '';
     $('#gal-violations').innerHTML = ((c && c.violations) || []).map((v) => '<div class="gal-viol ' + (v.severity === 'ERROR' ? 'err' : 'warn') + '">' + esc(v.message) + '</div>').join('');
   }
@@ -2737,12 +2752,27 @@
       const k = a.dataset.area; if (G.collapsed.has(k)) G.collapsed.delete(k); else G.collapsed.add(k);
       galRenderMods();
     });
+    // listino / prezzo a cliente di un modulo selezionato (campo vuoto = valore di default); il listino non puo' essere inferiore al prezzo a cliente
     box.addEventListener('change', (e) => {
+      const t = e.target.closest('.gal-amt'); if (!t) return;
+      const id = t.dataset.gp, m = G.profile.modules.find((x) => String(x.moduleId) === id); if (!m) return;
+      const isList = t.classList.contains('gal-list'), raw = String(t.value || '').trim(), v = raw === '' ? null : C.parseMoney(raw);
+      const cur = (S.gal.price || (S.gal.price = {}))[id] || { list: null, cust: null };
+      const next = { list: cur.list, cust: cur.cust };
+      if (raw !== '' && (v == null || v < 0)) { CPQ.fieldError(t, 'Indica un importo valido (non negativo)'); galRenderMods(); return; }
+      if (isList) next.list = v == null || v === (Number(m.price) || 0) ? null : v; else next.cust = v;
+      const list = next.list == null ? (Number(m.price) || 0) : next.list, cust = next.cust == null ? list : next.cust;
+      if (list < cust) { CPQ.fieldError(t, m.code + ': il prezzo di listino non può essere inferiore a quello a cliente'); galRenderMods(); return; }
+      if (next.list == null && next.cust == null) delete S.gal.price[id]; else S.gal.price[id] = next;
+      CPQ.markDirty('page', root); galRenderMods(); scheduleGalCalc();
+    });
+    box.addEventListener('change', (e) => {
+      if (e.target.closest('.gal-amt')) return;
       const el = e.target.closest('[data-m]'); if (!el) return;
       const id = el.dataset.m, m = G.profile.modules.find((x) => String(x.moduleId) === id); if (!m) return;
       let v = el.classList.contains('gal-chk') ? (el.checked ? 'D' : '') : el.value;
       if (m.flag === 'CB' && v === 'D') v = '';             // moduli base: «in comune» e' lo stato predefinito
-      if (v) S.gal.sel[id] = v; else delete S.gal.sel[id];
+      if (v) S.gal.sel[id] = v; else { delete S.gal.sel[id]; if (S.gal.price) delete S.gal.price[id]; }
       const tr = el.closest('tr'); if (tr) tr.classList.toggle('sel', !!galState(m) && m.flag !== 'CB');
       scheduleGalCalc();
     });
