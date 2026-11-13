@@ -1188,3 +1188,6 @@ table.apps .tiers-info { position: absolute; right: 8px; top: 50%; transform: tr
 table.mods thead th { padding: 6px 10px; text-align: left; font-size: 12px; font-weight: 500; color: var(--on-surface-var); border-bottom: 1px solid var(--outline-var); background: transparent; }
 table.mods thead th.num { text-align: right; }
 .mod-amt.edited { border-color: var(--primary) !important; box-shadow: inset 0 0 0 1px var(--primary); }
+table.mods { table-layout: fixed; }
+table.mods td.mono { overflow-wrap: anywhere; white-space: normal; }
+table.mods td.num { text-align: right; }

@@ -1058,10 +1058,13 @@
         }
       });
       // Dipartimentali: utenti partono da 0; con un solo tipo va indicato, con piu' tipi (es. utenti e macchine) basta almeno uno dei due
-      if (ap.family !== 'SMITECH' && ap.drivers.length && perUserSelected(ap, l) && !ap.drivers.some((d) => (l.drivers[d.id] || 0) >= 1)) {
-        const d0 = ap.drivers[0];
-        const what = ap.drivers.length === 1 ? 'il numero di ' + (d0.unitLabel || d0.label || 'utenti').toLowerCase()
-          : 'almeno uno tra ' + ap.drivers.map((d) => (d.label || d.unitLabel || '').toLowerCase()).join(' e ');
+      const act = ap.family !== 'SMITECH' && ap.drivers.length && perUserSelected(ap, l) ? activeDrivers(ap, l) : [];
+      const noMac = act.find((d) => String(d.code).toUpperCase() === 'MACCHINE' && !((l.drivers[d.id] || 0) >= 1));
+      if (noMac) add(2, 'users', '#apps-body .drv-in[data-app="' + ap.id + '"][data-drv="' + noMac.id + '"]', ap.name + ': indica il numero di macchine da collegare', () => { expanded.add(ap.id); });
+      else if (act.length && !act.some((d) => (l.drivers[d.id] || 0) >= 1)) {
+        const d0 = act[0];
+        const what = act.length === 1 ? 'il numero di ' + (d0.unitLabel || d0.label || 'utenti').toLowerCase()
+          : 'almeno uno tra ' + act.map((d) => (d.label || d.unitLabel || '').toLowerCase()).join(' e ');
         add(2, 'users', '#apps-body .drv-in[data-app="' + ap.id + '"][data-drv="' + d0.id + '"]', ap.name + ': indica ' + what, () => { expanded.add(ap.id); });
       }
     });
@@ -1150,6 +1153,13 @@
   }
 
   /** vero se nella riga e' selezionato almeno un modulo con gruppo di prezzo (moduli per utente): solo allora si mostrano e si chiedono gli utenti */
+  /** grandezze da chiedere per la riga: quelle con un modulo selezionato nei loro gruppi di prezzo (es. JMES: le macchine solo con SMIJMDIN); senza gruppi restano attive */
+  function activeDrivers(a, line) {
+    return a.drivers.filter((d) => {
+      const gs = a.groups.filter((g) => g.driverId === d.id);
+      return !gs.length || gs.some((g) => a.modules.some((m) => m.groupId === g.id && m.section !== 'LINK' && !m.included && line && line.modules[m.id] > 0));
+    });
+  }
   function perUserSelected(a, line) {
     return !!line && a.modules.some((m) => m.groupId != null && m.section !== 'LINK' && !m.included && line.modules[m.id] > 0);
   }
@@ -1163,7 +1173,7 @@
 
   /** applicazioni Dipartimentali (non SMITECH) senza utenti: un solo tipo da indicare, con piu' tipi almeno uno */
   function usersMissing() {
-    return S.lines.filter((l) => { const ap = appOf(l.applicationId); return ap && ap.family !== 'SMITECH' && ap.drivers.length && perUserSelected(ap, l) && !ap.drivers.some((d) => (l.drivers[d.id] || 0) >= 1); })
+    return S.lines.filter((l) => { const ap = appOf(l.applicationId); return ap && ap.family !== 'SMITECH' && ap.drivers.length && perUserSelected(ap, l) && (!activeDrivers(ap, l).some((d) => (l.drivers[d.id] || 0) >= 1) || activeDrivers(ap, l).some((d) => String(d.code).toUpperCase() === 'MACCHINE' && !((l.drivers[d.id] || 0) >= 1))); })
       .map((l) => l.applicationId);
   }
   /** evidenzia (o toglie l'evidenza a) i campi utenti delle applicazioni ancora da compilare */
@@ -1256,7 +1266,7 @@
     const drv = !a.drivers.length ? '<span class="muted">non a utenti</span>'
       : (line && !perUserSelected(a, line)) ? '<span class="muted" title="Sono selezionati solo moduli a prezzo fisso">prezzo fisso</span>'
       : !line ? '<span class="muted">—</span>'
-      : a.drivers.map((d) => {
+      : activeDrivers(a, line).map((d) => {
         const v = line ? (line.drivers[d.id] || 0) : '';
         return '<div class="mini" style="margin-bottom:' + (a.drivers.length > 1 ? '4px' : '0') + '"><input type="number" min="0" step="1" class="drv-in" data-app="' + a.id + '" data-drv="' + d.id + '" value="' + v +
           '"' + (line ? '' : ' disabled') + ' title="' + esc(d.label) + '" aria-label="' + esc(d.label) + '"><label>' + esc(a.drivers.length > 1 ? d.label : d.unitLabel) + '</label></div>';
@@ -1299,7 +1309,9 @@
     const list = mp.list == null ? cat : mp.list;
     return { cat: cat, list: list, cust: mp.cust == null ? list : mp.cust, listEdited: mp.list != null, custEdited: mp.cust != null };
   }
-  const MOD_HEAD = '<thead><tr><th></th><th>Codice</th><th>Modulo</th><th class="num">Listino</th><th class="num">Importo a cliente</th><th>Q.tà</th></tr></thead>';
+  /** larghezze fisse: Listino e Importo a cliente stanno sempre nella stessa posizione in tutte le tabelle moduli */
+  const MOD_COLS = '<colgroup><col style="width:40px"><col style="width:170px"><col><col style="width:290px"><col style="width:130px"><col style="width:86px"></colgroup>';
+  const MOD_HEAD = MOD_COLS + '<thead><tr><th></th><th>Codice</th><th>Modulo</th><th class="num">Listino</th><th class="num">Importo a cliente</th><th>Q.tà</th></tr></thead>';
   function modRow(a, line, m) {
     const on = !!(line && line.modules[m.id] > 0);
     const mode = line ? line.modeCode : (a.modes.find((x) => x.preferred) || a.modes[0] || {}).code;
@@ -1526,10 +1538,30 @@
     return { tl: tl, tm: tm, d: d, nl: nl, nm: nm, margin: r2(nl + nm) };
   }
 
+  /** testo del pop-up sull'importo «Licenze» di una riga: voci che compongono il totale (moduli a prezzo fisso, gruppi per utenti/fasce, una tantum) */
+  function licenseCalcText(appId, lc) {
+    const a = appOf(appId), line = lineOf(appId);
+    const rows = (lc.rows || []).filter((r) => !/\(canone (annuo|mensile)\)/.test(r.label));          // i canoni non fanno parte delle licenze
+    if (!rows.length) return 'Nessun modulo a licenza selezionato';
+    const mode = a && line && a.modes ? (a.modes.find((x) => x.code === line.modeCode) || {}) : {};
+    const out = ['Calcolo delle licenze' + (mode.label || mode.code ? ' – modalità ' + (mode.label || mode.code) : '') + ':'];
+    rows.forEach((r) => {
+      const code = String(r.label).split(' ')[0], m = a && a.modules.find((x) => x.code === code), mp = m && line && line.modPrice && line.modPrice[m.id];
+      let note = '';
+      if (mp && mp.list != null) note += ' [listino modificato ' + CPQ.eur(mp.list) + ']';
+      if (mp && mp.cust != null) note += ' [importo a cliente ' + CPQ.eur(mp.cust) + ']';
+      out.push('• ' + r.label + note + ': ' + CPQ.eur(r.amount));
+    });
+    out.push('Totale licenze: ' + CPQ.eur(lc.licenseTotal));
+    out.push('(somma dei prezzi dei moduli, con gli scaglioni per utenti dei gruppi di prezzo; calcolata sull\'importo a cliente)');
+    return out.join('\n');
+  }
+
   function updateAmounts() {
     $$('[data-amt]').forEach((td) => {
       const [kind, id] = td.dataset.amt.split(':'); const lc = lineCalc(Number(id));
       td.textContent = lc ? CPQ.eur(kind === 'lic' ? lc.licenseTotal : lc.maintenance) : '';
+      if (kind === 'lic') td.title = lc ? licenseCalcText(Number(id), lc) : '';          // fermando il mouse sull'importo compare il dettaglio del calcolo
     });
     // «Totali Dipartimentali»: solo le applicazioni a catalogo (senza Galileo)
     const dl = calc ? calc.totalLicense : 0, dm = calc ? calc.totalMaintenance : 0;

@@ -116,6 +116,11 @@ public class PricingService {
             } else {
                 base = groupSums.getOrDefault(g.id(), BigDecimal.ZERO);
             }
+            // gruppo a base fissa (es. JMES «Collegamento macchine»): si applica solo se e' selezionato un suo modulo (se il gruppo ha moduli)
+            if (g.fixedBase() != null && !g.fixedBase().isEmpty() && !groupSums.containsKey(g.id())
+                    && app.modules().stream().anyMatch(x -> x.groupId() != null && x.groupId().equals(g.id()))) {
+                continue;
+            }
             boolean step = "STEP".equals(g.baseMode());
             if (step && !groupSums.containsKey(g.id())) {
                 continue;                                              // importo per fascia: solo se e' selezionato un modulo del gruppo

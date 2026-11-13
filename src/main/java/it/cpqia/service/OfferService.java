@@ -90,6 +90,32 @@ public class OfferService {
                 .param("c", customerCode).query((rs, n) -> new it.cpqia.web.OfferController.HwRef(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4))).list();
     }
 
+    /** grandezze (utenti, macchine, ...) da chiedere: quelle i cui gruppi di prezzo hanno un modulo selezionato; senza gruppi la grandezza resta attiva */
+    public static List<Driver> activeDrivers(App app, LineRequest l) {
+        List<Driver> out = new ArrayList<>();
+        for (Driver d : app.drivers()) {
+            boolean hasGroup = false, picked = false;
+            for (var g : app.groups()) {
+                if (!java.util.Objects.equals(g.driverId(), d.id())) {
+                    continue;
+                }
+                hasGroup = true;
+                if (l.modules() != null) {
+                    for (ModuleQty mq : l.modules()) {
+                        Module m = mq.moduleId() == null || mq.qty() == null || mq.qty() <= 0 ? null : app.module(mq.moduleId());
+                        if (m != null && m.groupId() != null && m.groupId().equals(g.id()) && !"LINK".equals(m.section()) && !m.included()) {
+                            picked = true;
+                        }
+                    }
+                }
+            }
+            if (!hasGroup || picked) {
+                out.add(d);
+            }
+        }
+        return out;
+    }
+
     /** vero se nella riga e' selezionato almeno un modulo con gruppo di prezzo (moltiplicato dagli utenti): solo allora si chiedono gli utenti */
     public static boolean perUserSelected(App app, LineRequest l) {
         if (l.modules() == null) {
@@ -264,22 +290,29 @@ public class OfferService {
                 if (app == null || "SMITECH".equalsIgnoreCase(app.family()) || "SMITECH".equalsIgnoreCase(app.code())) {
                     continue;
                 }
-                // un solo tipo di utenti: obbligatorio; piu' tipi: almeno uno dei due. Solo se e' selezionato un modulo per utente (prezzo fisso: niente utenti)
-                if (app.drivers().isEmpty() || !perUserSelected(app, l)) {
+                // grandezze attive = quelle dei gruppi di prezzo con almeno un modulo selezionato (es. JMES: macchine solo con SMIJMDIN)
+                List<Driver> active = activeDrivers(app, l);
+                if (app.drivers().isEmpty() || !perUserSelected(app, l) || active.isEmpty()) {
                     continue;
                 }
+                for (Driver d : active) {
+                    Integer q = l.drivers() == null ? null : l.drivers().get(d.id());
+                    if ("MACCHINE".equalsIgnoreCase(d.code()) && (q == null || q < 1)) {
+                        throw new IllegalArgumentException(app.name() + ": indica il numero di macchine da collegare (modulo selezionato: Digital industry)");
+                    }
+                }
                 boolean any = false;
-                for (Driver d : app.drivers()) {
+                for (Driver d : active) {
                     Integer q = l.drivers() == null ? null : l.drivers().get(d.id());
                     if (q != null && q >= 1) {
                         any = true;
                     }
                 }
                 if (!any) {
-                    Driver d = app.drivers().get(0);
-                    throw new IllegalArgumentException(app.name() + ": indica " + (app.drivers().size() == 1
+                    Driver d = active.get(0);
+                    throw new IllegalArgumentException(app.name() + ": indica " + (active.size() == 1
                             ? "il numero di " + (d.unitLabel() == null || d.unitLabel().isBlank() ? d.label() : d.unitLabel()).toLowerCase()
-                            : "almeno uno tra " + String.join(" e ", app.drivers().stream().map(x -> x.label().toLowerCase()).toList())));
+                            : "almeno uno tra " + String.join(" e ", active.stream().map(x -> x.label().toLowerCase()).toList())));
                 }
             }
         }
